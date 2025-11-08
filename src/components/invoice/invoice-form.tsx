@@ -57,7 +57,7 @@ export function InvoiceForm() {
     return acc;
   }, { subtotal: 0, taxTotal: 0, grandTotal: 0 });
   
-  const formatCurrency = (amount: number) => new Intl.NumberFormat().format(amount);
+  const formatCurrency = (amount: number) => new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR' }).format(amount);
 
   return (
     <>
