@@ -26,7 +26,6 @@ export function InvoiceForm() {
   const { toast } = useToast();
   const [invoiceNumber, setInvoiceNumber] = useState("INV-001");
   const [invoiceDate, setInvoiceDate] = useState(new Date().toISOString().split('T')[0]);
-  const [dueDate, setDueDate] = useState(new Date(new Date().setDate(new Date().getDate() + 30)).toISOString().split('T')[0]);
   const [customerName, setCustomerName] = useState("Acme Corp");
   const [customerAddress, setCustomerAddress] = useState("123 Innovation Drive, Tech City");
 
@@ -92,10 +91,6 @@ export function InvoiceForm() {
                 <div className="grid grid-cols-2 items-center">
                     <Label htmlFor="invoiceDate">Invoice Date</Label>
                     <Input id="invoiceDate" type="date" value={invoiceDate} onChange={(e) => setInvoiceDate(e.target.value)} />
-                </div>
-                <div className="grid grid-cols-2 items-center">
-                    <Label htmlFor="dueDate">Due Date</Label>
-                    <Input id="dueDate" type="date" value={dueDate} onChange={(e) => setDueDate(e.target.value)} />
                 </div>
             </div>
           </div>
