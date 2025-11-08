@@ -2,7 +2,7 @@
 
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
-import { Download, Send, Printer } from "lucide-react";
+import { Send, Printer } from "lucide-react";
 
 export const InvoiceActions = () => {
   const { toast } = useToast();
@@ -15,10 +15,6 @@ export const InvoiceActions = () => {
     }
   };
 
-  const handleDownload = () => {
-    toast({ variant: 'destructive', title: "Feature Not Available", description: "PDF download functionality is not implemented." });
-  };
-
   const handleSend = () => {
     toast({ variant: 'destructive', title: "Feature Not Available", description: "Email functionality is not implemented." });
   };
@@ -28,10 +24,6 @@ export const InvoiceActions = () => {
       <Button variant="outline" size="sm" onClick={handlePrint}>
         <Printer />
         <span className="ml-2 hidden md:inline">Print</span>
-      </Button>
-      <Button variant="outline" size="sm" onClick={handleDownload}>
-        <Download />
-        <span className="ml-2 hidden md:inline">Download</span>
       </Button>
       <Button size="sm" onClick={handleSend}>
         <Send />
