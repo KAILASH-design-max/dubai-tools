@@ -27,7 +27,6 @@ export function InvoiceForm() {
   const [invoiceNumber, setInvoiceNumber] = useState("INV-001");
   const [invoiceDate, setInvoiceDate] = useState(new Date().toISOString().split('T')[0]);
   const [customerName, setCustomerName] = useState("Acme Corp");
-  const [customerAddress, setCustomerAddress] = useState("123 Innovation Drive, Tech City");
 
   const [lineItems, setLineItems] = useState<LineItem[]>([
     { id: 0, description: "Pro Consulting Services", quantity: 10, rate: 150, tax: 18 },
@@ -86,7 +85,6 @@ export function InvoiceForm() {
             <div className="space-y-2">
               <Label htmlFor="customerName" className="font-headline">Bill To</Label>
               <Input id="customerName" value={customerName} onChange={(e) => setCustomerName(e.target.value)} placeholder="Customer Name" />
-              <Input value={customerAddress} onChange={(e) => setCustomerAddress(e.target.value)} placeholder="Customer Address" />
             </div>
             <div className="space-y-4 text-sm">
                 
