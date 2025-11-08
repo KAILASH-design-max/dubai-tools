@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
@@ -10,8 +10,6 @@ import { Label } from '@/components/ui/label';
 import { Trash2, Plus } from 'lucide-react';
 import { InvoiceHeader } from './invoice-header';
 import { InvoiceActions } from './invoice-actions';
-import { AiSuggestionsDialog } from './ai-suggestions-dialog';
-import { getInvoiceDesignSuggestions } from '@/ai/flows/invoice-design-suggestions';
 import { useToast } from "@/hooks/use-toast";
 
 type LineItem = {
@@ -51,31 +49,6 @@ export function InvoiceForm() {
     ));
   };
   
-  const [isAiDialogOpen, setIsAiDialogOpen] = useState(false);
-  const [aiSuggestions, setAiSuggestions] = useState<string[]>([]);
-  const [isLoadingAi, setIsLoadingAi] = useState(false);
-
-  const handleGetAiSuggestions = async () => {
-    setIsAiDialogOpen(true);
-    setIsLoadingAi(true);
-    try {
-      const description = "The invoice has company details at the top, followed by customer details. Below that is a table of line items with columns for Description, Quantity, Rate, Amount, Tax %, and Total. At the bottom, it shows Subtotal, Total Tax, and Grand Total.";
-      const result = await getInvoiceDesignSuggestions({ invoiceLayoutDescription: description });
-      setAiSuggestions(result.suggestions);
-    } catch (error) {
-      console.error("Failed to get AI suggestions:", error);
-      toast({
-        variant: "destructive",
-        title: "AI Error",
-        description: "Could not fetch design suggestions. Please try again later.",
-      });
-      setIsAiDialogOpen(false);
-    } finally {
-      setIsLoadingAi(false);
-    }
-  };
-
-
   const { subtotal, taxTotal, grandTotal } = lineItems.reduce((acc, item) => {
     const amount = item.quantity * item.rate;
     const taxAmount = amount * (item.tax / 100);
@@ -100,7 +73,7 @@ export function InvoiceForm() {
         <CardContent className="p-4 sm:p-6 md:p-8">
           <div className="flex flex-col-reverse sm:flex-row justify-between items-start gap-4 mb-6">
             <InvoiceHeader />
-            <InvoiceActions onGetAiSuggestions={handleGetAiSuggestions} />
+            <InvoiceActions />
           </div>
 
           <Separator className="my-6" />
@@ -191,12 +164,6 @@ export function InvoiceForm() {
 
         </CardContent>
       </Card>
-      <AiSuggestionsDialog
-        open={isAiDialogOpen}
-        onOpenChange={setIsAiDialogOpen}
-        suggestions={aiSuggestions}
-        isLoading={isLoadingAi}
-      />
     </>
   );
 }

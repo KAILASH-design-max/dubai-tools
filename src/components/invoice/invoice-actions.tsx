@@ -2,14 +2,9 @@
 
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
-import { Download, Send, WandSparkles, Printer } from "lucide-react";
-import type { FC } from 'react';
+import { Download, Send, Printer } from "lucide-react";
 
-type InvoiceActionsProps = {
-  onGetAiSuggestions: () => void;
-};
-
-export const InvoiceActions: FC<InvoiceActionsProps> = ({ onGetAiSuggestions }) => {
+export const InvoiceActions = () => {
   const { toast } = useToast();
 
   const handlePrint = () => {
@@ -30,10 +25,6 @@ export const InvoiceActions: FC<InvoiceActionsProps> = ({ onGetAiSuggestions }) 
 
   return (
     <div className="flex flex-wrap items-center justify-end gap-2 print:hidden">
-      <Button variant="outline" size="sm" onClick={onGetAiSuggestions}>
-        <WandSparkles />
-        <span className="ml-2 hidden md:inline">AI Suggestions</span>
-      </Button>
       <Button variant="outline" size="sm" onClick={handlePrint}>
         <Printer />
         <span className="ml-2 hidden md:inline">Print</span>
