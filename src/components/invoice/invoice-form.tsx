@@ -15,12 +15,12 @@ import { useToast } from "@/hooks/use-toast";
 type LineItem = {
   id: number;
   description: string;
-  quantity: number;
+  quantity: number | string;
   rate: number;
   tax: number;
 };
 
-let nextId = 1;
+let nextId = 15;
 
 export function InvoiceForm() {
   const { toast } = useToast();
@@ -29,7 +29,22 @@ export function InvoiceForm() {
   const [customerName, setCustomerName] = useState("Acme Corp");
 
   const [lineItems, setLineItems] = useState<LineItem[]>([
-    { id: 0, description: "Pro Consulting Services", quantity: 10, rate: 150, tax: 18 },
+    { id: 0, description: 'Ancor pipe hms', quantity: 50, rate: 90, tax: 0 },
+    { id: 1, description: 'Ancor hms (0.75)', quantity: 30, rate: 65, tax: 0 },
+    { id: 2, description: 'Hms Band', quantity: 72, rate: 13, tax: 0 },
+    { id: 3, description: 'Hms band(0.75)', quantity: 12, rate: 9, tax: 0 },
+    { id: 4, description: 'Jactions', quantity: 12, rate: 15, tax: 0 },
+    { id: 5, description: 'Fan Box', quantity: 12, rate: 90, tax: 0 },
+    { id: 6, description: 'Concel Box', quantity: 43, rate: 45, tax: 0 },
+    { id: 7, description: 'Pbc Paste', quantity: 2, rate: 100, tax: 0 },
+    { id: 8, description: 'Yellow Paint', quantity: '200g', rate: 180, tax: 0 },
+    { id: 9, description: 'Brush', quantity: 1, rate: 20, tax: 0 },
+    { id: 10, description: '2-inch Tap', quantity: 1, rate: 90, tax: 0 },
+    { id: 11, description: '1-inch Tab', quantity: 10, rate: 10, tax: 0 },
+    { id: 12, description: 'Tharama cool', quantity: 6, rate: 25, tax: 0 },
+    { id: 13, description: 'Light 4-inch', quantity: 1, rate: 500, tax: 0 },
+    { id: 14, description: 'Fan 150mm', quantity: 1, rate: 1200, tax: 0 },
+    { id: 15, description: 'Labor cost', quantity: '10 feet', rate: 800, tax: 0 },
   ]);
 
   const handleAddLineItem = () => {
@@ -41,14 +56,17 @@ export function InvoiceForm() {
   };
 
   const handleUpdateLineItem = (id: number, field: keyof Omit<LineItem, 'id'>, value: string | number) => {
-    const numericValue = typeof value === 'string' ? parseFloat(value) : value;
+    const isNumericField = field === 'rate' || field === 'tax';
+    const updatedValue = isNumericField ? (typeof value === 'string' ? parseFloat(value) || 0 : value) : value;
+    
     setLineItems(lineItems.map(item =>
-      item.id === id ? { ...item, [field]: field === 'description' ? value : (isNaN(numericValue) ? 0 : numericValue) } : item
+      item.id === id ? { ...item, [field]: updatedValue } : item
     ));
   };
   
   const { subtotal, taxTotal, grandTotal } = lineItems.reduce((acc, item) => {
-    const amount = item.quantity * item.rate;
+    const quantity = typeof item.quantity === 'string' ? 1 : item.quantity;
+    const amount = quantity * item.rate;
     const taxAmount = amount * (item.tax / 100);
     acc.subtotal += amount;
     acc.taxTotal += taxAmount;
@@ -106,12 +124,13 @@ export function InvoiceForm() {
               </TableHeader>
               <TableBody>
                 {lineItems.map(item => {
-                  const amount = item.quantity * item.rate;
+                  const quantity = typeof item.quantity === 'string' ? 1 : item.quantity;
+                  const amount = quantity * item.rate;
                   const total = amount * (1 + item.tax / 100);
                   return (
                     <TableRow key={item.id}>
                       <TableCell><Input value={item.description} onChange={(e) => handleUpdateLineItem(item.id, 'description', e.target.value)} className="w-full" /></TableCell>
-                      <TableCell><Input type="number" value={item.quantity} onChange={(e) => handleUpdateLineItem(item.id, 'quantity', e.target.value)} className="w-20 text-right" /></TableCell>
+                      <TableCell><Input value={item.quantity} onChange={(e) => handleUpdateLineItem(item.id, 'quantity', e.target.value)} className="w-20 text-right" /></TableCell>
                       <TableCell><Input type="number" value={item.rate} onChange={(e) => handleUpdateLineItem(item.id, 'rate', e.target.value)} className="w-28 text-right" /></TableCell>
                       <TableCell className="text-right">{formatCurrency(amount)}</TableCell>
                       <TableCell><Input type="number" value={item.tax} onChange={(e) => handleUpdateLineItem(item.id, 'tax', e.target.value)} className="w-20 text-right" /></TableCell>
