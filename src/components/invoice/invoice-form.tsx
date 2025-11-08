@@ -57,7 +57,7 @@ export function InvoiceForm() {
     return acc;
   }, { subtotal: 0, taxTotal: 0, grandTotal: 0 });
   
-  const formatCurrency = (amount: number) => new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR' }).format(amount);
+  const formatCurrency = (amount: number) => new Intl.NumberFormat().format(amount);
 
   return (
     <>
@@ -71,7 +71,12 @@ export function InvoiceForm() {
       <Card className="max-w-4xl mx-auto invoice-print-area">
         <CardContent className="p-4 sm:p-6 md:p-8">
           <div className="flex flex-col-reverse sm:flex-row justify-between items-start gap-4 mb-6">
-            <InvoiceHeader />
+            <InvoiceHeader 
+              invoiceNumber={invoiceNumber}
+              onInvoiceNumberChange={setInvoiceNumber}
+              invoiceDate={invoiceDate}
+              onInvoiceDateChange={setInvoiceDate}
+            />
             <InvoiceActions />
           </div>
 
@@ -84,14 +89,7 @@ export function InvoiceForm() {
               <Input value={customerAddress} onChange={(e) => setCustomerAddress(e.target.value)} placeholder="Customer Address" />
             </div>
             <div className="space-y-4 text-sm">
-                <div className="grid grid-cols-2 items-center">
-                    <Label htmlFor="invoiceNumber">Invoice #</Label>
-                    <Input id="invoiceNumber" value={invoiceNumber} onChange={(e) => setInvoiceNumber(e.target.value)} />
-                </div>
-                <div className="grid grid-cols-2 items-center">
-                    <Label htmlFor="invoiceDate">Invoice Date</Label>
-                    <Input id="invoiceDate" type="date" value={invoiceDate} onChange={(e) => setInvoiceDate(e.target.value)} />
-                </div>
+                
             </div>
           </div>
           
