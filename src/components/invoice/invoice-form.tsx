@@ -115,7 +115,7 @@ export function InvoiceForm({ userId }: { userId: string }) {
     }
   }, [subtotal, taxTotal, grandTotal, invoice, invoiceRef]);
   
-  const formatCurrency = (amount: number) => `₹${new Intl.NumberFormat('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(amount)}`;
+  const formatCurrency = (amount: number) => `Rs ${new Intl.NumberFormat('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(amount)}`;
 
   if (isInvoiceLoading || areLineItemsLoading) {
     return (
@@ -148,8 +148,8 @@ export function InvoiceForm({ userId }: { userId: string }) {
           }
         }
       `}</style>
-      <Card className="max-w-4xl mx-auto invoice-print-area">
-        <CardContent className="p-2 sm:p-4 md:p-6">
+      <Card className="max-w-4xl mx-auto invoice-print-area p-2 sm:p-4 md:p-6">
+        <CardContent className="p-0">
           <div className="flex flex-col-reverse sm:flex-row justify-between items-start gap-4 mb-6">
             <InvoiceHeader 
               userId={userId}
@@ -198,8 +198,8 @@ export function InvoiceForm({ userId }: { userId: string }) {
                   return (
                     <TableRow key={item.id}>
                       <TableCell><Input value={item.description} onChange={(e) => handleUpdateLineItem(item.id, 'description', e.target.value)} className="w-full print-no-border" /></TableCell>
-                      <TableCell><Input value={item.quantity} onChange={(e) => handleUpdateLineItem(item.id, 'quantity', e.target.value)} className="w-16 sm:w-20 text-right print-no-border" /></TableCell>
-                      <TableCell><Input type="number" value={item.rate} onChange={(e) => handleUpdateLineItem(item.id, 'rate', e.target.value)} className="w-24 sm:w-28 text-right print-no-border" /></TableCell>
+                      <TableCell><Input value={item.quantity} onChange={(e) => handleUpdateLineItem(item.id, 'quantity', e.target.value)} className="w-12 sm:w-20 text-right print-no-border" /></TableCell>
+                      <TableCell><Input type="number" value={item.rate} onChange={(e) => handleUpdateLineItem(item.id, 'rate', e.target.value)} className="w-20 sm:w-28 text-right print-no-border" /></TableCell>
                       <TableCell className="text-right hidden md:table-cell">{formatCurrency(amount)}</TableCell>
                       <TableCell><Input type="number" value={item.tax} onChange={(e) => handleUpdateLineItem(item.id, 'tax', e.target.value)} className="w-16 sm:w-20 text-right print-no-border" /></TableCell>
                       <TableCell className="text-right font-medium">{formatCurrency(total)}</TableCell>
