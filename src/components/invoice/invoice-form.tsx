@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useEffect } from 'react';
@@ -112,7 +113,7 @@ export function InvoiceForm({ userId }: { userId: string }) {
     }
   }, [subtotal, taxTotal, grandTotal, invoice, invoiceRef]);
   
-  const formatCurrency = (amount: number) => new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR' }).format(amount);
+  const formatCurrency = (amount: number) => `₹${new Intl.NumberFormat('en-IN').format(amount)}`;
 
   if (isInvoiceLoading || areLineItemsLoading) {
     return (
@@ -230,3 +231,5 @@ export function InvoiceForm({ userId }: { userId: string }) {
     </>
   );
 }
+
+    
