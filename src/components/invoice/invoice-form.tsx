@@ -148,7 +148,7 @@ export function InvoiceForm({ userId }: { userId: string }) {
     }
   }, [subtotal, taxTotal, grandTotal, invoice, invoiceRef]);
   
-  const formatCurrency = (amount: number) => `${new Intl.NumberFormat('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(amount)}`;
+  const formatCurrency = (amount: number) => new Intl.NumberFormat('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(amount);
 
   if (isInvoiceLoading || areLineItemsLoading) {
     return (
@@ -165,10 +165,27 @@ export function InvoiceForm({ userId }: { userId: string }) {
   return (
     <>
       <style>{`
+        @page {
+          size: A4;
+          margin: 0;
+        }
         @media print {
+          body {
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+          }
           body * { visibility: hidden; }
           .invoice-print-area, .invoice-print-area * { visibility: visible; }
-          .invoice-print-area { position: absolute; left: 0; top: 0; width: 100%; }
+          .invoice-print-area { 
+            position: absolute; 
+            left: 0; 
+            top: 0; 
+            width: 100%;
+            height: auto;
+            margin: 0;
+            padding: 20px;
+            box-sizing: border-box;
+           }
           .print-no-border, .print-no-border:focus, .print-no-border:hover {
             border: none !important;
             background: transparent !important;
@@ -216,10 +233,10 @@ export function InvoiceForm({ userId }: { userId: string }) {
                 <TableRow>
                   <TableHead className="w-[40%]">Item Description</TableHead>
                   <TableHead className="text-right">Quantity</TableHead>
-                  <TableHead className="text-right">Rate (Rs)</TableHead>
-                  <TableHead className="text-right hidden md:table-cell">Amount (Rs)</TableHead>
+                  <TableHead className="text-right">Rate</TableHead>
+                  <TableHead className="text-right hidden md:table-cell">Amount</TableHead>
                   <TableHead className="text-right">Tax (%)</TableHead>
-                  <TableHead className="text-right">Total (Rs)</TableHead>
+                  <TableHead className="text-right">Total</TableHead>
                   <TableHead className="print:hidden"></TableHead>
                 </TableRow>
               </TableHeader>
