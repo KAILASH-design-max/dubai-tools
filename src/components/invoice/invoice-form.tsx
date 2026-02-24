@@ -117,7 +117,7 @@ export function InvoiceForm({ userId }: { userId: string }) {
   if (isInvoiceLoading || areLineItemsLoading) {
     return (
       <Card className="max-w-4xl mx-auto">
-        <CardContent className="p-4 sm:p-6 md:p-8 space-y-8">
+        <CardContent className="p-2 sm:p-4 md:p-6 space-y-8">
            <Skeleton className="h-32 w-full" />
            <Skeleton className="h-64 w-full" />
            <Skeleton className="h-32 w-full" />
@@ -136,7 +136,7 @@ export function InvoiceForm({ userId }: { userId: string }) {
         }
       `}</style>
       <Card className="max-w-4xl mx-auto invoice-print-area">
-        <CardContent className="p-4 sm:p-6 md:p-8">
+        <CardContent className="p-2 sm:p-4 md:p-6">
           <div className="flex flex-col-reverse sm:flex-row justify-between items-start gap-4 mb-6">
             <InvoiceHeader 
               userId={userId}
@@ -167,7 +167,7 @@ export function InvoiceForm({ userId }: { userId: string }) {
                   <TableHead className="w-[40%]">Item Description</TableHead>
                   <TableHead className="text-right">Quantity</TableHead>
                   <TableHead className="text-right">Rate</TableHead>
-                  <TableHead className="text-right">Amount</TableHead>
+                  <TableHead className="text-right hidden md:table-cell">Amount</TableHead>
                   <TableHead className="text-right">Tax (%)</TableHead>
                   <TableHead className="text-right">Total</TableHead>
                   <TableHead className="print:hidden"></TableHead>
@@ -183,10 +183,10 @@ export function InvoiceForm({ userId }: { userId: string }) {
                   return (
                     <TableRow key={item.id}>
                       <TableCell><Input value={item.description} onChange={(e) => handleUpdateLineItem(item.id, 'description', e.target.value)} className="w-full" /></TableCell>
-                      <TableCell><Input value={item.quantity} onChange={(e) => handleUpdateLineItem(item.id, 'quantity', e.target.value)} className="w-20 text-right" /></TableCell>
-                      <TableCell><Input type="number" value={item.rate} onChange={(e) => handleUpdateLineItem(item.id, 'rate', e.target.value)} className="w-28 text-right" /></TableCell>
-                      <TableCell className="text-right">{formatCurrency(amount)}</TableCell>
-                      <TableCell><Input type="number" value={item.tax} onChange={(e) => handleUpdateLineItem(item.id, 'tax', e.target.value)} className="w-20 text-right" /></TableCell>
+                      <TableCell><Input value={item.quantity} onChange={(e) => handleUpdateLineItem(item.id, 'quantity', e.target.value)} className="w-16 sm:w-20 text-right" /></TableCell>
+                      <TableCell><Input type="number" value={item.rate} onChange={(e) => handleUpdateLineItem(item.id, 'rate', e.target.value)} className="w-24 sm:w-28 text-right" /></TableCell>
+                      <TableCell className="text-right hidden md:table-cell">{formatCurrency(amount)}</TableCell>
+                      <TableCell><Input type="number" value={item.tax} onChange={(e) => handleUpdateLineItem(item.id, 'tax', e.target.value)} className="w-16 sm:w-20 text-right" /></TableCell>
                       <TableCell className="text-right font-medium">{formatCurrency(total)}</TableCell>
                       <TableCell className="print:hidden"><Button variant="ghost" size="icon" onClick={() => handleRemoveLineItem(item.id)}><Trash2 className="h-4 w-4 text-muted-foreground" /></Button></TableCell>
                     </TableRow>

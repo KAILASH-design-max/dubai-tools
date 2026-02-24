@@ -37,7 +37,7 @@ export default function Home() {
           </div>
         </div>
       </header>
-      <main className="container mx-auto p-4 md:p-6 lg:p-8">
+      <main className="container mx-auto p-2 sm:p-4 md:p-6">
       {isUserLoading && (
           <div className="max-w-4xl mx-auto space-y-8">
             <Skeleton className="h-32 w-full" />

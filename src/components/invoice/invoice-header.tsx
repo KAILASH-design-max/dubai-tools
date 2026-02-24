@@ -61,7 +61,7 @@ export function InvoiceHeader({
           </div>
         ) : companyProfile ? (
           <>
-            <h1 className="font-headline text-2xl font-bold text-primary">{companyProfile.name}</h1>
+            <h1 className="font-headline text-xl sm:text-2xl font-bold text-primary">{companyProfile.name}</h1>
             <address className="not-italic text-muted-foreground text-sm space-y-1">
                 <p>{companyProfile.addressLine1}, {companyProfile.city}, {companyProfile.state} {companyProfile.postalCode}</p>
                 <p><strong>Phone:</strong> {companyProfile.phoneNumbers.join(', ')}</p>
