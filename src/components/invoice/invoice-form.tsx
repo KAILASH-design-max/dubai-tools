@@ -179,10 +179,10 @@ export function InvoiceForm({ userId }: { userId: string }) {
                 <TableRow>
                   <TableHead className="w-[40%]">Item Description</TableHead>
                   <TableHead className="text-right">Quantity</TableHead>
-                  <TableHead className="text-right">Rate</TableHead>
-                  <TableHead className="text-right hidden md:table-cell">Amount</TableHead>
+                  <TableHead className="text-right">Rate (Rs)</TableHead>
+                  <TableHead className="text-right hidden md:table-cell">Amount (Rs)</TableHead>
                   <TableHead className="text-right">Tax (%)</TableHead>
-                  <TableHead className="text-right">Total</TableHead>
+                  <TableHead className="text-right">Total (Rs)</TableHead>
                   <TableHead className="print:hidden"></TableHead>
                 </TableRow>
               </TableHeader>
