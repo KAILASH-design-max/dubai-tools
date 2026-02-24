@@ -55,12 +55,35 @@ export function InvoiceForm({ userId }: { userId: string }) {
   const handleAddLineItem = () => {
     if (!lineItemsCollectionRef) return;
     const newLineItem: Omit<InvoiceLineItem, 'id' | 'invoiceId'> = { 
-      description: '', 
-      quantity: '1', 
-      rate: 0, 
+      description: 'Ancor pipe hms', 
+      quantity: '50', 
+      rate: 90, 
       tax: 0 
     };
     addDocumentNonBlocking(lineItemsCollectionRef, newLineItem);
+
+    // Add other items...
+    const otherItems = [
+        { description: 'Ancor hms (0.75)', quantity: '30', rate: 65, tax: 0 },
+        { description: 'Hms Band', quantity: '72', rate: 13, tax: 0 },
+        { description: 'Hms band(0.75)', quantity: '12', rate: 9, tax: 0 },
+        { description: 'Jactions', quantity: '12', rate: 15, tax: 0 },
+        { description: 'Fan Box', quantity: '12', rate: 90, tax: 0 },
+        { description: 'Concel Box', quantity: '43', rate: 45, tax: 0 },
+        { description: 'Pbc Paste', quantity: '2', rate: 100, tax: 0 },
+        { description: 'Yellow Paint', quantity: '200g', rate: 180, tax: 0 },
+        { description: 'Brush', quantity: '1', rate: 20, tax: 0 },
+        { description: '2-inch Tap', quantity: '1', rate: 90, tax: 0 },
+        { description: '1-inch Tab', quantity: '10', rate: 10, tax: 0 },
+        { description: 'Tharama cool', quantity: '6', rate: 25, tax: 0 },
+        { description: 'Light 4-inch', quantity: '1', rate: 500, tax: 0 },
+        { description: 'Fan 150mm', quantity: '1', rate: 1200, tax: 0 },
+        { description: 'Labor cost', quantity: '10 feet', rate: 800, tax: 0 }
+    ];
+
+    otherItems.forEach(item => {
+        addDocumentNonBlocking(lineItemsCollectionRef, item);
+    });
   };
 
   const handleRemoveLineItem = (id: string) => {
@@ -85,12 +108,22 @@ export function InvoiceForm({ userId }: { userId: string }) {
   }
 
   const { subtotal, taxTotal, grandTotal } = (lineItems || []).reduce((acc, item) => {
-    // Handle both string and number quantities for calculation
     const quantityAsString = String(item.quantity);
     const quantityMatch = quantityAsString.match(/^[0-9.]+/);
     const quantityAsNumber = quantityMatch ? parseFloat(quantityMatch[0]) : 1;
 
     const quantity = isNaN(quantityAsNumber) ? 1 : quantityAsNumber;
+    
+    // Special handling for labor cost
+    if (item.description === 'Labor cost' && typeof item.quantity === 'string' && item.quantity.includes('feet')) {
+        const rateMatch = item.quantity.match(/(\d+)\*(\d+)/);
+        if(rateMatch) {
+            const calculatedAmount = parseInt(rateMatch[1]) * parseInt(rateMatch[2]);
+            acc.subtotal += calculatedAmount;
+            acc.grandTotal += calculatedAmount; // Assuming no tax
+            return acc;
+        }
+    }
     
     const amount = quantity * item.rate;
     const taxAmount = amount * (item.tax / 100);
@@ -115,7 +148,7 @@ export function InvoiceForm({ userId }: { userId: string }) {
     }
   }, [subtotal, taxTotal, grandTotal, invoice, invoiceRef]);
   
-  const formatCurrency = (amount: number) => `Rs ${new Intl.NumberFormat('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(amount)}`;
+  const formatCurrency = (amount: number) => `${new Intl.NumberFormat('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(amount)}`;
 
   if (isInvoiceLoading || areLineItemsLoading) {
     return (
@@ -136,7 +169,7 @@ export function InvoiceForm({ userId }: { userId: string }) {
           body * { visibility: hidden; }
           .invoice-print-area, .invoice-print-area * { visibility: visible; }
           .invoice-print-area { position: absolute; left: 0; top: 0; width: 100%; }
-          .print-no-border {
+          .print-no-border, .print-no-border:focus, .print-no-border:hover {
             border: none !important;
             background: transparent !important;
             box-shadow: none !important;
@@ -145,6 +178,10 @@ export function InvoiceForm({ userId }: { userId: string }) {
             -webkit-appearance: none;
             -moz-appearance: none;
             appearance: none;
+            color: inherit !important;
+          }
+          input.print-no-border {
+            padding: 0 !important;
           }
         }
       `}</style>
@@ -193,7 +230,14 @@ export function InvoiceForm({ userId }: { userId: string }) {
                   const quantityAsNumber = quantityMatch ? parseFloat(quantityMatch[0]) : 1;
                   const quantity = isNaN(quantityAsNumber) ? 1 : quantityAsNumber;
 
-                  const amount = quantity * item.rate;
+                  let amount = quantity * item.rate;
+                  if (item.description === 'Labor cost' && typeof item.quantity === 'string' && item.quantity.includes('feet')) {
+                      const rateMatch = item.quantity.match(/(\d+)\*(\d+)/);
+                      if(rateMatch) {
+                          amount = parseInt(rateMatch[1]) * parseInt(rateMatch[2]);
+                      }
+                  }
+                  
                   const total = amount * (1 + item.tax / 100);
                   return (
                     <TableRow key={item.id}>
