@@ -1,0 +1,369 @@
+{
+  "entities": {
+    "CompanyProfile": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "CompanyProfile",
+      "type": "object",
+      "description": "Stores the fixed information of the company 'Dubai Tools' that issues invoices.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the CompanyProfile entity."
+        },
+        "name": {
+          "type": "string",
+          "description": "The registered name of the company, e.g., 'DUBAI TOOLS'."
+        },
+        "addressLine1": {
+          "type": "string",
+          "description": "The primary street address of the company."
+        },
+        "addressLine2": {
+          "type": "string",
+          "description": "Optional secondary address information for the company."
+        },
+        "city": {
+          "type": "string",
+          "description": "The city where the company is located."
+        },
+        "state": {
+          "type": "string",
+          "description": "The state or province where the company is located."
+        },
+        "postalCode": {
+          "type": "string",
+          "description": "The postal code of the company's address."
+        },
+        "phoneNumbers": {
+          "type": "array",
+          "description": "A list of phone numbers for the company.",
+          "items": {
+            "type": "string"
+          }
+        },
+        "email": {
+          "type": "string",
+          "description": "The primary email address for the company.",
+          "format": "email"
+        },
+        "gstRegistrationNumber": {
+          "type": "string",
+          "description": "The Goods and Services Tax (GST) or other relevant registration number for the company."
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "addressLine1",
+        "city",
+        "state",
+        "postalCode",
+        "phoneNumbers",
+        "email",
+        "gstRegistrationNumber"
+      ]
+    },
+    "Customer": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Customer",
+      "type": "object",
+      "description": "Represents a customer to whom invoices are issued.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the Customer entity."
+        },
+        "name": {
+          "type": "string",
+          "description": "The full name or company name of the customer."
+        },
+        "contactPerson": {
+          "type": "string",
+          "description": "The name of a primary contact person for company customers (optional)."
+        },
+        "email": {
+          "type": "string",
+          "description": "The primary email address of the customer.",
+          "format": "email"
+        },
+        "phoneNumbers": {
+          "type": "array",
+          "description": "A list of phone numbers for the customer.",
+          "items": {
+            "type": "string"
+          }
+        },
+        "addressLine1": {
+          "type": "string",
+          "description": "The primary street address of the customer."
+        },
+        "addressLine2": {
+          "type": "string",
+          "description": "Optional secondary address information for the customer."
+        },
+        "city": {
+          "type": "string",
+          "description": "The city where the customer is located."
+        },
+        "state": {
+          "type": "string",
+          "description": "The state or province where the customer is located."
+        },
+        "postalCode": {
+          "type": "string",
+          "description": "The postal code of the customer's address."
+        },
+        "gstRegistrationNumber": {
+          "type": "string",
+          "description": "Optional Goods and Services Tax (GST) or other relevant registration number for the customer."
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "Timestamp indicating when the customer record was created.",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "description": "Timestamp indicating when the customer record was last updated.",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "email",
+        "phoneNumbers",
+        "addressLine1",
+        "city",
+        "state",
+        "postalCode",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "Invoice": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Invoice",
+      "type": "object",
+      "description": "Represents a single invoice issued by Dubai Tools to a customer.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the Invoice entity."
+        },
+        "invoiceNumber": {
+          "type": "string",
+          "description": "The unique, automatically generated invoice number."
+        },
+        "invoiceDate": {
+          "type": "string",
+          "description": "The date the invoice was issued.",
+          "format": "date"
+        },
+        "dueDate": {
+          "type": "string",
+          "description": "The date by which the invoice payment is due.",
+          "format": "date"
+        },
+        "customerId": {
+          "type": "string",
+          "description": "Reference to the Customer who is being invoiced. (Relationship: Customer 1:N Invoice)"
+        },
+        "companyProfileId": {
+          "type": "string",
+          "description": "Reference to the CompanyProfile that issued the invoice. (Relationship: CompanyProfile 1:N Invoice)"
+        },
+        "subtotalAmount": {
+          "type": "number",
+          "description": "The sum of all line item amounts before tax, for the entire invoice."
+        },
+        "totalTaxAmount": {
+          "type": "number",
+          "description": "The total tax calculated across all line items for the entire invoice."
+        },
+        "grandTotalAmount": {
+          "type": "number",
+          "description": "The grand total amount for the invoice (Subtotal + Total Tax)."
+        },
+        "notes": {
+          "type": "string",
+          "description": "Optional notes or terms for the invoice, such as payment instructions."
+        },
+        "authorizedSignatureName": {
+          "type": "string",
+          "description": "The name of the person who authorized the invoice."
+        },
+        "status": {
+          "type": "string",
+          "description": "The current status of the invoice (e.g., 'Draft', 'Sent', 'Paid', 'Overdue', 'Cancelled')."
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "Timestamp indicating when the invoice record was created.",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "description": "Timestamp indicating when the invoice record was last updated.",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "invoiceNumber",
+        "invoiceDate",
+        "customerId",
+        "companyProfileId",
+        "subtotalAmount",
+        "totalTaxAmount",
+        "grandTotalAmount",
+        "status",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "InvoiceLineItem": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "InvoiceLineItem",
+      "type": "object",
+      "description": "Represents a single itemized entry within an invoice.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the InvoiceLineItem entity."
+        },
+        "invoiceId": {
+          "type": "string",
+          "description": "Reference to the Invoice this line item belongs to. (Relationship: Invoice 1:N InvoiceLineItem)"
+        },
+        "lineNumber": {
+          "type": "number",
+          "description": "The sequential number of the line item within the invoice, used for ordering."
+        },
+        "itemDescription": {
+          "type": "string",
+          "description": "A description of the item or service provided."
+        },
+        "quantity": {
+          "type": "number",
+          "description": "The quantity of the item or service."
+        },
+        "rate": {
+          "type": "number",
+          "description": "The rate per unit of the item or service."
+        },
+        "amount": {
+          "type": "number",
+          "description": "The calculated amount for this line item (Quantity * Rate)."
+        },
+        "taxPercentage": {
+          "type": "number",
+          "description": "The applicable tax percentage for this specific line item (e.g., 5, 10, 18)."
+        },
+        "taxAmount": {
+          "type": "number",
+          "description": "The calculated tax amount for this line item."
+        },
+        "totalAmount": {
+          "type": "number",
+          "description": "The total amount for this line item including tax (Amount + Tax Amount)."
+        }
+      },
+      "required": [
+        "id",
+        "invoiceId",
+        "lineNumber",
+        "itemDescription",
+        "quantity",
+        "rate",
+        "amount",
+        "taxPercentage",
+        "taxAmount",
+        "totalAmount"
+      ]
+    }
+  },
+  "auth": {
+    "providers": [
+      "password",
+      "anonymous"
+    ]
+  },
+  "firestore": {
+    "structure": [
+      {
+        "path": "/companyProfiles/{companyProfileId}",
+        "definition": {
+          "entityName": "CompanyProfile",
+          "schema": {
+            "$ref": "#/backend/entities/CompanyProfile"
+          },
+          "description": "Stores the single company profile information for 'Dubai Tools'. Access is restricted to authenticated staff via the '/roles_staff/{uid}' collection."
+        }
+      },
+      {
+        "path": "/customers/{customerId}",
+        "definition": {
+          "entityName": "Customer",
+          "schema": {
+            "$ref": "#/backend/entities/Customer"
+          },
+          "description": "Contains records for all customers of 'Dubai Tools'. Access is restricted to authenticated staff via the '/roles_staff/{uid}' collection.",
+          "params": [
+            {
+              "name": "customerId",
+              "description": "The unique identifier for a specific customer."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/invoices/{invoiceId}",
+        "definition": {
+          "entityName": "Invoice",
+          "schema": {
+            "$ref": "#/backend/entities/Invoice"
+          },
+          "description": "Stores all invoice documents issued by 'Dubai Tools'. Access is restricted to authenticated staff via the '/roles_staff/{uid}' collection.",
+          "params": [
+            {
+              "name": "invoiceId",
+              "description": "The unique identifier for a specific invoice."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/invoices/{invoiceId}/lineItems/{lineItemId}",
+        "definition": {
+          "entityName": "InvoiceLineItem",
+          "schema": {
+            "$ref": "#/backend/entities/InvoiceLineItem"
+          },
+          "description": "Contains individual line items for a specific invoice. Access is inherited from the parent invoice and restricted to authenticated staff via the '/roles_staff/{uid}' collection.",
+          "params": [
+            {
+              "name": "invoiceId",
+              "description": "The unique identifier of the parent invoice."
+            },
+            {
+              "name": "lineItemId",
+              "description": "The unique identifier for a specific line item within an invoice."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/roles_staff/{uid}",
+        "definition": {
+          "entityName": "staffRole",
+          "schema": {
+            "$ref": "#/backend/entities/User"
+          },
+          "description": "This collection serves as the central authorization mechanism for 'InvoiceCraft'. The existence of a document at this path signifies that the 'uid' (user ID) corresponds to an authenticated staff member of 'Dubai Tools', granting them full access to manage company data. This implements the DBAC (Database Access Control) and 'Existence over Content' principle for global roles."
+        }
+      }
+    ],
+    "reasoning": "The Firestore structure for 'InvoiceCraft for Dubai Tools' is designed with a strong emphasis on Authorization Independence, Structural Segregation, and DBAC principles to ensure security, scalability, and debuggability in a single-tenant application context. \n\n1.  **Authorization Independence:** Given that 'InvoiceCraft' is a billing system for a single entity ('Dubai Tools'), authorization is primarily handled by identifying authenticated users as 'staff' who have full access to manage company data. This is achieved through a dedicated top-level collection: `/roles_staff/{uid}`. Any authenticated user whose `uid` exists in this collection is considered an authorized staff member. This eliminates the need for `get()` calls in security rules to check parent document ownership or elaborate membership maps on core business entities like `Customers` or `Invoices`. Access to `CompanyProfile`, `Customers`, and `Invoices` (and their nested `InvoiceLineItems`) is uniformly granted to any user authenticated as staff. This means that when a staff member accesses an invoice or customer, the rule simply checks their `uid` against the `roles_staff` collection, without needing to fetch the specific `invoice` or `customer` document to determine authorization.\n\n2.  **Structural Segregation:** Each top-level collection (`/companyProfiles`, `/customers`, `/invoices`) represents a distinct entity type with a homogeneous security posture: all documents within these collections are accessible only by authorized staff. There are no public or draft versions mixed with published data. For instance, all customer records in `/customers` share the same access requirements. This significantly simplifies security rules, as rules can be applied at the collection level without complex conditional logic.\n\n3.  **QAPs (Rules are not Filters):** Because the security posture is homogeneous for all core business data (accessible by any staff member), `list` operations become inherently secure. A staff member can query all documents in `/customers` or `/invoices`, and the security rules will securely grant access to *all* documents in those collections based on the user's staff role, without needing to filter results client-side or impose query constraints for security. This structure fully supports querying all customers, or all invoices, without rules inadvertently acting as filters.\n\n4.  **Hierarchical Paths:** The `InvoiceLineItem` entity is nested under `Invoice` (`/invoices/{invoiceId}/lineItems/{lineItemId}`). This adheres to the principle of continuing the hierarchy for nested 1:N relationships. Access to an `InvoiceLineItem` is implicitly tied to the access of its parent `Invoice`. Since an `Invoice` is accessible to any staff, the `InvoiceLineItem` also becomes accessible to any staff without requiring additional authorization fields on the line item itself or a `get()` call to its parent invoice for authorization purposes. This ensures consistency and simplifies data retrieval for invoice details."
+  }
+}

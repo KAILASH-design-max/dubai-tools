@@ -1,0 +1,124 @@
+/**
+ * This ruleset enforces a centralized, role-based access control (RBAC) model for a single-tenant application.
+ *
+ * Core Philosophy:
+ * The security model is built around a single "staff" role. Any authenticated user whose UID is recorded
+ * in the `/roles_staff` collection is granted full administrative privileges over all core business data,
+ * including company profiles, customers, and invoices. This is designed for an internal business tool
+ * where trusted staff manage all data.
+ *
+ * Data Structure:
+ * - /roles_staff/{uid}: A collection acting as an access control list. The existence of a document
+ *   confirms a user's staff status.
+ * - /companyProfiles/{companyProfileId}: Stores company information.
+ * - /customers/{customerId}: Stores customer records.
+ * - /invoices/{invoiceId}: Stores invoice documents.
+ * - /invoices/{invoiceId}/lineItems/{lineItemId}: Stores the individual items for a given invoice.
+ *
+ * Key Security Decisions:
+ * - Centralized Staff Role: All permissions for business data are granted based on a single check to see
+ *   if the user exists in the `/roles_staff` collection. This avoids redundant ownership fields on
+ *   individual documents.
+ * - No Public Access: All data is private and accessible only to authenticated staff members. There are
+ *   no public read rules.
+ * - Client-Side Role Management Disabled: The `/roles_staff` collection cannot be modified by any client.
+ *   Adding or removing staff must be done through a trusted environment like the Firebase Admin SDK or
+ *   the Firebase Console, which is a critical security practice.
+ */
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // -------------------------------------------------------------------------
+    // Helper Functions
+    // -------------------------------------------------------------------------
+
+    /**
+     * Checks if the user is authenticated.
+     */
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    /**
+     * Checks if the authenticated user is a staff member by verifying the
+     * existence of their UID in the roles_staff collection. This is the
+     * primary authorization check for the entire application.
+     */
+    function isStaff() {
+      return isSignedIn() && exists(/databases/$(database)/documents/roles_staff/$(request.auth.uid));
+    }
+
+    // -------------------------------------------------------------------------
+    // Authorization Rules
+    // -------------------------------------------------------------------------
+
+    /**
+     * @description Manages the list of staff members. The existence of a document here grants
+     *   a user full access to the database. Writes are disabled from the client for security.
+     * @path /roles_staff/{uid}
+     * @allow (get) An authenticated staff member can check for the existence of another staff member's role.
+     * @deny (create) A non-staff member or even another staff member cannot create a new staff role from the client.
+     * @principle Centralizes authorization logic and prevents privilege escalation from the client.
+     */
+    match /roles_staff/{uid} {
+      allow get, list: if isStaff();
+      allow create: if false;
+      allow update: if false;
+      allow delete: if false;
+    }
+
+    /**
+     * @description Stores the fixed company profile information. Only staff can manage this data.
+     * @path /companyProfiles/{companyProfileId}
+     * @allow (create) An authenticated staff member can create a new company profile.
+     * @deny (get) A non-authenticated or non-staff user cannot read company profiles.
+     * @principle Ensures that only authorized internal staff can view or modify core company data.
+     */
+    match /companyProfiles/{companyProfileId} {
+      allow get, list: if isStaff();
+      allow create: if isStaff();
+      allow update, delete: if isStaff() && resource != null;
+    }
+
+    /**
+     * @description Contains all customer records for the company. Only staff can manage this data.
+     * @path /customers/{customerId}
+     * @allow (create) An authenticated staff member can create a new customer record.
+     * @deny (update) A non-staff user cannot modify an existing customer record.
+     * @principle Protects sensitive customer information by restricting access to authorized staff.
+     */
+    match /customers/{customerId} {
+      allow get, list: if isStaff();
+      allow create: if isStaff();
+      allow update, delete: if isStaff() && resource != null;
+    }
+
+    /**
+     * @description Stores all invoices. Only staff can create, read, update, or delete invoices.
+     * @path /invoices/{invoiceId}
+     * @allow (get) An authenticated staff member can read any invoice.
+     * @deny (list) A regular user who is not staff cannot list any invoices.
+     * @principle Ensures financial records are confidential and only accessible by authorized personnel.
+     */
+    match /invoices/{invoiceId} {
+      allow get, list: if isStaff();
+      allow create: if isStaff();
+      allow update, delete: if isStaff() && resource != null;
+
+      /**
+       * @description Contains individual line items for an invoice. Access is inherited from the
+       *   parent invoice, meaning only staff can manage them.
+       * @path /invoices/{invoiceId}/lineItems/{lineItemId}
+       * @allow (create) An authenticated staff member can add a line item to an invoice.
+       * @deny (delete) A non-staff user cannot remove a line item.
+       * @principle Enforces hierarchical security where subcollection access mirrors the parent's permissions.
+       */
+      match /lineItems/{lineItemId} {
+        allow get, list: if isStaff();
+        allow create: if isStaff();
+        allow update, delete: if isStaff() && resource != null;
+      }
+    }
+  }
+}
