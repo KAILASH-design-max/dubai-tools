@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from 'react';
+import { useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
@@ -10,62 +10,85 @@ import { Label } from '@/components/ui/label';
 import { Trash2, Plus } from 'lucide-react';
 import { InvoiceHeader } from './invoice-header';
 import { InvoiceActions } from './invoice-actions';
-import { useToast } from "@/hooks/use-toast";
+import { useFirestore, useDoc, useCollection, useMemoFirebase } from '@/firebase';
+import { doc, collection, DocumentReference } from 'firebase/firestore';
+import { addDocumentNonBlocking, deleteDocumentNonBlocking, setDocumentNonBlocking, updateDocumentNonBlocking } from '@/firebase/non-blocking-updates';
+import type { Invoice, InvoiceLineItem } from '@/lib/types';
+import { Skeleton } from '../ui/skeleton';
 
-type LineItem = {
-  id: number;
-  description: string;
-  quantity: number | string;
-  rate: number;
-  tax: number;
-};
+export function InvoiceForm({ userId }: { userId: string }) {
+  const firestore = useFirestore();
+  const invoiceId = 'main';
 
-let nextId = 15;
+  const invoiceRef = useMemoFirebase(
+    () => firestore ? doc(firestore, `users/${userId}/invoices/${invoiceId}`) : null,
+    [firestore, userId]
+  );
+  
+  const lineItemsCollectionRef = useMemoFirebase(
+    () => invoiceRef ? collection(invoiceRef, 'lineItems') : null,
+    [invoiceRef]
+  );
 
-export function InvoiceForm() {
-  const { toast } = useToast();
-  const [invoiceNumber, setInvoiceNumber] = useState("INV-001");
-  const [invoiceDate, setInvoiceDate] = useState(new Date().toISOString().split('T')[0]);
-  const [customerName, setCustomerName] = useState("Acme Corp");
+  const { data: invoice, isLoading: isInvoiceLoading } = useDoc<Invoice>(invoiceRef);
+  const { data: lineItems, isLoading: areLineItemsLoading } = useCollection<InvoiceLineItem>(lineItemsCollectionRef);
 
-  const [lineItems, setLineItems] = useState<LineItem[]>([
-    { id: 0, description: 'Ancor pipe hms', quantity: 50, rate: 90, tax: 0 },
-    { id: 1, description: 'Ancor hms (0.75)', quantity: 30, rate: 65, tax: 0 },
-    { id: 2, description: 'Hms Band', quantity: 72, rate: 13, tax: 0 },
-    { id: 3, description: 'Hms band(0.75)', quantity: 12, rate: 9, tax: 0 },
-    { id: 4, description: 'Jactions', quantity: 12, rate: 15, tax: 0 },
-    { id: 5, description: 'Fan Box', quantity: 12, rate: 90, tax: 0 },
-    { id: 6, description: 'Concel Box', quantity: 43, rate: 45, tax: 0 },
-    { id: 7, description: 'Pbc Paste', quantity: 2, rate: 100, tax: 0 },
-    { id: 8, description: 'Yellow Paint', quantity: '200g', rate: 180, tax: 0 },
-    { id: 9, description: 'Brush', quantity: 1, rate: 20, tax: 0 },
-    { id: 10, description: '2-inch Tap', quantity: 1, rate: 90, tax: 0 },
-    { id: 11, description: '1-inch Tab', quantity: 10, rate: 10, tax: 0 },
-    { id: 12, description: 'Tharama cool', quantity: 6, rate: 25, tax: 0 },
-    { id: 13, description: 'Light 4-inch', quantity: 1, rate: 500, tax: 0 },
-    { id: 14, description: 'Fan 150mm', quantity: 1, rate: 1200, tax: 0 },
-    { id: 15, description: 'Labor cost', quantity: '10 feet', rate: 800, tax: 0 },
-  ]);
-
+  useEffect(() => {
+    if (!isInvoiceLoading && !invoice && invoiceRef) {
+      const defaultInvoice: Omit<Invoice, 'id'> = {
+        invoiceNumber: 'INV-001',
+        invoiceDate: new Date().toISOString().split('T')[0],
+        customerName: 'Acme Corp',
+        customerId: 'temp-customer',
+        companyProfileId: 'main',
+        subtotalAmount: 0,
+        totalTaxAmount: 0,
+        grandTotalAmount: 0,
+        status: 'Draft',
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      };
+      setDocumentNonBlocking(invoiceRef, defaultInvoice, { merge: false });
+    }
+  }, [isInvoiceLoading, invoice, invoiceRef]);
+  
   const handleAddLineItem = () => {
-    setLineItems([...lineItems, { id: nextId++, description: '', quantity: 1, rate: 0, tax: 0 }]);
+    if (!lineItemsCollectionRef) return;
+    const newLineItem: Omit<InvoiceLineItem, 'id' | 'invoiceId'> = { 
+      description: '', 
+      quantity: '1', 
+      rate: 0, 
+      tax: 0 
+    };
+    addDocumentNonBlocking(lineItemsCollectionRef, newLineItem);
   };
 
-  const handleRemoveLineItem = (id: number) => {
-    setLineItems(lineItems.filter(item => item.id !== id));
+  const handleRemoveLineItem = (id: string) => {
+    if (!lineItemsCollectionRef) return;
+    const lineItemRef = doc(lineItemsCollectionRef, id);
+    deleteDocumentNonBlocking(lineItemRef);
   };
 
-  const handleUpdateLineItem = (id: number, field: keyof Omit<LineItem, 'id'>, value: string | number) => {
+  const handleUpdateLineItem = (id: string, field: keyof Omit<InvoiceLineItem, 'id' | 'invoiceId'>, value: string | number) => {
+    if (!lineItemsCollectionRef) return;
+    const lineItemRef = doc(lineItemsCollectionRef, id);
+    
     const isNumericField = field === 'rate' || field === 'tax';
     const updatedValue = isNumericField ? (typeof value === 'string' ? parseFloat(value) || 0 : value) : value;
-    
-    setLineItems(lineItems.map(item =>
-      item.id === id ? { ...item, [field]: updatedValue } : item
-    ));
+
+    updateDocumentNonBlocking(lineItemRef, { [field]: updatedValue });
   };
   
-  const { subtotal, taxTotal, grandTotal } = lineItems.reduce((acc, item) => {
-    const quantity = typeof item.quantity === 'string' ? 1 : item.quantity;
+  const handleUpdateInvoice = (field: keyof Omit<Invoice, 'id'>, value: string) => {
+    if (!invoiceRef) return;
+    updateDocumentNonBlocking(invoiceRef, { [field]: value });
+  }
+
+  const { subtotal, taxTotal, grandTotal } = (lineItems || []).reduce((acc, item) => {
+    // Handle both string and number quantities for calculation
+    const quantityAsNumber = typeof item.quantity === 'string' ? parseFloat(item.quantity) : item.quantity;
+    const quantity = isNaN(quantityAsNumber) ? 1 : quantityAsNumber;
+    
     const amount = quantity * item.rate;
     const taxAmount = amount * (item.tax / 100);
     acc.subtotal += amount;
@@ -73,8 +96,35 @@ export function InvoiceForm() {
     acc.grandTotal += amount + taxAmount;
     return acc;
   }, { subtotal: 0, taxTotal: 0, grandTotal: 0 });
+
+  useEffect(() => {
+    if (invoiceRef && invoice && (
+      invoice.subtotalAmount !== subtotal ||
+      invoice.totalTaxAmount !== taxTotal ||
+      invoice.grandTotalAmount !== grandTotal
+    )) {
+      updateDocumentNonBlocking(invoiceRef, {
+        subtotalAmount: subtotal,
+        totalTaxAmount: taxTotal,
+        grandTotalAmount: grandTotal,
+        updatedAt: new Date().toISOString()
+      });
+    }
+  }, [subtotal, taxTotal, grandTotal, invoice, invoiceRef]);
   
   const formatCurrency = (amount: number) => new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR' }).format(amount);
+
+  if (isInvoiceLoading || areLineItemsLoading) {
+    return (
+      <Card className="max-w-4xl mx-auto">
+        <CardContent className="p-4 sm:p-6 md:p-8 space-y-8">
+           <Skeleton className="h-32 w-full" />
+           <Skeleton className="h-64 w-full" />
+           <Skeleton className="h-32 w-full" />
+        </CardContent>
+      </Card>
+    );
+  }
 
   return (
     <>
@@ -89,10 +139,11 @@ export function InvoiceForm() {
         <CardContent className="p-4 sm:p-6 md:p-8">
           <div className="flex flex-col-reverse sm:flex-row justify-between items-start gap-4 mb-6">
             <InvoiceHeader 
-              invoiceNumber={invoiceNumber}
-              onInvoiceNumberChange={setInvoiceNumber}
-              invoiceDate={invoiceDate}
-              onInvoiceDateChange={setInvoiceDate}
+              userId={userId}
+              invoiceNumber={invoice?.invoiceNumber || ''}
+              onInvoiceNumberChange={(val) => handleUpdateInvoice('invoiceNumber', val)}
+              invoiceDate={invoice?.invoiceDate || ''}
+              onInvoiceDateChange={(val) => handleUpdateInvoice('invoiceDate', val)}
             />
             <InvoiceActions />
           </div>
@@ -102,7 +153,7 @@ export function InvoiceForm() {
           <div className="grid md:grid-cols-2 gap-8 mb-8">
             <div className="space-y-2">
               <Label htmlFor="customerName" className="font-headline">Bill To</Label>
-              <Input id="customerName" value={customerName} onChange={(e) => setCustomerName(e.target.value)} placeholder="Customer Name" />
+              <Input id="customerName" value={invoice?.customerName || ''} onChange={(e) => handleUpdateInvoice('customerName', e.target.value)} placeholder="Customer Name" />
             </div>
             <div className="space-y-4 text-sm">
                 
@@ -123,8 +174,10 @@ export function InvoiceForm() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {lineItems.map(item => {
-                  const quantity = typeof item.quantity === 'string' ? 1 : item.quantity;
+                {lineItems && lineItems.map(item => {
+                  const quantityAsNumber = typeof item.quantity === 'string' ? parseFloat(item.quantity) : item.quantity;
+                  const quantity = isNaN(quantityAsNumber) ? 1 : quantityAsNumber;
+
                   const amount = quantity * item.rate;
                   const total = amount * (1 + item.tax / 100);
                   return (
