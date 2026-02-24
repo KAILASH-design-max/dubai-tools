@@ -1,28 +1,11 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Helper function to check if a user is the owner of the data
     function isOwner(userId) {
       return request.auth != null && request.auth.uid == userId;
     }
 
-    // Rules for company profile
-    match /users/{userId}/companyProfile/{companyProfileId} {
-      allow read, write: if isOwner(userId);
-    }
-    
-    // Rules for customers
-    match /users/{userId}/customers/{customerId} {
-      allow read, write: if isOwner(userId);
-    }
-
-    // Rules for invoices
-    match /users/{userId}/invoices/{invoiceId} {
-      allow read, write: if isOwner(userId);
-    }
-
-    // Rules for invoice line items
-    match /users/{userId}/invoices/{invoiceId}/lineItems/{lineItemId} {
+    match /users/{userId}/{documents=**} {
       allow read, write: if isOwner(userId);
     }
   }
