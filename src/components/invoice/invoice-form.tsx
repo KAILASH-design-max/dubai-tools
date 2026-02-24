@@ -54,16 +54,8 @@ export function InvoiceForm({ userId }: { userId: string }) {
   
   const handleAddLineItem = () => {
     if (!lineItemsCollectionRef) return;
-    const newLineItem: Omit<InvoiceLineItem, 'id' | 'invoiceId'> = { 
-      description: 'Ancor pipe hms', 
-      quantity: '50', 
-      rate: 90, 
-      tax: 0 
-    };
-    addDocumentNonBlocking(lineItemsCollectionRef, newLineItem);
-
-    // Add other items...
-    const otherItems = [
+    const initialItems = [
+        { description: 'Ancor pipe hms', quantity: '50', rate: 90, tax: 0 },
         { description: 'Ancor hms (0.75)', quantity: '30', rate: 65, tax: 0 },
         { description: 'Hms Band', quantity: '72', rate: 13, tax: 0 },
         { description: 'Hms band(0.75)', quantity: '12', rate: 9, tax: 0 },
@@ -78,10 +70,10 @@ export function InvoiceForm({ userId }: { userId: string }) {
         { description: 'Tharama cool', quantity: '6', rate: 25, tax: 0 },
         { description: 'Light 4-inch', quantity: '1', rate: 500, tax: 0 },
         { description: 'Fan 150mm', quantity: '1', rate: 1200, tax: 0 },
-        { description: 'Labor cost', quantity: '10 feet', rate: 800, tax: 0 }
+        { description: 'Labor cost', quantity: '10 feet', rate: 8000, tax: 0 }
     ];
 
-    otherItems.forEach(item => {
+    initialItems.forEach(item => {
         addDocumentNonBlocking(lineItemsCollectionRef, item);
     });
   };
@@ -114,18 +106,14 @@ export function InvoiceForm({ userId }: { userId: string }) {
 
     const quantity = isNaN(quantityAsNumber) ? 1 : quantityAsNumber;
     
+    let amount = 0;
     // Special handling for labor cost
-    if (item.description === 'Labor cost' && typeof item.quantity === 'string' && item.quantity.includes('feet')) {
-        const rateMatch = item.quantity.match(/(\d+)\*(\d+)/);
-        if(rateMatch) {
-            const calculatedAmount = parseInt(rateMatch[1]) * parseInt(rateMatch[2]);
-            acc.subtotal += calculatedAmount;
-            acc.grandTotal += calculatedAmount; // Assuming no tax
-            return acc;
-        }
+    if (item.description === 'Labor cost') {
+        amount = item.rate; // Use the rate directly as the amount for labor
+    } else {
+        amount = quantity * item.rate;
     }
     
-    const amount = quantity * item.rate;
     const taxAmount = amount * (item.tax / 100);
     acc.subtotal += amount;
     acc.taxTotal += taxAmount;
@@ -233,10 +221,10 @@ export function InvoiceForm({ userId }: { userId: string }) {
                 <TableRow>
                   <TableHead className="w-[40%]">Item Description</TableHead>
                   <TableHead className="text-right">Quantity</TableHead>
-                  <TableHead className="text-right">Rate</TableHead>
-                  <TableHead className="text-right hidden md:table-cell">Amount</TableHead>
+                  <TableHead className="text-right">Rate (Rs)</TableHead>
+                  <TableHead className="text-right hidden md:table-cell">Amount (Rs)</TableHead>
                   <TableHead className="text-right">Tax (%)</TableHead>
-                  <TableHead className="text-right">Total</TableHead>
+                  <TableHead className="text-right">Total (Rs)</TableHead>
                   <TableHead className="print:hidden"></TableHead>
                 </TableRow>
               </TableHeader>
@@ -247,12 +235,11 @@ export function InvoiceForm({ userId }: { userId: string }) {
                   const quantityAsNumber = quantityMatch ? parseFloat(quantityMatch[0]) : 1;
                   const quantity = isNaN(quantityAsNumber) ? 1 : quantityAsNumber;
 
-                  let amount = quantity * item.rate;
-                  if (item.description === 'Labor cost' && typeof item.quantity === 'string' && item.quantity.includes('feet')) {
-                      const rateMatch = item.quantity.match(/(\d+)\*(\d+)/);
-                      if(rateMatch) {
-                          amount = parseInt(rateMatch[1]) * parseInt(rateMatch[2]);
-                      }
+                  let amount = 0;
+                  if (item.description === 'Labor cost') {
+                      amount = item.rate;
+                  } else {
+                      amount = quantity * item.rate;
                   }
                   
                   const total = amount * (1 + item.tax / 100);
@@ -282,16 +269,16 @@ export function InvoiceForm({ userId }: { userId: string }) {
             <div className="w-full md:w-1/2 lg:w-1/3 space-y-2 text-sm">
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Subtotal:</span>
-                <span className="font-medium">{formatCurrency(subtotal)}</span>
+                <span className="font-medium">Rs {formatCurrency(subtotal)}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Tax:</span>
-                <span className="font-medium">{formatCurrency(taxTotal)}</span>
+                <span className="font-medium">Rs {formatCurrency(taxTotal)}</span>
               </div>
               <Separator />
               <div className="flex justify-between font-bold text-lg font-headline">
                 <span>Grand Total:</span>
-                <span>{formatCurrency(grandTotal)}</span>
+                <span>Rs {formatCurrency(grandTotal)}</span>
               </div>
             </div>
           </div>
