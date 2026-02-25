@@ -10,6 +10,7 @@ import { initiateAnonymousSignIn } from "@/firebase/non-blocking-login";
 import { Skeleton } from "@/components/ui/skeleton";
 import { CompanyProfileForm } from "@/components/settings/company-profile-form";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
+import { CustomerList } from "@/components/settings/customer-list";
 
 
 export default function SettingsPage() {
@@ -37,7 +38,7 @@ export default function SettingsPage() {
         </div>
       </header>
       <main className="container mx-auto p-2 sm:p-4 md:p-6">
-        <div className="max-w-2xl mx-auto">
+        <div className="max-w-2xl mx-auto space-y-8">
             <Card>
                 <CardHeader>
                     <CardTitle>Company Profile</CardTitle>
@@ -54,6 +55,26 @@ export default function SettingsPage() {
                     )}
                     {user ? (
                         <CompanyProfileForm userId={user.uid} />
+                    ) : (
+                        !isUserLoading && <p>Please sign in to view settings.</p>
+                    )}
+                </CardContent>
+            </Card>
+
+            <Card>
+                <CardHeader>
+                    <CardTitle>Customers</CardTitle>
+                    <CardDescription>Manage your customers. Add, edit, or remove customer records.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                    {isUserLoading && (
+                        <div className="space-y-4">
+                            <Skeleton className="h-12 w-full" />
+                            <Skeleton className="h-12 w-full" />
+                        </div>
+                    )}
+                    {user ? (
+                        <CustomerList userId={user.uid} />
                     ) : (
                         !isUserLoading && <p>Please sign in to view settings.</p>
                     )}
