@@ -54,27 +54,11 @@ export function InvoiceForm({ userId }: { userId: string }) {
   
   const handleAddLineItem = () => {
     if (!lineItemsCollectionRef) return;
-    const initialItems = [
-        { description: 'Ancor pipe hms', quantity: '50', rate: 90, tax: 0 },
-        { description: 'Ancor hms (0.75)', quantity: '30', rate: 65, tax: 0 },
-        { description: 'Hms Band', quantity: '72', rate: 13, tax: 0 },
-        { description: 'Hms band(0.75)', quantity: '12', rate: 9, tax: 0 },
-        { description: 'Jactions', quantity: '12', rate: 15, tax: 0 },
-        { description: 'Fan Box', quantity: '12', rate: 90, tax: 0 },
-        { description: 'Concel Box', quantity: '43', rate: 45, tax: 0 },
-        { description: 'Pbc Paste', quantity: '2', rate: 100, tax: 0 },
-        { description: 'Yellow Paint', quantity: '200g', rate: 180, tax: 0 },
-        { description: 'Brush', quantity: '1', rate: 20, tax: 0 },
-        { description: '2-inch Tap', quantity: '1', rate: 90, tax: 0 },
-        { description: '1-inch Tab', quantity: '10', rate: 10, tax: 0 },
-        { description: 'Tharama cool', quantity: '6', rate: 25, tax: 0 },
-        { description: 'Light 4-inch', quantity: '1', rate: 500, tax: 0 },
-        { description: 'Fan 150mm', quantity: '1', rate: 1200, tax: 0 },
-        { description: 'Labor cost', quantity: '10 feet', rate: 8000, tax: 0 }
-    ];
-
-    initialItems.forEach(item => {
-        addDocumentNonBlocking(lineItemsCollectionRef, item);
+    addDocumentNonBlocking(lineItemsCollectionRef, {
+      description: "",
+      quantity: "1",
+      rate: 0,
+      tax: 0,
     });
   };
 
@@ -184,9 +168,15 @@ export function InvoiceForm({ userId }: { userId: string }) {
             -moz-appearance: none;
             appearance: none;
             color: inherit !important;
+            -moz-appearance: textfield; /* Firefox */
           }
           input.print-no-border {
             padding: 0 !important;
+          }
+          input[type=number]::-webkit-inner-spin-button,
+          input[type=number]::-webkit-outer-spin-button {
+              -webkit-appearance: none;
+              margin: 0;
           }
         }
       `}</style>
