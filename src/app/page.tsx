@@ -5,7 +5,7 @@ import Link from "next/link";
 import { InvoiceForm } from "@/components/invoice/invoice-form";
 import { Logo } from "@/components/logo";
 import { Button } from "@/components/ui/button";
-import { Settings, Share2 } from "lucide-react";
+import { Settings, Share2, History } from "lucide-react";
 import { useUser, useAuth } from "@/firebase";
 import { initiateAnonymousSignIn } from "@/firebase/non-blocking-login";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -31,8 +31,14 @@ export default function Home() {
               <Share2 className="h-5 w-5" />
               <span className="sr-only">Share</span>
             </Button>
+            <Link href="/invoices">
+              <Button variant="ghost" size="icon" title="Invoice History">
+                <History className="h-5 w-5" />
+                <span className="sr-only">Invoice History</span>
+              </Button>
+            </Link>
             <Link href="/settings">
-              <Button variant="ghost" size="icon">
+              <Button variant="ghost" size="icon" title="Settings">
                 <Settings className="h-5 w-5" />
                 <span className="sr-only">Settings</span>
               </Button>
