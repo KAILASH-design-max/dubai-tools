@@ -37,8 +37,8 @@ export function InvoiceHeader({
     if (!isLoading && !companyProfile && companyProfileRef) {
       const defaultProfile: Omit<CompanyProfile, 'id'> = {
         name: 'DUBAI TOOLS',
-        addressLine1: 'Shivdhara, Darbharbhang, Bihar 846005',
-        city: 'Darbharbhang',
+        addressLine1: 'Shivdhara, Darbhanga, Bihar 846005',
+        city: 'Darbhanga',
         state: 'Bihar',
         postalCode: '846005',
         phoneNumbers: ['9268863031', '7280944150'],
