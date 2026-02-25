@@ -9,6 +9,7 @@ export interface CompanyProfile {
     phoneNumbers: string[];
     email: string;
     gstRegistrationNumber: string;
+    defaultInvoiceNotes?: string;
 }
 
 export interface Customer {

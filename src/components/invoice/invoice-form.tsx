@@ -14,14 +14,21 @@ import { InvoiceActions } from './invoice-actions';
 import { useFirestore, useDoc, useCollection, useMemoFirebase } from '@/firebase';
 import { doc, collection, addDoc } from 'firebase/firestore';
 import { addDocumentNonBlocking, deleteDocumentNonBlocking, setDocumentNonBlocking, updateDocumentNonBlocking } from '@/firebase/non-blocking-updates';
-import type { Invoice, InvoiceLineItem } from '@/lib/types';
+import type { Invoice, InvoiceLineItem, CompanyProfile } from '@/lib/types';
 import { Skeleton } from '../ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
+import { Textarea } from '../ui/textarea';
 
 export function InvoiceForm({ userId }: { userId: string }) {
   const firestore = useFirestore();
   const { toast } = useToast();
   const invoiceId = 'main';
+
+  const companyProfileRef = useMemoFirebase(
+    () => firestore ? doc(firestore, `users/${userId}/companyProfile/main`) : null,
+    [firestore, userId]
+  );
+  const { data: companyProfile, isLoading: isCompanyProfileLoading } = useDoc<CompanyProfile>(companyProfileRef);
 
   const invoiceRef = useMemoFirebase(
     () => firestore ? doc(firestore, `users/${userId}/invoices/${invoiceId}`) : null,
@@ -37,7 +44,7 @@ export function InvoiceForm({ userId }: { userId: string }) {
   const { data: lineItems, isLoading: areLineItemsLoading } = useCollection<InvoiceLineItem>(lineItemsCollectionRef);
 
   useEffect(() => {
-    if (!isInvoiceLoading && !invoice && invoiceRef) {
+    if (!isInvoiceLoading && !invoice && invoiceRef && companyProfile) {
       const defaultInvoice: Omit<Invoice, 'id'> = {
         invoiceNumber: 'INV-001',
         invoiceDate: new Date().toISOString().split('T')[0],
@@ -50,10 +57,11 @@ export function InvoiceForm({ userId }: { userId: string }) {
         status: 'Draft',
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
+        notes: companyProfile.defaultInvoiceNotes || '',
       };
       setDocumentNonBlocking(invoiceRef, defaultInvoice, { merge: false });
     }
-  }, [isInvoiceLoading, invoice, invoiceRef]);
+  }, [isInvoiceLoading, invoice, invoiceRef, companyProfile]);
   
   const handleAddLineItem = () => {
     if (!lineItemsCollectionRef) return;
@@ -133,7 +141,7 @@ export function InvoiceForm({ userId }: { userId: string }) {
         updateDocumentNonBlocking(invoiceRef, {
             invoiceNumber: nextInvoiceNumber,
             customerName: '',
-            notes: '',
+            notes: companyProfile?.defaultInvoiceNotes || '',
         });
 
         // Clear line items from the main invoice
@@ -195,7 +203,7 @@ export function InvoiceForm({ userId }: { userId: string }) {
   
   const formatCurrency = (amount: number) => new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(amount).replace('₹', 'Rs ');
 
-  if (isInvoiceLoading || areLineItemsLoading) {
+  if (isInvoiceLoading || areLineItemsLoading || isCompanyProfileLoading) {
     return (
       <Card className="max-w-4xl mx-auto">
         <CardContent className="p-2 sm:p-4 md:p-6 space-y-8">
@@ -245,6 +253,11 @@ export function InvoiceForm({ userId }: { userId: string }) {
           }
           input.print-no-border {
             padding: 0 !important;
+          }
+          textarea.print-no-border {
+            padding: 0 !important;
+            resize: none;
+            height: auto;
           }
           input[type=number]::-webkit-inner-spin-button,
           input[type=number]::-webkit-outer-spin-button {
@@ -325,6 +338,17 @@ export function InvoiceForm({ userId }: { userId: string }) {
           <Button onClick={handleAddLineItem} variant="outline" className="mt-4 print:hidden">
             <Plus className="mr-2 h-4 w-4" /> Add Item
           </Button>
+
+          <div className="mt-8 space-y-2 print:mt-4">
+              <Label htmlFor="notes" className="font-headline">Notes</Label>
+              <Textarea
+                  id="notes"
+                  placeholder="Add any notes, like payment terms or a thank you message."
+                  value={invoice?.notes || ''}
+                  onChange={(e) => handleUpdateInvoice('notes', e.target.value)}
+                  className="print-no-border"
+              />
+          </div>
 
           <Separator className="my-6" />
 

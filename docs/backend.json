@@ -49,6 +49,10 @@
         "gstRegistrationNumber": {
           "type": "string",
           "description": "The Goods and Services Tax (GST) or other relevant registration number for the company."
+        },
+        "defaultInvoiceNotes": {
+          "type": "string",
+          "description": "Default notes or terms to be included on new invoices."
         }
       },
       "required": [
