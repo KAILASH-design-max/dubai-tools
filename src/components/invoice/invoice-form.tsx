@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect } from 'react';
+import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
@@ -211,10 +212,10 @@ export function InvoiceForm({ userId }: { userId: string }) {
                 <TableRow>
                   <TableHead className="w-[40%]">Item Description</TableHead>
                   <TableHead className="text-right">Quantity</TableHead>
-                  <TableHead className="text-right">Rate (Rs)</TableHead>
-                  <TableHead className="text-right hidden md:table-cell">Amount (Rs)</TableHead>
+                  <TableHead className="text-right">Rate</TableHead>
+                  <TableHead className="text-right hidden md:table-cell">Amount</TableHead>
                   <TableHead className="text-right">Tax (%)</TableHead>
-                  <TableHead className="text-right">Total (Rs)</TableHead>
+                  <TableHead className="text-right">Total</TableHead>
                   <TableHead className="print:hidden"></TableHead>
                 </TableRow>
               </TableHeader>
@@ -273,9 +274,16 @@ export function InvoiceForm({ userId }: { userId: string }) {
             </div>
           </div>
           
-          <div className="mt-12 text-muted-foreground">
-            <p className="font-headline text-sm">Authorized Signature</p>
-            <div className="mt-8 border-t-2 border-dashed w-1/3"></div>
+          <div className="mt-12">
+            <div className="relative h-20 w-40">
+              <Image
+                src="/signature.png"
+                alt="Authorized Signature"
+                fill
+                style={{ objectFit: "contain" }}
+              />
+            </div>
+            <p className="font-headline text-sm text-muted-foreground pt-2 border-t-2 border-dashed w-40">Authorized Signature</p>
           </div>
 
         </CardContent>
