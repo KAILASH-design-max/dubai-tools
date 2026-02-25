@@ -12,13 +12,15 @@ import { Trash2, Plus } from 'lucide-react';
 import { InvoiceHeader } from './invoice-header';
 import { InvoiceActions } from './invoice-actions';
 import { useFirestore, useDoc, useCollection, useMemoFirebase } from '@/firebase';
-import { doc, collection, DocumentReference } from 'firebase/firestore';
+import { doc, collection, addDoc } from 'firebase/firestore';
 import { addDocumentNonBlocking, deleteDocumentNonBlocking, setDocumentNonBlocking, updateDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 import type { Invoice, InvoiceLineItem } from '@/lib/types';
 import { Skeleton } from '../ui/skeleton';
+import { useToast } from '@/hooks/use-toast';
 
 export function InvoiceForm({ userId }: { userId: string }) {
   const firestore = useFirestore();
+  const { toast } = useToast();
   const invoiceId = 'main';
 
   const invoiceRef = useMemoFirebase(
@@ -84,6 +86,76 @@ export function InvoiceForm({ userId }: { userId: string }) {
     updateDocumentNonBlocking(invoiceRef, { [field]: value });
   }
 
+  const handleSaveInvoice = () => {
+    if (!firestore || !userId || !invoice || !lineItems || !invoiceRef || !lineItemsCollectionRef) {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Invoice data not ready to be saved.",
+      });
+      return;
+    }
+
+    const invoicesCollection = collection(firestore, `users/${userId}/invoices`);
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { id, ...invoiceDataToSave } = invoice;
+
+    // Use addDoc directly because we need the returned promise for the doc ref
+    addDoc(invoicesCollection, invoiceDataToSave)
+      .then(newInvoiceDocRef => {
+        if (!newInvoiceDocRef) {
+          throw new Error("Failed to create new invoice document.");
+        }
+
+        // Copy line items to the new invoice
+        const newLineItemsCollection = collection(newInvoiceDocRef, 'lineItems');
+        lineItems.forEach(item => {
+          // eslint-disable-next-line @typescript-eslint/no-unused-vars
+          const { id, ...lineItemData } = item;
+          // Here we can use the non-blocking version as we don't need to wait
+          addDocumentNonBlocking(newLineItemsCollection, lineItemData);
+        });
+
+        // Increment invoice number
+        const currentInvoiceNumber = invoice.invoiceNumber;
+        const numberMatch = currentInvoiceNumber.match(/\d+$/);
+        if (!numberMatch) {
+            toast({ variant: 'destructive', title: "Error", description: "Invalid invoice number format." });
+            return;
+        }
+        const numberPart = numberMatch[0];
+        const prefix = currentInvoiceNumber.substring(0, currentInvoiceNumber.length - numberPart.length);
+        const number = parseInt(numberPart, 10) + 1;
+        const nextNumberString = String(number).padStart(numberPart.length, '0');
+        const nextInvoiceNumber = `${prefix}${nextNumberString}`;
+
+        // Reset the main invoice form for the new one
+        updateDocumentNonBlocking(invoiceRef, {
+            invoiceNumber: nextInvoiceNumber,
+            customerName: '',
+            notes: '',
+        });
+
+        // Clear line items from the main invoice
+        lineItems.forEach(item => 
+            deleteDocumentNonBlocking(doc(lineItemsCollectionRef, item.id))
+        );
+
+        toast({
+          title: "Invoice Saved",
+          description: `Invoice ${invoice.invoiceNumber} has been saved.`,
+        });
+      })
+      .catch(error => {
+        console.error("Error saving invoice: ", error);
+        toast({
+          variant: "destructive",
+          title: "Uh oh! Something went wrong.",
+          description: "Could not save the invoice. Please try again.",
+        });
+      });
+  };
+
   const { subtotal, taxTotal, grandTotal } = (lineItems || []).reduce((acc, item) => {
     const quantityAsString = String(item.quantity);
     const quantityMatch = quantityAsString.match(/^[0-9.]+/);
@@ -121,7 +193,7 @@ export function InvoiceForm({ userId }: { userId: string }) {
     }
   }, [subtotal, taxTotal, grandTotal, invoice, invoiceRef]);
   
-  const formatCurrency = (amount: number) => new Intl.NumberFormat('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(amount);
+  const formatCurrency = (amount: number) => new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(amount).replace('₹', 'Rs ');
 
   if (isInvoiceLoading || areLineItemsLoading) {
     return (
@@ -191,7 +263,7 @@ export function InvoiceForm({ userId }: { userId: string }) {
               invoiceDate={invoice?.invoiceDate || ''}
               onInvoiceDateChange={(val) => handleUpdateInvoice('invoiceDate', val)}
             />
-            <InvoiceActions />
+            <InvoiceActions onSave={handleSaveInvoice} />
           </div>
 
           <Separator className="my-6" />
@@ -239,9 +311,9 @@ export function InvoiceForm({ userId }: { userId: string }) {
                       <TableCell><Input value={item.description} onChange={(e) => handleUpdateLineItem(item.id, 'description', e.target.value)} className="w-full print-no-border" /></TableCell>
                       <TableCell><Input value={item.quantity} onChange={(e) => handleUpdateLineItem(item.id, 'quantity', e.target.value)} className="w-12 sm:w-20 text-right print-no-border" /></TableCell>
                       <TableCell><Input type="number" value={item.rate} onChange={(e) => handleUpdateLineItem(item.id, 'rate', e.target.value)} className="w-20 sm:w-28 text-right print-no-border" /></TableCell>
-                      <TableCell className="text-right hidden md:table-cell">{formatCurrency(amount)}</TableCell>
+                      <TableCell className="text-right hidden md:table-cell">{formatCurrency(amount).replace('Rs ', '')}</TableCell>
                       <TableCell><Input type="number" value={item.tax} onChange={(e) => handleUpdateLineItem(item.id, 'tax', e.target.value)} className="w-16 sm:w-20 text-right print-no-border" /></TableCell>
-                      <TableCell className="text-right font-medium">{formatCurrency(total)}</TableCell>
+                      <TableCell className="text-right font-medium">{formatCurrency(total).replace('Rs ', '')}</TableCell>
                       <TableCell className="print:hidden"><Button variant="ghost" size="icon" onClick={() => handleRemoveLineItem(item.id)}><Trash2 className="h-4 w-4 text-muted-foreground" /></Button></TableCell>
                     </TableRow>
                   );
@@ -260,16 +332,16 @@ export function InvoiceForm({ userId }: { userId: string }) {
             <div className="w-full md:w-1/2 lg:w-1/3 space-y-2 text-sm">
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Subtotal:</span>
-                <span className="font-medium">Rs {formatCurrency(subtotal)}</span>
+                <span className="font-medium">{formatCurrency(subtotal)}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Tax:</span>
-                <span className="font-medium">Rs {formatCurrency(taxTotal)}</span>
+                <span className="font-medium">{formatCurrency(taxTotal)}</span>
               </div>
               <Separator />
               <div className="flex justify-between font-bold text-lg font-headline">
                 <span>Grand Total:</span>
-                <span>Rs {formatCurrency(grandTotal)}</span>
+                <span>{formatCurrency(grandTotal)}</span>
               </div>
             </div>
           </div>

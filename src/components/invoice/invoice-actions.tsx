@@ -2,9 +2,9 @@
 
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
-import { Send, Printer } from "lucide-react";
+import { Send, Printer, Save } from "lucide-react";
 
-export const InvoiceActions = () => {
+export const InvoiceActions = ({ onSave }: { onSave: () => void; }) => {
   const { toast } = useToast();
 
   const handlePrint = () => {
@@ -24,6 +24,10 @@ export const InvoiceActions = () => {
       <Button variant="outline" size="sm" onClick={handlePrint}>
         <Printer />
         <span className="ml-2 hidden md:inline">Print</span>
+      </Button>
+      <Button variant="outline" size="sm" onClick={onSave}>
+        <Save />
+        <span className="ml-2 hidden md:inline">Save Invoice</span>
       </Button>
       <Button size="sm" onClick={handleSend}>
         <Send />
