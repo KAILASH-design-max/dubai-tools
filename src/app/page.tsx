@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
+import Link from "next/link";
 import { InvoiceForm } from "@/components/invoice/invoice-form";
 import { Logo } from "@/components/logo";
 import { Button } from "@/components/ui/button";
@@ -30,10 +31,12 @@ export default function Home() {
               <Share2 className="h-5 w-5" />
               <span className="sr-only">Share</span>
             </Button>
-            <Button variant="ghost" size="icon">
-              <Settings className="h-5 w-5" />
-              <span className="sr-only">Settings</span>
-            </Button>
+            <Link href="/settings">
+              <Button variant="ghost" size="icon">
+                <Settings className="h-5 w-5" />
+                <span className="sr-only">Settings</span>
+              </Button>
+            </Link>
           </div>
         </div>
       </header>
