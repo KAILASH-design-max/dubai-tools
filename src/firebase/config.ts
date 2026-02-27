@@ -1,8 +1,10 @@
 export const firebaseConfig = {
-  "projectId": "studio-362353104-7338e",
-  "appId": "1:705266653377:web:30dd70ed9e0dade1b0dc40",
-  "apiKey": "AIzaSyAPuyx0Qy-kUSmE7Pv3F0BnHlW1vhN-S7U",
-  "authDomain": "studio-362353104-7338e.firebaseapp.com",
-  "measurementId": "",
-  "messagingSenderId": "705266653377"
+  apiKey: "AIzaSyChM71XdlOjWg6sYAJhqh0z8vXG2RHX3DY",
+  authDomain: "ranil-physio-digital.firebaseapp.com",
+  databaseURL: "https://ranil-physio-digital-default-rtdb.firebaseio.com",
+  projectId: "ranil-physio-digital",
+  storageBucket: "ranil-physio-digital.firebasestorage.app",
+  messagingSenderId: "766656526047",
+  appId: "1:766656526047:web:3764c4dc80493e36669b6a",
+  measurementId: "G-5JBSWGESZY"
 };
