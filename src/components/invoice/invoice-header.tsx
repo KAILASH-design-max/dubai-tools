@@ -17,7 +17,7 @@ export function InvoiceHeader({
     invoiceDate, onInvoiceDateChange,
     companyProfile
 }: InvoiceHeaderProps) {
-  // Local fallback defaults if the profile hasn't been saved yet
+  // Use user-provided defaults as fallback
   const displayProfile = companyProfile || {
     name: 'DUBAI TOOLS',
     addressLine1: 'Shivdhara, Darbhanga, Bihar 846005',
@@ -26,7 +26,7 @@ export function InvoiceHeader({
     postalCode: '846005',
     phoneNumbers: ['9268863031', '7280944150'],
     email: 'dubaitools2026@gmail.com',
-    gstRegistrationNumber: '',
+    gstRegistrationNumber: 'Qw1234766666s',
   };
 
   return (

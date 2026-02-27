@@ -20,7 +20,6 @@ export function CompanyProfileForm({ userId }: { userId: string }) {
     [firestore, userId]
   );
   
-  // Use centralized hook for real-time consistency
   const { data: companyProfile, isLoading } = useCompanyProfile(userId);
 
   const [formData, setFormData] = useState<Partial<CompanyProfile>>({});
@@ -37,7 +36,7 @@ export function CompanyProfileForm({ userId }: { userId: string }) {
         postalCode: '846005',
         phoneNumbers: ['9268863031', '7280944150'],
         email: 'dubaitools2026@gmail.com',
-        gstRegistrationNumber: '',
+        gstRegistrationNumber: 'Qw1234766666s',
       });
     }
   }, [companyProfile, isLoading]);
