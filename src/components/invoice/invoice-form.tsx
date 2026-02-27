@@ -14,10 +14,11 @@ import { InvoiceActions } from './invoice-actions';
 import { useFirestore, useDoc, useCollection, useMemoFirebase } from '@/firebase';
 import { doc, collection, addDoc } from 'firebase/firestore';
 import { addDocumentNonBlocking, deleteDocumentNonBlocking, setDocumentNonBlocking, updateDocumentNonBlocking } from '@/firebase/non-blocking-updates';
-import type { Invoice, InvoiceLineItem, CompanyProfile } from '@/lib/types';
+import type { Invoice, InvoiceLineItem, CompanyProfile, Customer } from '@/lib/types';
 import { Skeleton } from '../ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { Textarea } from '../ui/textarea';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 
 export function InvoiceForm({ userId }: { userId: string }) {
   const firestore = useFirestore();
@@ -40,8 +41,14 @@ export function InvoiceForm({ userId }: { userId: string }) {
     [invoiceRef]
   );
 
+  const customersCollectionRef = useMemoFirebase(
+    () => firestore ? collection(firestore, `users/${userId}/customers`) : null,
+    [firestore, userId]
+  );
+
   const { data: invoice, isLoading: isInvoiceLoading } = useDoc<Invoice>(invoiceRef);
   const { data: lineItems, isLoading: areLineItemsLoading } = useCollection<InvoiceLineItem>(lineItemsCollectionRef);
+  const { data: customers } = useCollection<Customer>(customersCollectionRef);
 
   useEffect(() => {
     if (!isInvoiceLoading && !invoice && invoiceRef && companyProfile) {
@@ -92,6 +99,16 @@ export function InvoiceForm({ userId }: { userId: string }) {
   const handleUpdateInvoice = (field: keyof Omit<Invoice, 'id'>, value: string) => {
     if (!invoiceRef) return;
     updateDocumentNonBlocking(invoiceRef, { [field]: value });
+  }
+
+  const handleSelectCustomer = (customerId: string) => {
+    const selected = customers?.find(c => c.id === customerId);
+    if (selected && invoiceRef) {
+        updateDocumentNonBlocking(invoiceRef, { 
+            customerId: selected.id,
+            customerName: selected.name 
+        });
+    }
   }
 
   const handleSaveInvoice = () => {
@@ -273,7 +290,25 @@ export function InvoiceForm({ userId }: { userId: string }) {
           <div className="grid md:grid-cols-2 gap-8 mb-8">
             <div className="space-y-2">
               <Label htmlFor="customerName" className="font-headline">Bill To</Label>
-              <Input id="customerName" value={invoice?.customerName || ''} onChange={(e) => handleUpdateInvoice('customerName', e.target.value)} placeholder="Customer Name" className="print-no-border" />
+              <div className="flex flex-col gap-2">
+                <Select onValueChange={handleSelectCustomer} value={invoice?.customerId}>
+                    <SelectTrigger className="print:hidden">
+                        <SelectValue placeholder="Select existing customer" />
+                    </SelectTrigger>
+                    <SelectContent>
+                        {customers?.map(c => (
+                            <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+                        ))}
+                    </SelectContent>
+                </Select>
+                <Input 
+                    id="customerName" 
+                    value={invoice?.customerName || ''} 
+                    onChange={(e) => handleUpdateInvoice('customerName', e.target.value)} 
+                    placeholder="Customer Name" 
+                    className="print-no-border font-medium" 
+                />
+              </div>
             </div>
           </div>
           
