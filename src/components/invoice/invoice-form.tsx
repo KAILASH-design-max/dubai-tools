@@ -1,6 +1,7 @@
+
 "use client";
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -8,11 +9,11 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Separator } from '@/components/ui/separator';
 import { Label } from '@/components/ui/label';
-import { Trash2, Plus } from 'lucide-react';
+import { Trash2, Plus, Loader2 } from 'lucide-react';
 import { InvoiceHeader } from './invoice-header';
 import { InvoiceActions } from './invoice-actions';
 import { useFirestore, useDoc, useCollection, useMemoFirebase } from '@/firebase';
-import { doc, collection, addDoc } from 'firebase/firestore';
+import { doc, collection, addDoc, deleteDoc } from 'firebase/firestore';
 import { addDocumentNonBlocking, deleteDocumentNonBlocking, setDocumentNonBlocking, updateDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 import type { Invoice, InvoiceLineItem, CompanyProfile, Customer } from '@/lib/types';
 import { Skeleton } from '../ui/skeleton';
@@ -23,6 +24,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 export function InvoiceForm({ userId }: { userId: string }) {
   const firestore = useFirestore();
   const { toast } = useToast();
+  const [isSaving, setIsSaving] = useState(false);
   const invoiceId = 'main';
 
   const companyProfileRef = useMemoFirebase(
@@ -111,7 +113,7 @@ export function InvoiceForm({ userId }: { userId: string }) {
     }
   }
 
-  const handleSaveInvoice = () => {
+  const handleSaveInvoice = async () => {
     if (!firestore || !userId || !invoice || !lineItems || !invoiceRef || !lineItemsCollectionRef) {
       toast({
         variant: "destructive",
@@ -121,55 +123,83 @@ export function InvoiceForm({ userId }: { userId: string }) {
       return;
     }
 
-    const invoicesCollection = collection(firestore, `users/${userId}/invoices`);
-    const { id, ...invoiceDataToSave } = invoice;
+    if (!invoice.customerName) {
+        toast({
+            variant: "destructive",
+            title: "Customer Required",
+            description: "Please provide a customer name before saving.",
+        });
+        return;
+    }
 
-    addDoc(invoicesCollection, invoiceDataToSave)
-      .then(newInvoiceDocRef => {
-        if (!newInvoiceDocRef) {
-          throw new Error("Failed to create new invoice document.");
+    setIsSaving(true);
+    const invoicesCollection = collection(firestore, `users/${userId}/invoices`);
+    
+    // We want to save the current state as a permanent record
+    const invoiceToSave = {
+        ...invoice,
+        status: 'Sent' as const,
+        updatedAt: new Date().toISOString(),
+    };
+    const { id, ...invoiceDataToSave } = invoiceToSave;
+
+    try {
+        const newInvoiceDocRef = await addDoc(invoicesCollection, invoiceDataToSave);
+        
+        // Copy line items to the new invoice
+        const newLineItemsCollection = collection(newInvoiceDocRef, 'lineItems');
+        for (const item of lineItems) {
+            const { id, ...lineItemData } = item;
+            await addDoc(newLineItemsCollection, lineItemData);
         }
 
-        const newLineItemsCollection = collection(newInvoiceDocRef, 'lineItems');
-        lineItems.forEach(item => {
-          const { id, ...lineItemData } = item;
-          addDocumentNonBlocking(newLineItemsCollection, lineItemData);
-        });
-
+        // Logic to increment invoice number for the draft
         const currentInvoiceNumber = invoice.invoiceNumber;
         const numberMatch = currentInvoiceNumber.match(/\d+$/);
-        if (!numberMatch) {
-            toast({ variant: 'destructive', title: "Error", description: "Invalid invoice number format." });
-            return;
+        let nextInvoiceNumber = currentInvoiceNumber;
+        
+        if (numberMatch) {
+            const numberPart = numberMatch[0];
+            const prefix = currentInvoiceNumber.substring(0, currentInvoiceNumber.length - numberPart.length);
+            const number = parseInt(numberPart, 10) + 1;
+            const nextNumberString = String(number).padStart(numberPart.length, '0');
+            nextInvoiceNumber = `${prefix}${nextNumberString}`;
+        } else {
+            nextInvoiceNumber = currentInvoiceNumber + "-1";
         }
-        const numberPart = numberMatch[0];
-        const prefix = currentInvoiceNumber.substring(0, currentInvoiceNumber.length - numberPart.length);
-        const number = parseInt(numberPart, 10) + 1;
-        const nextNumberString = String(number).padStart(numberPart.length, '0');
-        const nextInvoiceNumber = `${prefix}${nextNumberString}`;
 
+        // Reset the draft invoice ('main')
         updateDocumentNonBlocking(invoiceRef, {
             invoiceNumber: nextInvoiceNumber,
+            invoiceDate: new Date().toISOString().split('T')[0],
             customerName: '',
+            customerId: 'temp-customer',
+            subtotalAmount: 0,
+            totalTaxAmount: 0,
+            grandTotalAmount: 0,
             notes: companyProfile?.defaultInvoiceNotes || '',
+            updatedAt: new Date().toISOString(),
         });
 
-        lineItems.forEach(item => 
-            deleteDocumentNonBlocking(doc(lineItemsCollectionRef, item.id))
-        );
+        // Clear draft line items
+        for (const item of lineItems) {
+            await deleteDoc(doc(lineItemsCollectionRef, item.id));
+        }
 
         toast({
           title: "Invoice Saved",
-          description: `Invoice ${invoice.invoiceNumber} has been saved.`,
+          description: `Invoice ${invoice.invoiceNumber} has been successfully recorded.`,
         });
-      })
-      .catch(error => {
+    } catch (error) {
+        console.error("Error saving invoice:", error);
         toast({
           variant: "destructive",
-          title: "Uh oh! Something went wrong.",
-          description: "Could not save the invoice. Please try again.",
+          title: "Save Failed",
+          description: "There was an error saving your invoice. Please check your connection.",
         });
-      });
+    } finally {
+        setIsSaving(false);
+    }
   };
 
   const { subtotal, taxTotal, grandTotal } = (lineItems || []).reduce((acc, item) => {
@@ -282,7 +312,10 @@ export function InvoiceForm({ userId }: { userId: string }) {
               invoiceDate={invoice?.invoiceDate || ''}
               onInvoiceDateChange={(val) => handleUpdateInvoice('invoiceDate', val)}
             />
-            <InvoiceActions onSave={handleSaveInvoice} />
+            <div className="flex items-center gap-2">
+                {isSaving && <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />}
+                <InvoiceActions onSave={handleSaveInvoice} />
+            </div>
           </div>
 
           <Separator className="my-6" />
