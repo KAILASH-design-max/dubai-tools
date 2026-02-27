@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { useFirestore, useDoc, useMemoFirebase } from '@/firebase';
 import { doc } from 'firebase/firestore';
 import type { CompanyProfile } from '@/lib/types';
-import { setDocumentNonBlocking, updateDocumentNonBlocking } from '@/firebase/non-blocking-updates';
+import { setDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 import { Skeleton } from '@/components/ui/skeleton';
 
 type InvoiceHeaderProps = {
@@ -48,15 +48,6 @@ export function InvoiceHeader({
     }
   }, [isLoading, companyProfile, companyProfileRef]);
 
-  const handleUpdateProfile = (field: keyof Omit<CompanyProfile, 'id'>, value: string) => {
-    if (!companyProfileRef) return;
-    if (field === 'phoneNumbers') {
-        updateDocumentNonBlocking(companyProfileRef, { [field]: value.split(',').map(v => v.trim()) });
-    } else {
-        updateDocumentNonBlocking(companyProfileRef, { [field]: value });
-    }
-  };
-
   return (
     <div className="font-body grid sm:grid-cols-2 gap-4 w-full">
       <div className="space-y-2">
@@ -70,70 +61,28 @@ export function InvoiceHeader({
           </div>
         ) : companyProfile ? (
           <div className="space-y-1">
-            <Input 
-                className="font-headline text-xl sm:text-2xl font-bold text-primary print-no-border h-auto p-0 border-none bg-transparent focus-visible:ring-0" 
-                value={companyProfile.name} 
-                onChange={(e) => handleUpdateProfile('name', e.target.value)}
-            />
+            <h1 className="font-headline text-xl sm:text-2xl font-bold text-primary">
+              {companyProfile.name}
+            </h1>
             <div className="not-italic text-muted-foreground text-sm space-y-1">
-                <Input 
-                    className="print-no-border h-auto p-0 border-none bg-transparent focus-visible:ring-0" 
-                    value={companyProfile.addressLine1}
-                    onChange={(e) => handleUpdateProfile('addressLine1', e.target.value)}
-                    placeholder="Address Line 1"
-                />
-                <div className="flex gap-1">
-                     <Input 
-                        className="print-no-border h-auto p-0 border-none bg-transparent focus-visible:ring-0 w-24" 
-                        value={companyProfile.city}
-                        onChange={(e) => handleUpdateProfile('city', e.target.value)}
-                        placeholder="City"
-                    />
-                    <span>,</span>
-                     <Input 
-                        className="print-no-border h-auto p-0 border-none bg-transparent focus-visible:ring-0 w-24" 
-                        value={companyProfile.state}
-                        onChange={(e) => handleUpdateProfile('state', e.target.value)}
-                        placeholder="State"
-                    />
-                     <Input 
-                        className="print-no-border h-auto p-0 border-none bg-transparent focus-visible:ring-0 w-20" 
-                        value={companyProfile.postalCode}
-                        onChange={(e) => handleUpdateProfile('postalCode', e.target.value)}
-                        placeholder="Postal Code"
-                    />
+                <p>{companyProfile.addressLine1}</p>
+                <p>{companyProfile.city}, {companyProfile.state} {companyProfile.postalCode}</p>
+                <div className="flex items-center gap-1">
+                    <span className="font-bold">Phone:</span>
+                    <span>{companyProfile.phoneNumbers.join(', ')}</span>
                 </div>
                 <div className="flex items-center gap-1">
-                    <span className="font-bold shrink-0">Phone:</span>
-                    <Input 
-                        className="print-no-border h-auto p-0 border-none bg-transparent flex-1 focus-visible:ring-0" 
-                        value={companyProfile.phoneNumbers.join(', ')}
-                        onChange={(e) => handleUpdateProfile('phoneNumbers', e.target.value)}
-                        placeholder="Phone numbers"
-                    />
+                    <span className="font-bold">Email:</span>
+                    <span>{companyProfile.email}</span>
                 </div>
                 <div className="flex items-center gap-1">
-                    <span className="font-bold shrink-0">Email:</span>
-                    <Input 
-                        className="print-no-border h-auto p-0 border-none bg-transparent flex-1 focus-visible:ring-0" 
-                        value={companyProfile.email}
-                        onChange={(e) => handleUpdateProfile('email', e.target.value)}
-                        placeholder="Email"
-                    />
-                </div>
-                <div className="flex items-center gap-1">
-                    <span className="font-bold shrink-0">GST:</span>
-                    <Input 
-                        className="print-no-border h-auto p-0 border-none bg-transparent flex-1 focus-visible:ring-0" 
-                        value={companyProfile.gstRegistrationNumber}
-                        onChange={(e) => handleUpdateProfile('gstRegistrationNumber', e.target.value)}
-                        placeholder="GST Registration Number"
-                    />
+                    <span className="font-bold">GST:</span>
+                    <span>{companyProfile.gstRegistrationNumber}</span>
                 </div>
             </div>
           </div>
         ) : (
-          <p>Company profile not found.</p>
+          <p className="text-sm text-muted-foreground">Company profile not found. Please set it up in Settings.</p>
         )}
       </div>
       <div className="space-y-4 text-sm sm:text-right">
