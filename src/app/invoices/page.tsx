@@ -8,7 +8,7 @@ import { collection, query, where, doc } from 'firebase/firestore';
 import { Invoice } from '@/lib/types';
 import { Logo } from '@/components/logo';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, Search, Trash2, FileText, IndianRupee, Clock, CheckCircle2 } from 'lucide-react';
+import { ArrowLeft, Search, Trash2, FileText, IndianRupee, Clock, CheckCircle2, Download, Filter, MoreHorizontal } from 'lucide-react';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
@@ -16,6 +16,26 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Input } from '@/components/ui/input';
 import { format } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 export default function InvoicesPage() {
   const { user, isUserLoading } = useUser();
@@ -23,6 +43,7 @@ export default function InvoicesPage() {
   const firestore = useFirestore();
   const { toast } = useToast();
   const [searchTerm, setSearchTerm] = useState('');
+  const [statusFilter, setStatusFilter] = useState('all');
 
   useEffect(() => {
     if (auth && !user && !isUserLoading) {
@@ -42,28 +63,35 @@ export default function InvoicesPage() {
 
   const { data: invoices, isLoading: isInvoicesLoading } = useCollection<Invoice>(invoicesQuery);
 
+  const filteredInvoices = useMemo(() => {
+    if (!invoices) return [];
+    return invoices
+      .filter(inv => {
+        const matchesSearch = 
+          inv.customerName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          inv.invoiceNumber?.toLowerCase().includes(searchTerm.toLowerCase());
+        
+        const matchesStatus = statusFilter === 'all' || 
+          (statusFilter === 'pending' && (inv.status === 'Sent' || inv.status === 'Draft' || inv.status === 'Overdue')) ||
+          inv.status.toLowerCase() === statusFilter.toLowerCase();
+
+        return matchesSearch && matchesStatus;
+      })
+      .sort((a, b) => new Date(b.invoiceDate).getTime() - new Date(a.invoiceDate).getTime());
+  }, [invoices, searchTerm, statusFilter]);
+
   const stats = useMemo(() => {
-    if (!invoices) return { total: 0, paid: 0, pending: 0 };
-    return invoices.reduce((acc, inv) => {
+    const dataToSummarize = statusFilter === 'all' ? (invoices || []) : filteredInvoices;
+    return dataToSummarize.reduce((acc, inv) => {
       acc.total += inv.grandTotalAmount;
       if (inv.status === 'Paid') {
         acc.paid += inv.grandTotalAmount;
-      } else if (inv.status === 'Sent' || inv.status === 'Draft') {
+      } else if (inv.status === 'Sent' || inv.status === 'Draft' || inv.status === 'Overdue') {
         acc.pending += inv.grandTotalAmount;
       }
       return acc;
     }, { total: 0, paid: 0, pending: 0 });
-  }, [invoices]);
-
-  const filteredInvoices = useMemo(() => {
-    if (!invoices) return [];
-    return invoices
-      .filter(inv => 
-        inv.customerName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        inv.invoiceNumber?.toLowerCase().includes(searchTerm.toLowerCase())
-      )
-      .sort((a, b) => new Date(b.invoiceDate).getTime() - new Date(a.invoiceDate).getTime());
-  }, [invoices, searchTerm]);
+  }, [invoices, filteredInvoices, statusFilter]);
 
   const formatCurrency = (amount: number) => new Intl.NumberFormat('en-IN', { 
     style: 'currency', 
@@ -82,14 +110,47 @@ export default function InvoicesPage() {
 
   const handleDelete = (id: string, invoiceNumber: string) => {
     if (!firestore || !user) return;
-    if (window.confirm(`Are you sure you want to delete invoice ${invoiceNumber}?`)) {
-      const invoiceDocRef = doc(firestore, `users/${user.uid}/invoices/${id}`);
-      deleteDocumentNonBlocking(invoiceDocRef);
-      toast({
-        title: "Invoice Deleted",
-        description: `Invoice ${invoiceNumber} has been removed.`,
-      });
-    }
+    const invoiceDocRef = doc(firestore, `users/${user.uid}/invoices/${id}`);
+    deleteDocumentNonBlocking(invoiceDocRef);
+    toast({
+      title: "Invoice Deleted",
+      description: `Invoice ${invoiceNumber} has been removed.`,
+    });
+  };
+
+  const exportToCSV = () => {
+    if (!filteredInvoices.length) return;
+    
+    const headers = ['Invoice #', 'Customer', 'Date', 'Status', 'Subtotal', 'Tax', 'Grand Total'];
+    const rows = filteredInvoices.map(inv => [
+      inv.invoiceNumber,
+      inv.customerName,
+      inv.invoiceDate,
+      inv.status,
+      inv.subtotalAmount.toFixed(2),
+      inv.totalTaxAmount.toFixed(2),
+      inv.grandTotalAmount.toFixed(2)
+    ]);
+
+    const csvContent = [
+      headers.join(','),
+      ...rows.map(row => row.map(cell => `"${cell}"`).join(','))
+    ].join('\n');
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    link.setAttribute('href', url);
+    link.setAttribute('download', `invoices_export_${format(new Date(), 'yyyy-MM-dd')}.csv`);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    
+    toast({
+      title: "Export Complete",
+      description: "Your invoices have been exported to CSV.",
+    });
   };
 
   const getStatusBadge = (status: string) => {
@@ -124,6 +185,17 @@ export default function InvoicesPage() {
       <main className="container mx-auto p-4 md:p-6 lg:p-8">
         <div className="max-w-6xl mx-auto space-y-8">
           
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div>
+              <h2 className="text-3xl font-bold font-headline">Invoice Dashboard</h2>
+              <p className="text-muted-foreground">Monitor your business performance and manage records.</p>
+            </div>
+            <Button onClick={exportToCSV} variant="outline" disabled={!filteredInvoices.length}>
+              <Download className="mr-2 h-4 w-4" />
+              Export CSV
+            </Button>
+          </div>
+
           {/* Summary Stats */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <Card>
@@ -132,7 +204,7 @@ export default function InvoicesPage() {
                   <IndianRupee className="h-6 w-6" />
                 </div>
                 <div>
-                  <p className="text-sm text-muted-foreground">Total Invoiced</p>
+                  <p className="text-sm text-muted-foreground">{statusFilter === 'all' ? 'Total Volume' : 'Current View Total'}</p>
                   <p className="text-2xl font-bold font-headline">{formatCurrency(stats.total)}</p>
                 </div>
               </CardContent>
@@ -162,19 +234,25 @@ export default function InvoicesPage() {
           </div>
 
           <Card>
-            <CardHeader className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
-              <div>
-                <CardTitle>Invoice History</CardTitle>
-                <CardDescription>Review and manage your issued invoices.</CardDescription>
-              </div>
-              <div className="relative w-full md:w-72">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input 
-                  placeholder="Search customer or ID..." 
-                  className="pl-9"
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                />
+            <CardHeader className="pb-3">
+              <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+                <Tabs defaultValue="all" className="w-full md:w-auto" onValueChange={setStatusFilter}>
+                  <TabsList>
+                    <TabsTrigger value="all">All</TabsTrigger>
+                    <TabsTrigger value="paid">Paid</TabsTrigger>
+                    <TabsTrigger value="pending">Pending</TabsTrigger>
+                    <TabsTrigger value="draft">Draft</TabsTrigger>
+                  </TabsList>
+                </Tabs>
+                <div className="relative w-full md:w-72">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input 
+                    placeholder="Search customer or ID..." 
+                    className="pl-9"
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                  />
+                </div>
               </div>
             </CardHeader>
             <CardContent>
@@ -210,9 +288,43 @@ export default function InvoicesPage() {
                             <TableCell className="text-right font-medium">{formatCurrency(invoice.grandTotalAmount)}</TableCell>
                             <TableCell className="text-right">
                               <div className="flex justify-end gap-2">
-                                <Button variant="ghost" size="icon" title="Delete" onClick={() => handleDelete(invoice.id, invoice.invoiceNumber)}>
-                                  <Trash2 className="h-4 w-4 text-muted-foreground hover:text-destructive" />
-                                </Button>
+                                <AlertDialog>
+                                  <AlertDialogTrigger asChild>
+                                    <Button variant="ghost" size="icon" title="Delete">
+                                      <Trash2 className="h-4 w-4 text-muted-foreground hover:text-destructive" />
+                                    </Button>
+                                  </AlertDialogTrigger>
+                                  <AlertDialogContent>
+                                    <AlertDialogHeader>
+                                      <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                                      <AlertDialogDescription>
+                                        This will permanently delete invoice <strong>{invoice.invoiceNumber}</strong> for {invoice.customerName}. This action cannot be undone.
+                                      </AlertDialogDescription>
+                                    </AlertDialogHeader>
+                                    <AlertDialogFooter>
+                                      <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                      <AlertDialogAction onClick={() => handleDelete(invoice.id, invoice.invoiceNumber)} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                                        Delete Invoice
+                                      </AlertDialogAction>
+                                    </AlertDialogFooter>
+                                  </AlertDialogContent>
+                                </AlertDialog>
+                                
+                                <DropdownMenu>
+                                  <DropdownMenuTrigger asChild>
+                                    <Button variant="ghost" size="icon">
+                                      <MoreHorizontal className="h-4 w-4" />
+                                    </Button>
+                                  </DropdownMenuTrigger>
+                                  <DropdownMenuContent align="end">
+                                    <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                                    <DropdownMenuSeparator />
+                                    <DropdownMenuItem onClick={() => toast({ title: "View Details", description: "This feature will be available in the next update." })}>
+                                      View Details
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem onClick={() => window.print()}>Print Copy</DropdownMenuItem>
+                                  </DropdownMenuContent>
+                                </DropdownMenu>
                               </div>
                             </TableCell>
                           </TableRow>
@@ -224,9 +336,9 @@ export default function InvoicesPage() {
                   <div className="text-center py-12 space-y-4">
                     <FileText className="h-12 w-12 mx-auto text-muted-foreground/50" />
                     <p className="text-muted-foreground">
-                      {searchTerm ? `No invoices found matching "${searchTerm}"` : "You haven't saved any invoices yet."}
+                      {searchTerm ? `No invoices found matching "${searchTerm}"` : "No invoices found for this category."}
                     </p>
-                    {!searchTerm && (
+                    {!searchTerm && statusFilter === 'all' && (
                       <Link href="/">
                         <Button variant="outline">Create Your First Invoice</Button>
                       </Link>
