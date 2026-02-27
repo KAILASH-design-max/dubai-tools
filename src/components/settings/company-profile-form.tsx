@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { useFirestore, useDoc, useMemoFirebase, updateDocumentNonBlocking } from '@/firebase';
+import { useFirestore, useDoc, useMemoFirebase, setDocumentNonBlocking } from '@/firebase';
 import { doc } from 'firebase/firestore';
 import type { CompanyProfile } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
@@ -27,8 +27,20 @@ export function CompanyProfileForm({ userId }: { userId: string }) {
   useEffect(() => {
     if (companyProfile) {
       setFormData(companyProfile);
+    } else if (!isLoading && !companyProfile) {
+      // Fallback to defaults if nothing exists yet
+      setFormData({
+        name: 'DUBAI TOOLS',
+        addressLine1: 'Shivdhara, Darbhanga, Bihar 846005',
+        city: 'Darbhanga',
+        state: 'Bihar',
+        postalCode: '846005',
+        phoneNumbers: ['9268863031', '7280944150'],
+        email: 'dubaitools2026@gmail.com',
+        gstRegistrationNumber: '',
+      });
     }
-  }, [companyProfile]);
+  }, [companyProfile, isLoading]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { id, value } = e.target;
@@ -42,7 +54,8 @@ export function CompanyProfileForm({ userId }: { userId: string }) {
 
   const handleSaveChanges = () => {
     if (companyProfileRef) {
-      updateDocumentNonBlocking(companyProfileRef, formData);
+      // Use set with merge: true to ensure the document is created if it doesn't exist
+      setDocumentNonBlocking(companyProfileRef, formData, { merge: true });
       toast({
         title: "Profile Updated",
         description: "Your company profile has been successfully updated.",
@@ -108,7 +121,7 @@ export function CompanyProfileForm({ userId }: { userId: string }) {
         <Input id="gstRegistrationNumber" value={formData.gstRegistrationNumber || ''} onChange={handleInputChange} />
       </div>
 
-      <Button onClick={handleSaveChanges}>Save Changes</Button>
+      <Button onClick={handleSaveChanges} className="w-full sm:w-auto">Save Changes</Button>
     </div>
   );
 }

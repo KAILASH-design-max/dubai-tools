@@ -33,6 +33,7 @@ export function InvoiceHeader({
   const { data: companyProfile, isLoading } = useDoc<CompanyProfile>(companyProfileRef);
 
   useEffect(() => {
+    // Only initialize if we're sure it doesn't exist and finished loading
     if (!isLoading && !companyProfile && companyProfileRef) {
       const defaultProfile: Omit<CompanyProfile, 'id'> = {
         name: 'DUBAI TOOLS',
@@ -42,7 +43,7 @@ export function InvoiceHeader({
         postalCode: '846005',
         phoneNumbers: ['9268863031', '7280944150'],
         email: 'dubaitools2026@gmail.com',
-        gstRegistrationNumber: '[Your GST Number]',
+        gstRegistrationNumber: '',
       };
       setDocumentNonBlocking(companyProfileRef, defaultProfile, { merge: false });
     }
@@ -62,28 +63,32 @@ export function InvoiceHeader({
         ) : companyProfile ? (
           <div className="space-y-1">
             <h1 className="font-headline text-xl sm:text-2xl font-bold text-primary">
-              {companyProfile.name}
+              {companyProfile.name || 'DUBAI TOOLS'}
             </h1>
             <div className="not-italic text-muted-foreground text-sm space-y-1">
                 <p>{companyProfile.addressLine1}</p>
-                <p>{companyProfile.city}, {companyProfile.state} {companyProfile.postalCode}</p>
-                <div className="flex items-center gap-1">
-                    <span className="font-bold">Phone:</span>
-                    <span>{companyProfile.phoneNumbers.join(', ')}</span>
-                </div>
-                <div className="flex items-center gap-1">
-                    <span className="font-bold">Email:</span>
-                    <span>{companyProfile.email}</span>
-                </div>
-                <div className="flex items-center gap-1">
-                    <span className="font-bold">GST:</span>
-                    <span>{companyProfile.gstRegistrationNumber}</span>
-                </div>
+                <p>{companyProfile.city}{companyProfile.state ? `, ${companyProfile.state}` : ''} {companyProfile.postalCode}</p>
+                {companyProfile.phoneNumbers && companyProfile.phoneNumbers.length > 0 && (
+                  <div className="flex items-center gap-1">
+                      <span className="font-bold">Phone:</span>
+                      <span>{companyProfile.phoneNumbers.join(', ')}</span>
+                  </div>
+                )}
+                {companyProfile.email && (
+                  <div className="flex items-center gap-1">
+                      <span className="font-bold">Email:</span>
+                      <span>{companyProfile.email}</span>
+                  </div>
+                )}
+                {companyProfile.gstRegistrationNumber && (
+                  <div className="flex items-center gap-1">
+                      <span className="font-bold">GST:</span>
+                      <span>{companyProfile.gstRegistrationNumber}</span>
+                  </div>
+                )}
             </div>
           </div>
-        ) : (
-          <p className="text-sm text-muted-foreground">Company profile not found. Please set it up in Settings.</p>
-        )}
+        ) : null}
       </div>
       <div className="space-y-4 text-sm sm:text-right">
           <div className="grid grid-cols-2 sm:grid-cols-[1fr_auto] items-center gap-2">
