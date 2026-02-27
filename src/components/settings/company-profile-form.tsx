@@ -9,7 +9,6 @@ import { doc } from 'firebase/firestore';
 import type { CompanyProfile } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import { Skeleton } from '../ui/skeleton';
-import { Textarea } from '../ui/textarea';
 
 export function CompanyProfileForm({ userId }: { userId: string }) {
   const firestore = useFirestore();
@@ -107,16 +106,6 @@ export function CompanyProfileForm({ userId }: { userId: string }) {
       <div className="space-y-2">
         <Label htmlFor="gstRegistrationNumber">GST / Reg. No.</Label>
         <Input id="gstRegistrationNumber" value={formData.gstRegistrationNumber || ''} onChange={handleInputChange} />
-      </div>
-      <div className="space-y-2">
-        <Label htmlFor="defaultInvoiceNotes">Default Invoice Notes</Label>
-        <Textarea 
-          id="defaultInvoiceNotes" 
-          value={formData.defaultInvoiceNotes || ''} 
-          onChange={handleInputChange} 
-          placeholder="e.g., Payment due within 30 days."
-        />
-        <p className="text-xs text-muted-foreground">This text will automatically appear on new invoices.</p>
       </div>
 
       <Button onClick={handleSaveChanges}>Save Changes</Button>

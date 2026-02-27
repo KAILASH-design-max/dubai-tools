@@ -12,12 +12,11 @@ import { Trash2, Plus, Loader2 } from 'lucide-react';
 import { InvoiceHeader } from './invoice-header';
 import { InvoiceActions } from './invoice-actions';
 import { useFirestore, useDoc, useCollection, useMemoFirebase } from '@/firebase';
-import { doc, collection, addDoc, deleteDoc, writeBatch } from 'firebase/firestore';
+import { doc, collection, addDoc, deleteDoc } from 'firebase/firestore';
 import { addDocumentNonBlocking, deleteDocumentNonBlocking, setDocumentNonBlocking, updateDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 import type { Invoice, InvoiceLineItem, CompanyProfile, Customer } from '@/lib/types';
 import { Skeleton } from '../ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
-import { Textarea } from '../ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
@@ -53,7 +52,6 @@ export function InvoiceForm({ userId }: { userId: string }) {
   const { data: lineItems, isLoading: areLineItemsLoading } = useCollection<InvoiceLineItem>(lineItemsCollectionRef);
   const { data: customers } = useCollection<Customer>(customersCollectionRef);
 
-  // Initialize draft invoice if it doesn't exist
   useEffect(() => {
     if (!isInvoiceLoading && !invoice && invoiceRef) {
       const defaultInvoice: Omit<Invoice, 'id'> = {
@@ -68,7 +66,6 @@ export function InvoiceForm({ userId }: { userId: string }) {
         status: 'Draft',
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
-        notes: companyProfile?.defaultInvoiceNotes || '',
       };
       setDocumentNonBlocking(invoiceRef, defaultInvoice, { merge: false });
     }
@@ -137,7 +134,6 @@ export function InvoiceForm({ userId }: { userId: string }) {
     setIsSaving(true);
     const invoicesCollection = collection(firestore, `users/${userId}/invoices`);
     
-    // We want to save the current state as a permanent record
     const invoiceToSave = {
         ...invoice,
         status: 'Sent' as const,
@@ -146,17 +142,14 @@ export function InvoiceForm({ userId }: { userId: string }) {
     const { id: dummyId, ...invoiceDataToSave } = invoiceToSave;
 
     try {
-        // 1. Create the permanent invoice document
         const newInvoiceDocRef = await addDoc(invoicesCollection, invoiceDataToSave);
         
-        // 2. Add line items to the new invoice
         const newLineItemsCollection = collection(newInvoiceDocRef, 'lineItems');
         for (const item of lineItems) {
             const { id: itemId, ...lineItemData } = item;
             await addDoc(newLineItemsCollection, lineItemData);
         }
 
-        // 3. Logic to increment invoice number for the draft
         const currentInvoiceNumber = invoice.invoiceNumber;
         const numberMatch = currentInvoiceNumber.match(/\d+$/);
         let nextInvoiceNumber = currentInvoiceNumber;
@@ -171,7 +164,6 @@ export function InvoiceForm({ userId }: { userId: string }) {
             nextInvoiceNumber = currentInvoiceNumber + "-1";
         }
 
-        // 4. Reset the draft invoice ('main')
         updateDocumentNonBlocking(invoiceRef, {
             invoiceNumber: nextInvoiceNumber,
             invoiceDate: new Date().toISOString().split('T')[0],
@@ -180,11 +172,9 @@ export function InvoiceForm({ userId }: { userId: string }) {
             subtotalAmount: 0,
             totalTaxAmount: 0,
             grandTotalAmount: 0,
-            notes: companyProfile?.defaultInvoiceNotes || '',
             updatedAt: new Date().toISOString(),
         });
 
-        // 5. Clear draft line items from 'main'
         for (const item of lineItems) {
             await deleteDoc(doc(lineItemsCollectionRef, item.id));
         }
@@ -298,11 +288,6 @@ export function InvoiceForm({ userId }: { userId: string }) {
           input.print-no-border {
             padding: 0 !important;
           }
-          textarea.print-no-border {
-            padding: 0 !important;
-            resize: none;
-            height: auto;
-          }
           input[type=number]::-webkit-inner-spin-button,
           input[type=number]::-webkit-outer-spin-button {
               -webkit-appearance: none;
@@ -400,17 +385,6 @@ export function InvoiceForm({ userId }: { userId: string }) {
           <Button onClick={handleAddLineItem} variant="outline" className="mt-4 print:hidden">
             <Plus className="mr-2 h-4 w-4" /> Add Item
           </Button>
-
-          <div className="mt-8 space-y-2 print:mt-4">
-              <Label htmlFor="notes" className="font-headline">Notes</Label>
-              <Textarea
-                  id="notes"
-                  placeholder="Add any notes, like payment terms or a thank you message."
-                  value={invoice?.notes || ''}
-                  onChange={(e) => handleUpdateInvoice('notes', e.target.value)}
-                  className="print-no-border"
-              />
-          </div>
 
           <Separator className="my-6" />
 

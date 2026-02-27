@@ -5,18 +5,19 @@ import Link from 'next/link';
 import { useUser, useAuth, useCollection, useFirestore, useMemoFirebase, deleteDocumentNonBlocking, updateDocumentNonBlocking } from '@/firebase';
 import { initiateAnonymousSignIn } from '@/firebase/non-blocking-login';
 import { collection, query, where, doc } from 'firebase/firestore';
-import { Invoice } from '@/lib/types';
+import { Invoice, InvoiceLineItem } from '@/lib/types';
 import { Logo } from '@/components/logo';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, Search, Trash2, FileText, IndianRupee, Clock, CheckCircle2, Download, Filter, MoreHorizontal, TrendingUp, Check, XCircle, Send } from 'lucide-react';
+import { ArrowLeft, Search, Trash2, FileText, IndianRupee, Clock, CheckCircle2, Download, Filter, MoreHorizontal, TrendingUp, Check, XCircle, Send, Eye, Printer } from 'lucide-react';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Input } from '@/components/ui/input';
-import { format, parseISO, startOfMonth } from 'date-fns';
+import { format, parseISO } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Separator } from '@/components/ui/separator';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -37,12 +38,130 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
   ChartConfig,
   ChartContainer,
   ChartTooltip,
   ChartTooltipContent,
 } from "@/components/ui/chart";
-import { Bar, BarChart, CartesianGrid, XAxis, YAxis, ResponsiveContainer } from "recharts";
+import { Bar, BarChart, CartesianGrid, XAxis } from "recharts";
+
+function InvoiceDetailModal({ invoice, userId, isOpen, onOpenChange }: { invoice: Invoice | null, userId: string, isOpen: boolean, onOpenChange: (open: boolean) => void }) {
+  const firestore = useFirestore();
+  const lineItemsRef = useMemoFirebase(
+    () => (firestore && userId && invoice ? collection(firestore, `users/${userId}/invoices/${invoice.id}/lineItems`) : null),
+    [firestore, userId, invoice?.id]
+  );
+  const { data: lineItems, isLoading } = useCollection<InvoiceLineItem>(lineItemsRef);
+
+  if (!invoice) return null;
+
+  const formatCurrency = (amount: number) => new Intl.NumberFormat('en-IN', { 
+    style: 'currency', 
+    currency: 'INR'
+  }).format(amount).replace('₹', 'Rs ');
+
+  return (
+    <Dialog open={isOpen} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+        <DialogHeader>
+          <div className="flex items-center justify-between pr-8">
+            <div>
+              <DialogTitle className="text-2xl font-headline text-primary">Invoice Details</DialogTitle>
+              <DialogDescription>
+                Reference: {invoice.invoiceNumber}
+              </DialogDescription>
+            </div>
+            <Badge className={invoice.status === 'Paid' ? 'bg-green-600' : ''}>{invoice.status}</Badge>
+          </div>
+        </DialogHeader>
+        
+        <div className="space-y-6 py-4">
+           <div className="grid grid-cols-2 gap-8 text-sm">
+             <div>
+               <p className="text-muted-foreground mb-1 uppercase text-[10px] font-bold tracking-wider">Bill To</p>
+               <p className="font-bold text-lg leading-tight">{invoice.customerName}</p>
+             </div>
+             <div className="text-right">
+               <p className="text-muted-foreground mb-1 uppercase text-[10px] font-bold tracking-wider">Date Issued</p>
+               <p className="font-medium">{format(new Date(`${invoice.invoiceDate}T00:00:00`), 'PP')}</p>
+             </div>
+           </div>
+
+           <div className="rounded-md border overflow-hidden">
+             <Table>
+               <TableHeader className="bg-muted/50">
+                 <TableRow>
+                   <TableHead>Description</TableHead>
+                   <TableHead className="text-right">Qty</TableHead>
+                   <TableHead className="text-right">Rate</TableHead>
+                   <TableHead className="text-right">Tax</TableHead>
+                   <TableHead className="text-right">Total</TableHead>
+                 </TableRow>
+               </TableHeader>
+               <TableBody>
+                 {isLoading ? (
+                   <TableRow>
+                     <TableCell colSpan={5} className="text-center py-12">
+                       <div className="flex flex-col items-center gap-2">
+                         <Clock className="h-5 w-5 animate-spin text-muted-foreground" />
+                         <span className="text-xs text-muted-foreground uppercase tracking-widest">Loading Line Items</span>
+                       </div>
+                     </TableCell>
+                   </TableRow>
+                 ) : lineItems?.map(item => {
+                   const qty = parseFloat(item.quantity) || 0;
+                   const amount = item.description === 'Labor cost' ? item.rate : qty * item.rate;
+                   const total = amount * (1 + item.tax / 100);
+                   return (
+                     <TableRow key={item.id}>
+                       <TableCell className="font-medium">{item.description}</TableCell>
+                       <TableCell className="text-right">{item.quantity}</TableCell>
+                       <TableCell className="text-right">{item.rate.toFixed(2)}</TableCell>
+                       <TableCell className="text-right text-muted-foreground">{item.tax}%</TableCell>
+                       <TableCell className="text-right font-bold">{total.toFixed(2)}</TableCell>
+                     </TableRow>
+                   )
+                 })}
+               </TableBody>
+             </Table>
+           </div>
+
+           <div className="flex justify-end pt-4">
+             <div className="w-full md:w-1/2 space-y-3 text-right">
+               <div className="flex justify-between items-center px-2">
+                 <span className="text-muted-foreground text-xs uppercase font-bold tracking-wider">Subtotal</span>
+                 <span className="font-medium">{formatCurrency(invoice.subtotalAmount)}</span>
+               </div>
+               <div className="flex justify-between items-center px-2">
+                 <span className="text-muted-foreground text-xs uppercase font-bold tracking-wider">Tax Total</span>
+                 <span className="font-medium">{formatCurrency(invoice.totalTaxAmount)}</span>
+               </div>
+               <div className="h-px bg-border my-2" />
+               <div className="flex justify-between items-center bg-primary/5 p-4 rounded-lg border border-primary/20">
+                 <span className="font-headline font-bold text-primary uppercase tracking-tighter">Grand Total</span>
+                 <span className="font-headline font-bold text-2xl text-primary">{formatCurrency(invoice.grandTotalAmount)}</span>
+               </div>
+             </div>
+           </div>
+        </div>
+        <DialogFooter className="flex flex-col sm:flex-row gap-2">
+          <Button variant="outline" className="w-full sm:w-auto" onClick={() => window.print()}>
+            <Printer className="mr-2 h-4 w-4" /> Print
+          </Button>
+          <Button className="w-full sm:w-auto" onClick={() => onOpenChange(false)}>Close</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
 
 export default function InvoicesPage() {
   const { user, isUserLoading } = useUser();
@@ -51,6 +170,7 @@ export default function InvoicesPage() {
   const { toast } = useToast();
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
+  const [viewInvoice, setViewInvoice] = useState<Invoice | null>(null);
 
   useEffect(() => {
     if (auth && !user && !isUserLoading) {
@@ -100,7 +220,6 @@ export default function InvoicesPage() {
     }, { total: 0, paid: 0, pending: 0 });
   }, [invoices, filteredInvoices, statusFilter]);
 
-  // Chart Data Preparation
   const chartData = useMemo(() => {
     if (!invoices) return [];
     
@@ -116,7 +235,7 @@ export default function InvoicesPage() {
     return Object.entries(monthlyData)
       .map(([month, revenue]) => ({ month, revenue }))
       .sort((a, b) => new Date(a.month).getTime() - new Date(b.month).getTime())
-      .slice(-6); // Last 6 months
+      .slice(-6);
   }, [invoices]);
 
   const chartConfig = {
@@ -128,9 +247,7 @@ export default function InvoicesPage() {
 
   const formatCurrency = (amount: number) => new Intl.NumberFormat('en-IN', { 
     style: 'currency', 
-    currency: 'INR', 
-    minimumFractionDigits: 2, 
-    maximumFractionDigits: 2 
+    currency: 'INR'
   }).format(amount).replace('₹', 'Rs ');
   
   const formatDate = (dateString: string) => {
@@ -240,7 +357,6 @@ export default function InvoicesPage() {
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            {/* Summary Stats */}
             <div className="lg:col-span-1 space-y-4">
               <Card>
                 <CardContent className="pt-6 flex items-center gap-4">
@@ -277,7 +393,6 @@ export default function InvoicesPage() {
               </Card>
             </div>
 
-            {/* Revenue Chart */}
             <Card className="lg:col-span-2">
               <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
                 <div className="space-y-1">
@@ -369,7 +484,14 @@ export default function InvoicesPage() {
                       <TableBody>
                         {filteredInvoices.map(invoice => (
                           <TableRow key={invoice.id}>
-                            <TableCell className="font-medium">{invoice.invoiceNumber}</TableCell>
+                            <TableCell className="font-medium">
+                                <button 
+                                    onClick={() => setViewInvoice(invoice)}
+                                    className="hover:underline text-primary text-left"
+                                >
+                                    {invoice.invoiceNumber}
+                                </button>
+                            </TableCell>
                             <TableCell>{invoice.customerName}</TableCell>
                             <TableCell>{formatDate(invoice.invoiceDate)}</TableCell>
                             <TableCell>{getStatusBadge(invoice.status)}</TableCell>
@@ -385,6 +507,10 @@ export default function InvoicesPage() {
                                   <DropdownMenuContent align="end">
                                     <DropdownMenuLabel>Actions</DropdownMenuLabel>
                                     <DropdownMenuSeparator />
+                                    <DropdownMenuItem onClick={() => setViewInvoice(invoice)}>
+                                      <Eye className="mr-2 h-4 w-4" />
+                                      View Details
+                                    </DropdownMenuItem>
                                     {invoice.status !== 'Paid' && (
                                       <DropdownMenuItem onClick={() => handleUpdateStatus(invoice.id, 'Paid')}>
                                         <Check className="mr-2 h-4 w-4 text-green-600" />
@@ -462,6 +588,15 @@ export default function InvoicesPage() {
           </Card>
         </div>
       </main>
+
+      {user && (
+        <InvoiceDetailModal 
+            invoice={viewInvoice} 
+            userId={user.uid} 
+            isOpen={!!viewInvoice} 
+            onOpenChange={(open) => !open && setViewInvoice(null)} 
+        />
+      )}
       
       <footer className="container mx-auto py-6 px-4 text-center text-sm text-muted-foreground md:px-6">
         <p>&copy; {new Date().getFullYear()} Dubai Tools. All rights reserved.</p>
