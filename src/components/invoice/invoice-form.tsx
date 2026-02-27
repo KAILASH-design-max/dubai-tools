@@ -48,7 +48,7 @@ export function InvoiceForm({ userId }: { userId: string }) {
       const defaultInvoice: Omit<Invoice, 'id'> = {
         invoiceNumber: 'INV-001',
         invoiceDate: new Date().toISOString().split('T')[0],
-        customerName: 'Acme Corp',
+        customerName: '',
         customerId: 'temp-customer',
         companyProfileId: 'main',
         subtotalAmount: 0,
@@ -105,26 +105,20 @@ export function InvoiceForm({ userId }: { userId: string }) {
     }
 
     const invoicesCollection = collection(firestore, `users/${userId}/invoices`);
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { id, ...invoiceDataToSave } = invoice;
 
-    // Use addDoc directly because we need the returned promise for the doc ref
     addDoc(invoicesCollection, invoiceDataToSave)
       .then(newInvoiceDocRef => {
         if (!newInvoiceDocRef) {
           throw new Error("Failed to create new invoice document.");
         }
 
-        // Copy line items to the new invoice
         const newLineItemsCollection = collection(newInvoiceDocRef, 'lineItems');
         lineItems.forEach(item => {
-          // eslint-disable-next-line @typescript-eslint/no-unused-vars
           const { id, ...lineItemData } = item;
-          // Here we can use the non-blocking version as we don't need to wait
           addDocumentNonBlocking(newLineItemsCollection, lineItemData);
         });
 
-        // Increment invoice number
         const currentInvoiceNumber = invoice.invoiceNumber;
         const numberMatch = currentInvoiceNumber.match(/\d+$/);
         if (!numberMatch) {
@@ -137,14 +131,12 @@ export function InvoiceForm({ userId }: { userId: string }) {
         const nextNumberString = String(number).padStart(numberPart.length, '0');
         const nextInvoiceNumber = `${prefix}${nextNumberString}`;
 
-        // Reset the main invoice form for the new one
         updateDocumentNonBlocking(invoiceRef, {
             invoiceNumber: nextInvoiceNumber,
             customerName: '',
             notes: companyProfile?.defaultInvoiceNotes || '',
         });
 
-        // Clear line items from the main invoice
         lineItems.forEach(item => 
             deleteDocumentNonBlocking(doc(lineItemsCollectionRef, item.id))
         );
@@ -155,7 +147,6 @@ export function InvoiceForm({ userId }: { userId: string }) {
         });
       })
       .catch(error => {
-        console.error("Error saving invoice: ", error);
         toast({
           variant: "destructive",
           title: "Uh oh! Something went wrong.",
@@ -168,13 +159,11 @@ export function InvoiceForm({ userId }: { userId: string }) {
     const quantityAsString = String(item.quantity);
     const quantityMatch = quantityAsString.match(/^[0-9.]+/);
     const quantityAsNumber = quantityMatch ? parseFloat(quantityMatch[0]) : 1;
-
     const quantity = isNaN(quantityAsNumber) ? 1 : quantityAsNumber;
     
     let amount = 0;
-    // Special handling for labor cost
     if (item.description === 'Labor cost') {
-        amount = item.rate; // Use the rate directly as the amount for labor
+        amount = item.rate;
     } else {
         amount = quantity * item.rate;
     }
@@ -249,7 +238,7 @@ export function InvoiceForm({ userId }: { userId: string }) {
             -moz-appearance: none;
             appearance: none;
             color: inherit !important;
-            -moz-appearance: textfield; /* Firefox */
+            -moz-appearance: textfield;
           }
           input.print-no-border {
             padding: 0 !important;
@@ -285,9 +274,6 @@ export function InvoiceForm({ userId }: { userId: string }) {
             <div className="space-y-2">
               <Label htmlFor="customerName" className="font-headline">Bill To</Label>
               <Input id="customerName" value={invoice?.customerName || ''} onChange={(e) => handleUpdateInvoice('customerName', e.target.value)} placeholder="Customer Name" className="print-no-border" />
-            </div>
-            <div className="space-y-4 text-sm">
-                
             </div>
           </div>
           
@@ -381,7 +367,6 @@ export function InvoiceForm({ userId }: { userId: string }) {
             </div>
             <p className="font-headline text-sm text-muted-foreground pt-2 border-t-2 border-dashed w-40">Authorized Signature</p>
           </div>
-
         </CardContent>
       </Card>
     </>
