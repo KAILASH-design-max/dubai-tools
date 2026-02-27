@@ -1,12 +1,20 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
+    // Utility function to check if the user is authenticated and owns the data.
     function isOwner(userId) {
       return request.auth != null && request.auth.uid == userId;
     }
 
-    match /users/{userId}/{documents=**} {
+    // Match all documents under the /users/{userId} path.
+    // This allows the user to access their profile, customers, invoices, and all nested subcollections.
+    match /users/{userId} {
       allow read, write: if isOwner(userId);
+      
+      // Explicitly allow access to all subcollections (like /invoices/{id}/lineItems)
+      match /{allPaths=**} {
+        allow read, write: if isOwner(userId);
+      }
     }
   }
 }
