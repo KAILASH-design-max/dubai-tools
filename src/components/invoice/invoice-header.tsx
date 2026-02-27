@@ -42,7 +42,7 @@ export function InvoiceHeader({
         state: 'Bihar',
         postalCode: '846005',
         phoneNumbers: ['9268863031', '7280944150'],
-        email: 'duubaitools2025@gmail.com',
+        email: 'dubaitools2026@gmail.com',
         gstRegistrationNumber: '[Your GST Number]',
       };
       setDocumentNonBlocking(companyProfileRef, defaultProfile, { merge: false });
