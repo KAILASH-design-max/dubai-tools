@@ -51,4 +51,5 @@ export interface InvoiceLineItem {
     quantity: string;
     rate: number;
     tax: number;
+    sortIndex: number;
 }

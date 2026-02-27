@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { useFirestore, useDoc, useMemoFirebase, setDocumentNonBlocking } from '@/firebase';
+import { useFirestore, useMemoFirebase, setDocumentNonBlocking, useCompanyProfile } from '@/firebase';
 import { doc } from 'firebase/firestore';
 import type { CompanyProfile } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
@@ -20,16 +20,15 @@ export function CompanyProfileForm({ userId }: { userId: string }) {
     [firestore, userId]
   );
   
-  const { data: companyProfile, isLoading } = useDoc<CompanyProfile>(companyProfileRef);
+  // Use centralized hook for real-time consistency
+  const { data: companyProfile, isLoading } = useCompanyProfile(userId);
 
   const [formData, setFormData] = useState<Partial<CompanyProfile>>({});
 
   useEffect(() => {
     if (companyProfile) {
-      // Sync local state with real-time Firestore data
       setFormData(companyProfile);
     } else if (!isLoading && !companyProfile) {
-      // Sensible defaults for the form if no record exists yet
       setFormData({
         name: 'DUBAI TOOLS',
         addressLine1: 'Shivdhara, Darbhanga, Bihar 846005',
@@ -55,7 +54,6 @@ export function CompanyProfileForm({ userId }: { userId: string }) {
 
   const handleSaveChanges = () => {
     if (companyProfileRef) {
-      // Use merge: true to ensure we only update provided fields and create if missing
       setDocumentNonBlocking(companyProfileRef, formData, { merge: true });
       toast({
         title: "Profile Updated",

@@ -3,23 +3,19 @@
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import type { CompanyProfile } from "@/lib/types";
-import { Skeleton } from "@/components/ui/skeleton";
 
 type InvoiceHeaderProps = {
-    userId: string;
     invoiceNumber: string;
     onInvoiceNumberChange: (value: string) => void;
     invoiceDate: string;
     onInvoiceDateChange: (value: string) => void;
     companyProfile: CompanyProfile | null;
-    isLoading: boolean;
 };
 
 export function InvoiceHeader({ 
     invoiceNumber, onInvoiceNumberChange, 
     invoiceDate, onInvoiceDateChange,
-    companyProfile,
-    isLoading
+    companyProfile
 }: InvoiceHeaderProps) {
   // Local fallback defaults if the profile hasn't been saved yet
   const displayProfile = companyProfile || {
@@ -36,15 +32,6 @@ export function InvoiceHeader({
   return (
     <div className="font-body grid sm:grid-cols-2 gap-4 w-full">
       <div className="space-y-2">
-        {isLoading ? (
-          <div className="space-y-2">
-            <Skeleton className="h-7 w-48" />
-            <Skeleton className="h-4 w-64" />
-            <Skeleton className="h-4 w-56" />
-            <Skeleton className="h-4 w-60" />
-            <Skeleton className="h-4 w-48" />
-          </div>
-        ) : (
           <div className="space-y-1">
             <h1 className="font-headline text-xl sm:text-2xl font-bold text-primary">
               {displayProfile.name}
@@ -72,7 +59,6 @@ export function InvoiceHeader({
                 )}
             </div>
           </div>
-        )}
       </div>
       <div className="space-y-4 text-sm sm:text-right">
           <div className="grid grid-cols-2 sm:grid-cols-[1fr_auto] items-center gap-2">

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -11,8 +11,8 @@ import { Label } from '@/components/ui/label';
 import { Trash2, Plus, Loader2 } from 'lucide-react';
 import { InvoiceHeader } from './invoice-header';
 import { InvoiceActions } from './invoice-actions';
-import { useFirestore, useDoc, useCollection, useMemoFirebase } from '@/firebase';
-import { doc, collection, addDoc, deleteDoc } from 'firebase/firestore';
+import { useFirestore, useDoc, useCollection, useMemoFirebase, useCompanyProfile } from '@/firebase';
+import { doc, collection, addDoc, deleteDoc, query, orderBy } from 'firebase/firestore';
 import { addDocumentNonBlocking, deleteDocumentNonBlocking, setDocumentNonBlocking, updateDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 import type { Invoice, InvoiceLineItem, CompanyProfile, Customer } from '@/lib/types';
 import { Skeleton } from '../ui/skeleton';
@@ -27,11 +27,8 @@ export function InvoiceForm({ userId }: { userId: string }) {
   const [isSaving, setIsSaving] = useState(false);
   const invoiceId = 'main';
 
-  const companyProfileRef = useMemoFirebase(
-    () => firestore ? doc(firestore, `users/${userId}/companyProfile/main`) : null,
-    [firestore, userId]
-  );
-  const { data: companyProfile, isLoading: isCompanyProfileLoading } = useDoc<CompanyProfile>(companyProfileRef);
+  // Use centralized company profile hook for real-time consistency
+  const { data: companyProfile, isLoading: isCompanyProfileLoading } = useCompanyProfile(userId);
 
   const invoiceRef = useMemoFirebase(
     () => firestore ? doc(firestore, `users/${userId}/invoices/${invoiceId}`) : null,
@@ -43,13 +40,18 @@ export function InvoiceForm({ userId }: { userId: string }) {
     [invoiceRef]
   );
 
+  const lineItemsQuery = useMemoFirebase(
+    () => lineItemsCollectionRef ? query(lineItemsCollectionRef, orderBy('sortIndex', 'asc')) : null,
+    [lineItemsCollectionRef]
+  );
+
   const customersCollectionRef = useMemoFirebase(
     () => firestore ? collection(firestore, `users/${userId}/customers`) : null,
     [firestore, userId]
   );
 
   const { data: invoice, isLoading: isInvoiceLoading } = useDoc<Invoice>(invoiceRef);
-  const { data: lineItems, isLoading: areLineItemsLoading } = useCollection<InvoiceLineItem>(lineItemsCollectionRef);
+  const { data: lineItems, isLoading: areLineItemsLoading } = useCollection<InvoiceLineItem>(lineItemsQuery);
   const { data: customers } = useCollection<Customer>(customersCollectionRef);
 
   useEffect(() => {
@@ -73,11 +75,13 @@ export function InvoiceForm({ userId }: { userId: string }) {
   
   const handleAddLineItem = () => {
     if (!lineItemsCollectionRef) return;
+    const nextIndex = (lineItems?.length || 0);
     addDocumentNonBlocking(lineItemsCollectionRef, {
       description: "",
       quantity: "1",
       rate: 0,
       tax: 0,
+      sortIndex: nextIndex,
     });
   };
 
@@ -91,7 +95,7 @@ export function InvoiceForm({ userId }: { userId: string }) {
     if (!lineItemsCollectionRef) return;
     const lineItemRef = doc(lineItemsCollectionRef, id);
     
-    const isNumericField = field === 'rate' || field === 'tax';
+    const isNumericField = field === 'rate' || field === 'tax' || field === 'sortIndex';
     const updatedValue = isNumericField ? (typeof value === 'string' ? parseFloat(value) || 0 : value) : value;
 
     updateDocumentNonBlocking(lineItemRef, { [field]: updatedValue });
@@ -145,7 +149,9 @@ export function InvoiceForm({ userId }: { userId: string }) {
         const newInvoiceDocRef = await addDoc(invoicesCollection, invoiceDataToSave);
         
         const newLineItemsCollection = collection(newInvoiceDocRef, 'lineItems');
-        for (const item of lineItems) {
+        // Save in order
+        const sortedItems = [...lineItems].sort((a, b) => a.sortIndex - b.sortIndex);
+        for (const item of sortedItems) {
             const { id: itemId, ...lineItemData } = item;
             await addDoc(newLineItemsCollection, lineItemData);
         }
@@ -299,13 +305,11 @@ export function InvoiceForm({ userId }: { userId: string }) {
         <CardContent className="p-0">
           <div className="flex flex-col-reverse sm:flex-row justify-between items-start gap-4 mb-6">
             <InvoiceHeader 
-              userId={userId}
+              companyProfile={companyProfile}
               invoiceNumber={invoice?.invoiceNumber || ''}
               onInvoiceNumberChange={(val) => handleUpdateInvoice('invoiceNumber', val)}
               invoiceDate={invoice?.invoiceDate || ''}
               onInvoiceDateChange={(val) => handleUpdateInvoice('invoiceDate', val)}
-              companyProfile={companyProfile}
-              isLoading={isCompanyProfileLoading}
             />
             <div className="flex items-center gap-2">
                 {isSaving && <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />}
