@@ -11,7 +11,7 @@ service cloud.firestore {
     match /users/{userId} {
       allow read, write: if isOwner(userId);
       
-      // Explicitly allow access to all subcollections (like /invoices/{id}/lineItems)
+      // Explicitly allow recursive access to all subcollections and documents.
       match /{allPaths=**} {
         allow read, write: if isOwner(userId);
       }

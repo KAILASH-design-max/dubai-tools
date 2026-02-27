@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useEffect, useState } from 'react';
@@ -13,13 +12,15 @@ import { Trash2, Plus, Loader2 } from 'lucide-react';
 import { InvoiceHeader } from './invoice-header';
 import { InvoiceActions } from './invoice-actions';
 import { useFirestore, useDoc, useCollection, useMemoFirebase } from '@/firebase';
-import { doc, collection, addDoc, deleteDoc } from 'firebase/firestore';
+import { doc, collection, addDoc, deleteDoc, writeBatch } from 'firebase/firestore';
 import { addDocumentNonBlocking, deleteDocumentNonBlocking, setDocumentNonBlocking, updateDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 import type { Invoice, InvoiceLineItem, CompanyProfile, Customer } from '@/lib/types';
 import { Skeleton } from '../ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { Textarea } from '../ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
+import { errorEmitter } from '@/firebase/error-emitter';
+import { FirestorePermissionError } from '@/firebase/errors';
 
 export function InvoiceForm({ userId }: { userId: string }) {
   const firestore = useFirestore();
@@ -52,8 +53,9 @@ export function InvoiceForm({ userId }: { userId: string }) {
   const { data: lineItems, isLoading: areLineItemsLoading } = useCollection<InvoiceLineItem>(lineItemsCollectionRef);
   const { data: customers } = useCollection<Customer>(customersCollectionRef);
 
+  // Initialize draft invoice if it doesn't exist
   useEffect(() => {
-    if (!isInvoiceLoading && !invoice && invoiceRef && companyProfile) {
+    if (!isInvoiceLoading && !invoice && invoiceRef) {
       const defaultInvoice: Omit<Invoice, 'id'> = {
         invoiceNumber: 'INV-001',
         invoiceDate: new Date().toISOString().split('T')[0],
@@ -66,7 +68,7 @@ export function InvoiceForm({ userId }: { userId: string }) {
         status: 'Draft',
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
-        notes: companyProfile.defaultInvoiceNotes || '',
+        notes: companyProfile?.defaultInvoiceNotes || '',
       };
       setDocumentNonBlocking(invoiceRef, defaultInvoice, { merge: false });
     }
@@ -141,19 +143,20 @@ export function InvoiceForm({ userId }: { userId: string }) {
         status: 'Sent' as const,
         updatedAt: new Date().toISOString(),
     };
-    const { id, ...invoiceDataToSave } = invoiceToSave;
+    const { id: dummyId, ...invoiceDataToSave } = invoiceToSave;
 
     try {
+        // 1. Create the permanent invoice document
         const newInvoiceDocRef = await addDoc(invoicesCollection, invoiceDataToSave);
         
-        // Copy line items to the new invoice
+        // 2. Add line items to the new invoice
         const newLineItemsCollection = collection(newInvoiceDocRef, 'lineItems');
         for (const item of lineItems) {
-            const { id, ...lineItemData } = item;
+            const { id: itemId, ...lineItemData } = item;
             await addDoc(newLineItemsCollection, lineItemData);
         }
 
-        // Logic to increment invoice number for the draft
+        // 3. Logic to increment invoice number for the draft
         const currentInvoiceNumber = invoice.invoiceNumber;
         const numberMatch = currentInvoiceNumber.match(/\d+$/);
         let nextInvoiceNumber = currentInvoiceNumber;
@@ -168,7 +171,7 @@ export function InvoiceForm({ userId }: { userId: string }) {
             nextInvoiceNumber = currentInvoiceNumber + "-1";
         }
 
-        // Reset the draft invoice ('main')
+        // 4. Reset the draft invoice ('main')
         updateDocumentNonBlocking(invoiceRef, {
             invoiceNumber: nextInvoiceNumber,
             invoiceDate: new Date().toISOString().split('T')[0],
@@ -181,7 +184,7 @@ export function InvoiceForm({ userId }: { userId: string }) {
             updatedAt: new Date().toISOString(),
         });
 
-        // Clear draft line items
+        // 5. Clear draft line items from 'main'
         for (const item of lineItems) {
             await deleteDoc(doc(lineItemsCollectionRef, item.id));
         }
@@ -190,12 +193,17 @@ export function InvoiceForm({ userId }: { userId: string }) {
           title: "Invoice Saved",
           description: `Invoice ${invoice.invoiceNumber} has been successfully recorded.`,
         });
-    } catch (error) {
-        console.error("Error saving invoice:", error);
+    } catch (error: any) {
+        errorEmitter.emit('permission-error', new FirestorePermissionError({
+          path: invoicesCollection.path,
+          operation: 'create',
+          requestResourceData: invoiceDataToSave
+        }));
+        
         toast({
           variant: "destructive",
           title: "Save Failed",
-          description: "There was an error saving your invoice. Please check your connection.",
+          description: "There was an error saving your invoice. Please check your permissions.",
         });
     } finally {
         setIsSaving(false);
@@ -224,9 +232,9 @@ export function InvoiceForm({ userId }: { userId: string }) {
 
   useEffect(() => {
     if (invoiceRef && invoice && (
-      invoice.subtotalAmount !== subtotal ||
-      invoice.totalTaxAmount !== taxTotal ||
-      invoice.grandTotalAmount !== grandTotal
+      Math.abs(invoice.subtotalAmount - subtotal) > 0.01 ||
+      Math.abs(invoice.totalTaxAmount - taxTotal) > 0.01 ||
+      Math.abs(invoice.grandTotalAmount - grandTotal) > 0.01
     )) {
       updateDocumentNonBlocking(invoiceRef, {
         subtotalAmount: subtotal,
