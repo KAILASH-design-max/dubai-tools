@@ -1,13 +1,9 @@
 "use client";
 
-import { useEffect } from 'react';
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { useFirestore, useDoc, useMemoFirebase } from '@/firebase';
-import { doc } from 'firebase/firestore';
-import type { CompanyProfile } from '@/lib/types';
-import { setDocumentNonBlocking } from '@/firebase/non-blocking-updates';
-import { Skeleton } from '@/components/ui/skeleton';
+import type { CompanyProfile } from "@/lib/types";
+import { Skeleton } from "@/components/ui/skeleton";
 
 type InvoiceHeaderProps = {
     userId: string;
@@ -15,39 +11,27 @@ type InvoiceHeaderProps = {
     onInvoiceNumberChange: (value: string) => void;
     invoiceDate: string;
     onInvoiceDateChange: (value: string) => void;
+    companyProfile: CompanyProfile | null;
+    isLoading: boolean;
 };
 
 export function InvoiceHeader({ 
-    userId,
     invoiceNumber, onInvoiceNumberChange, 
-    invoiceDate, onInvoiceDateChange 
+    invoiceDate, onInvoiceDateChange,
+    companyProfile,
+    isLoading
 }: InvoiceHeaderProps) {
-  const firestore = useFirestore();
-  const companyProfileId = 'main';
-
-  const companyProfileRef = useMemoFirebase(
-    () => firestore ? doc(firestore, `users/${userId}/companyProfile/${companyProfileId}`) : null,
-    [firestore, userId]
-  );
-  
-  const { data: companyProfile, isLoading } = useDoc<CompanyProfile>(companyProfileRef);
-
-  useEffect(() => {
-    // Only initialize if we're sure it doesn't exist and finished loading
-    if (!isLoading && !companyProfile && companyProfileRef) {
-      const defaultProfile: Omit<CompanyProfile, 'id'> = {
-        name: 'DUBAI TOOLS',
-        addressLine1: 'Shivdhara, Darbhanga, Bihar 846005',
-        city: 'Darbhanga',
-        state: 'Bihar',
-        postalCode: '846005',
-        phoneNumbers: ['9268863031', '7280944150'],
-        email: 'dubaitools2026@gmail.com',
-        gstRegistrationNumber: '',
-      };
-      setDocumentNonBlocking(companyProfileRef, defaultProfile, { merge: false });
-    }
-  }, [isLoading, companyProfile, companyProfileRef]);
+  // Local fallback defaults if the profile hasn't been saved yet
+  const displayProfile = companyProfile || {
+    name: 'DUBAI TOOLS',
+    addressLine1: 'Shivdhara, Darbhanga, Bihar 846005',
+    city: 'Darbhanga',
+    state: 'Bihar',
+    postalCode: '846005',
+    phoneNumbers: ['9268863031', '7280944150'],
+    email: 'dubaitools2026@gmail.com',
+    gstRegistrationNumber: '',
+  };
 
   return (
     <div className="font-body grid sm:grid-cols-2 gap-4 w-full">
@@ -60,35 +44,35 @@ export function InvoiceHeader({
             <Skeleton className="h-4 w-60" />
             <Skeleton className="h-4 w-48" />
           </div>
-        ) : companyProfile ? (
+        ) : (
           <div className="space-y-1">
             <h1 className="font-headline text-xl sm:text-2xl font-bold text-primary">
-              {companyProfile.name || 'DUBAI TOOLS'}
+              {displayProfile.name}
             </h1>
             <div className="not-italic text-muted-foreground text-sm space-y-1">
-                <p>{companyProfile.addressLine1}</p>
-                <p>{companyProfile.city}{companyProfile.state ? `, ${companyProfile.state}` : ''} {companyProfile.postalCode}</p>
-                {companyProfile.phoneNumbers && companyProfile.phoneNumbers.length > 0 && (
+                <p>{displayProfile.addressLine1}</p>
+                <p>{displayProfile.city}{displayProfile.state ? `, ${displayProfile.state}` : ''} {displayProfile.postalCode}</p>
+                {displayProfile.phoneNumbers && displayProfile.phoneNumbers.length > 0 && (
                   <div className="flex items-center gap-1">
                       <span className="font-bold">Phone:</span>
-                      <span>{companyProfile.phoneNumbers.join(', ')}</span>
+                      <span>{displayProfile.phoneNumbers.join(', ')}</span>
                   </div>
                 )}
-                {companyProfile.email && (
+                {displayProfile.email && (
                   <div className="flex items-center gap-1">
                       <span className="font-bold">Email:</span>
-                      <span>{companyProfile.email}</span>
+                      <span>{displayProfile.email}</span>
                   </div>
                 )}
-                {companyProfile.gstRegistrationNumber && (
+                {displayProfile.gstRegistrationNumber && (
                   <div className="flex items-center gap-1">
                       <span className="font-bold">GST:</span>
-                      <span>{companyProfile.gstRegistrationNumber}</span>
+                      <span>{displayProfile.gstRegistrationNumber}</span>
                   </div>
                 )}
             </div>
           </div>
-        ) : null}
+        )}
       </div>
       <div className="space-y-4 text-sm sm:text-right">
           <div className="grid grid-cols-2 sm:grid-cols-[1fr_auto] items-center gap-2">

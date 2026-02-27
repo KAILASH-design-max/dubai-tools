@@ -69,7 +69,7 @@ export function InvoiceForm({ userId }: { userId: string }) {
       };
       setDocumentNonBlocking(invoiceRef, defaultInvoice, { merge: false });
     }
-  }, [isInvoiceLoading, invoice, invoiceRef, companyProfile]);
+  }, [isInvoiceLoading, invoice, invoiceRef]);
   
   const handleAddLineItem = () => {
     if (!lineItemsCollectionRef) return;
@@ -304,6 +304,8 @@ export function InvoiceForm({ userId }: { userId: string }) {
               onInvoiceNumberChange={(val) => handleUpdateInvoice('invoiceNumber', val)}
               invoiceDate={invoice?.invoiceDate || ''}
               onInvoiceDateChange={(val) => handleUpdateInvoice('invoiceDate', val)}
+              companyProfile={companyProfile}
+              isLoading={isCompanyProfileLoading}
             />
             <div className="flex items-center gap-2">
                 {isSaving && <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />}

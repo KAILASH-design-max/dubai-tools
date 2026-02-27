@@ -26,9 +26,10 @@ export function CompanyProfileForm({ userId }: { userId: string }) {
 
   useEffect(() => {
     if (companyProfile) {
+      // Sync local state with real-time Firestore data
       setFormData(companyProfile);
     } else if (!isLoading && !companyProfile) {
-      // Fallback to defaults if nothing exists yet
+      // Sensible defaults for the form if no record exists yet
       setFormData({
         name: 'DUBAI TOOLS',
         addressLine1: 'Shivdhara, Darbhanga, Bihar 846005',
@@ -54,7 +55,7 @@ export function CompanyProfileForm({ userId }: { userId: string }) {
 
   const handleSaveChanges = () => {
     if (companyProfileRef) {
-      // Use set with merge: true to ensure the document is created if it doesn't exist
+      // Use merge: true to ensure we only update provided fields and create if missing
       setDocumentNonBlocking(companyProfileRef, formData, { merge: true });
       toast({
         title: "Profile Updated",
