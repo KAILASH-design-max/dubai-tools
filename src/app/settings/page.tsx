@@ -6,24 +6,47 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Logo } from "@/components/logo";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, User, Building2, Users } from "lucide-react";
-import { useUser } from "@/firebase";
+import { ArrowLeft, User, Building2, Users, LogOut } from "lucide-react";
+import { useUser, useAuth } from "@/firebase";
 import { Skeleton } from "@/components/ui/skeleton";
 import { CompanyProfileForm } from "@/components/settings/company-profile-form";
 import { UserProfileForm } from "@/components/settings/user-profile-form";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { CustomerList } from "@/components/settings/customer-list";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { signOut } from "firebase/auth";
+import { useToast } from "@/hooks/use-toast";
+import { Separator } from "@/components/ui/separator";
 
 export default function SettingsPage() {
   const { user, isUserLoading } = useUser();
+  const auth = useAuth();
   const router = useRouter();
+  const { toast } = useToast();
 
   useEffect(() => {
     if (!isUserLoading && (!user || user.isAnonymous)) {
       router.push("/login");
     }
   }, [user, isUserLoading, router]);
+
+  const handleSignOut = async () => {
+    if (!auth) return;
+    try {
+      await signOut(auth);
+      toast({
+        title: "Signed Out",
+        description: "You have been successfully signed out.",
+      });
+      router.push("/login");
+    } catch (error) {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to sign out.",
+      });
+    }
+  };
 
   if (isUserLoading || !user || user.isAnonymous) {
     return (
@@ -87,8 +110,16 @@ export default function SettingsPage() {
                         <CardTitle>User Profile</CardTitle>
                         <CardDescription>Manage your personal account details.</CardDescription>
                     </CardHeader>
-                    <CardContent>
+                    <CardContent className="space-y-6">
                         <UserProfileForm user={user} />
+                        <Separator />
+                        <div className="pt-2">
+                          <h3 className="text-sm font-medium mb-4 text-destructive">Danger Zone</h3>
+                          <Button variant="destructive" onClick={handleSignOut} className="w-full sm:w-auto">
+                            <LogOut className="mr-2 h-4 w-4" />
+                            Sign Out of Account
+                          </Button>
+                        </div>
                     </CardContent>
                 </Card>
               </TabsContent>

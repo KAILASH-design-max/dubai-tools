@@ -7,41 +7,19 @@ import { useRouter } from "next/navigation";
 import { InvoiceForm } from "@/components/invoice/invoice-form";
 import { Logo } from "@/components/logo";
 import { Button } from "@/components/ui/button";
-import { Settings, Share2, History, LogOut } from "lucide-react";
-import { useUser, useAuth } from "@/firebase";
+import { Settings, Share2, History } from "lucide-react";
+import { useUser } from "@/firebase";
 import { Skeleton } from "@/components/ui/skeleton";
-import { signOut } from "firebase/auth";
-import { useToast } from "@/hooks/use-toast";
 
 export default function Home() {
   const { user, isUserLoading } = useUser();
-  const auth = useAuth();
   const router = useRouter();
-  const { toast } = useToast();
 
   useEffect(() => {
     if (!isUserLoading && (!user || user.isAnonymous)) {
       router.push("/login");
     }
   }, [user, isUserLoading, router]);
-
-  const handleSignOut = async () => {
-    if (!auth) return;
-    try {
-      await signOut(auth);
-      toast({
-        title: "Signed Out",
-        description: "You have been successfully signed out.",
-      });
-      router.push("/login");
-    } catch (error) {
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: "Failed to sign out.",
-      });
-    }
-  };
 
   if (isUserLoading || !user || user.isAnonymous) {
     return (
@@ -61,11 +39,6 @@ export default function Home() {
         <div className="container mx-auto flex h-16 items-center justify-between px-4 md:px-6">
           <Logo />
           <div className="flex items-center gap-2">
-            <Button variant="ghost" size="icon" title="Sign Out" onClick={handleSignOut}>
-              <LogOut className="h-5 w-5" />
-              <span className="sr-only">Sign Out</span>
-            </Button>
-
             <Button variant="ghost" size="icon">
               <Share2 className="h-5 w-5" />
               <span className="sr-only">Share</span>
