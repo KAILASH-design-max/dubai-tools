@@ -1,28 +1,38 @@
+
 "use client";
 
 import { useEffect } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { Logo } from "@/components/logo";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft } from "lucide-react";
-import { useUser, useAuth } from "@/firebase";
-import { initiateAnonymousSignIn } from "@/firebase/non-blocking-login";
+import { useUser } from "@/firebase";
 import { Skeleton } from "@/components/ui/skeleton";
 import { CompanyProfileForm } from "@/components/settings/company-profile-form";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { CustomerList } from "@/components/settings/customer-list";
 
-
 export default function SettingsPage() {
   const { user, isUserLoading } = useUser();
-  const auth = useAuth();
+  const router = useRouter();
 
   useEffect(() => {
-    if (auth && !user && !isUserLoading) {
-      initiateAnonymousSignIn(auth);
+    if (!isUserLoading && (!user || user.isAnonymous)) {
+      router.push("/login");
     }
-  }, [auth, user, isUserLoading]);
+  }, [user, isUserLoading, router]);
 
+  if (isUserLoading || !user || user.isAnonymous) {
+    return (
+      <div className="min-h-screen bg-background flex flex-col items-center justify-center p-6">
+        <div className="max-w-2xl w-full mx-auto space-y-8">
+          <Skeleton className="h-16 w-48 mx-auto" />
+          <Skeleton className="h-64 w-full" />
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background text-foreground">
@@ -45,19 +55,7 @@ export default function SettingsPage() {
                     <CardDescription>Update your company's information. This will be reflected on your invoices.</CardDescription>
                 </CardHeader>
                 <CardContent>
-                    {isUserLoading && (
-                        <div className="space-y-4">
-                            <Skeleton className="h-10 w-full" />
-                            <Skeleton className="h-10 w-full" />
-                            <Skeleton className="h-10 w-full" />
-                            <Skeleton className="h-10 w-full" />
-                        </div>
-                    )}
-                    {user ? (
-                        <CompanyProfileForm userId={user.uid} />
-                    ) : (
-                        !isUserLoading && <p>Please sign in to view settings.</p>
-                    )}
+                    <CompanyProfileForm userId={user.uid} />
                 </CardContent>
             </Card>
 
@@ -67,17 +65,7 @@ export default function SettingsPage() {
                     <CardDescription>Manage your customers. Add, edit, or remove customer records.</CardDescription>
                 </CardHeader>
                 <CardContent>
-                    {isUserLoading && (
-                        <div className="space-y-4">
-                            <Skeleton className="h-12 w-full" />
-                            <Skeleton className="h-12 w-full" />
-                        </div>
-                    )}
-                    {user ? (
-                        <CustomerList userId={user.uid} />
-                    ) : (
-                        !isUserLoading && <p>Please sign in to view settings.</p>
-                    )}
+                    <CustomerList userId={user.uid} />
                 </CardContent>
             </Card>
         </div>

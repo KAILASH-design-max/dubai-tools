@@ -1,14 +1,15 @@
+
 'use client';
 
 import { useEffect, useState, useMemo } from 'react';
 import Link from 'next/link';
-import { useUser, useAuth, useCollection, useFirestore, useMemoFirebase, deleteDocumentNonBlocking, updateDocumentNonBlocking } from '@/firebase';
-import { initiateAnonymousSignIn } from '@/firebase/non-blocking-login';
+import { useRouter } from 'next/navigation';
+import { useUser, useCollection, useFirestore, useMemoFirebase, deleteDocumentNonBlocking, updateDocumentNonBlocking } from '@/firebase';
 import { collection, query, where, doc } from 'firebase/firestore';
 import { Invoice, InvoiceLineItem } from '@/lib/types';
 import { Logo } from '@/components/logo';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, Search, Trash2, FileText, IndianRupee, Clock, CheckCircle2, Download, Filter, MoreHorizontal, TrendingUp, Check, XCircle, Send, Eye, Printer } from 'lucide-react';
+import { ArrowLeft, Search, Trash2, FileText, IndianRupee, Clock, CheckCircle2, Download, MoreHorizontal, TrendingUp, Check, XCircle, Send, Eye, Printer } from 'lucide-react';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
@@ -17,7 +18,6 @@ import { Input } from '@/components/ui/input';
 import { format, parseISO } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Separator } from '@/components/ui/separator';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -184,18 +184,18 @@ function InvoiceDetailModal({ invoice, userId, isOpen, onOpenChange }: { invoice
 
 export default function InvoicesPage() {
   const { user, isUserLoading } = useUser();
-  const auth = useAuth();
   const firestore = useFirestore();
+  const router = useRouter();
   const { toast } = useToast();
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [viewInvoice, setViewInvoice] = useState<Invoice | null>(null);
 
   useEffect(() => {
-    if (auth && !user && !isUserLoading) {
-      initiateAnonymousSignIn(auth);
+    if (!isUserLoading && (!user || user.isAnonymous)) {
+      router.push("/login");
     }
-  }, [auth, user, isUserLoading]);
+  }, [user, isUserLoading, router]);
 
   const invoicesCollectionRef = useMemoFirebase(
     () => (firestore && user ? collection(firestore, `users/${user.uid}/invoices`) : null),
@@ -347,6 +347,18 @@ export default function InvoicesPage() {
     }
   };
 
+  if (isUserLoading || !user || user.isAnonymous) {
+    return (
+      <div className="min-h-screen bg-background flex flex-col items-center justify-center p-6">
+        <div className="max-w-6xl w-full mx-auto space-y-8">
+          <Skeleton className="h-16 w-48 mx-auto" />
+          <Skeleton className="h-32 w-full" />
+          <Skeleton className="h-64 w-full" />
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-background text-foreground">
       <header className="sticky top-0 z-10 border-b bg-card/80 backdrop-blur-sm">
@@ -478,7 +490,7 @@ export default function InvoicesPage() {
               </div>
             </CardHeader>
             <CardContent>
-              {(isUserLoading || isInvoicesLoading) && (
+              {isInvoicesLoading && (
                 <div className="space-y-4">
                   <Skeleton className="h-10 w-full" />
                   <Skeleton className="h-10 w-full" />
@@ -598,10 +610,6 @@ export default function InvoicesPage() {
                     )}
                   </div>
                 )
-              )}
-
-              {!user && !isUserLoading && (
-                <p className="text-center text-muted-foreground py-8">Please sign in to view invoice history.</p>
               )}
             </CardContent>
           </Card>
