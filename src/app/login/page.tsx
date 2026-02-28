@@ -11,17 +11,18 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { useAuth, useUser } from '@/firebase';
 import { initiateEmailSignIn } from '@/firebase/non-blocking-login';
 import { Mail, Lock, ArrowLeft, Loader2, Eye, EyeOff } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
 
 export default function LoginPage() {
   const { user, isUserLoading } = useUser();
   const auth = useAuth();
   const router = useRouter();
+  const { toast } = useToast();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Redirect if already logged in (and not anonymous)
   useEffect(() => {
     if (user && !user.isAnonymous) {
       router.push('/');
@@ -32,9 +33,25 @@ export default function LoginPage() {
     e.preventDefault();
     if (!auth) return;
     setIsSubmitting(true);
-    initiateEmailSignIn(auth, email, password);
-    // Note: Success is handled by the useUser hook redirecting above
-    setTimeout(() => setIsSubmitting(false), 2000); 
+    
+    initiateEmailSignIn(auth, email, password)
+      .catch((error: any) => {
+        setIsSubmitting(false);
+        let message = "An unexpected error occurred.";
+        if (error.code === 'auth/invalid-credential') {
+          message = "Invalid email or password. Please try again.";
+        } else if (error.code === 'auth/user-not-found') {
+          message = "No account found with this email.";
+        } else if (error.code === 'auth/wrong-password') {
+          message = "Incorrect password.";
+        }
+        
+        toast({
+          variant: "destructive",
+          title: "Login Failed",
+          description: message,
+        });
+      });
   };
 
   return (

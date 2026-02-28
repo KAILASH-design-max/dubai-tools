@@ -11,11 +11,14 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { useAuth, useUser } from '@/firebase';
 import { initiateEmailSignUp } from '@/firebase/non-blocking-login';
 import { Mail, Lock, ArrowLeft, Loader2, UserPlus, User, Phone, Eye, EyeOff } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
+import { updateProfile } from 'firebase/auth';
 
 export default function SignupPage() {
   const { user, isUserLoading } = useUser();
   const auth = useAuth();
   const router = useRouter();
+  const { toast } = useToast();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [fullName, setFullName] = useState('');
@@ -23,7 +26,6 @@ export default function SignupPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Redirect if already logged in (and not anonymous)
   useEffect(() => {
     if (user && !user.isAnonymous) {
       router.push('/');
@@ -35,10 +37,29 @@ export default function SignupPage() {
     if (!auth) return;
     setIsSubmitting(true);
     
-    initiateEmailSignUp(auth, email, password);
-    
-    // Success is handled by the hook redirect
-    setTimeout(() => setIsSubmitting(false), 2000);
+    initiateEmailSignUp(auth, email, password)
+      .then((userCredential) => {
+        if (userCredential.user) {
+          updateProfile(userCredential.user, { displayName: fullName });
+        }
+      })
+      .catch((error: any) => {
+        setIsSubmitting(false);
+        let message = "An unexpected error occurred.";
+        if (error.code === 'auth/email-already-in-use') {
+          message = "This email is already registered.";
+        } else if (error.code === 'auth/invalid-email') {
+          message = "The email address is not valid.";
+        } else if (error.code === 'auth/weak-password') {
+          message = "The password is too weak.";
+        }
+        
+        toast({
+          variant: "destructive",
+          title: "Signup Failed",
+          description: message,
+        });
+      });
   };
 
   return (
