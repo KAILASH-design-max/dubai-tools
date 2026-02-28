@@ -291,6 +291,12 @@ export function InvoiceForm({ userId }: { userId: string }) {
             color: inherit !important;
             -moz-appearance: textfield;
           }
+          /* Hide the calendar icon in Chrome/Safari during print */
+          input[type="date"]::-webkit-calendar-picker-indicator {
+            display: none !important;
+            -webkit-appearance: none;
+            margin: 0;
+          }
           input.print-no-border {
             padding: 0 !important;
           }
