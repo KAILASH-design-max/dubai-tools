@@ -1,3 +1,4 @@
+
 export interface CompanyProfile {
     id: string;
     name: string;
@@ -10,6 +11,12 @@ export interface CompanyProfile {
     email: string;
     gstRegistrationNumber: string;
     defaultInvoiceNotes?: string;
+}
+
+export interface UserProfile {
+    fullName: string;
+    phoneNumber: string;
+    email: string;
 }
 
 export interface Customer {

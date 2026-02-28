@@ -1,3 +1,4 @@
+
 {
   "entities": {
     "CompanyProfile": {
@@ -66,6 +67,24 @@
         "email",
         "gstRegistrationNumber"
       ]
+    },
+    "UserProfile": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "UserProfile",
+      "type": "object",
+      "description": "Stores personal profile information for the authenticated user.",
+      "properties": {
+        "fullName": {
+          "type": "string"
+        },
+        "phoneNumber": {
+          "type": "string"
+        },
+        "email": {
+          "type": "string",
+          "format": "email"
+        }
+      }
     },
     "Customer": {
       "$schema": "http://json-schema.org/draft-07/schema#",
@@ -273,6 +292,16 @@
   },
   "firestore": {
     "structure": [
+      {
+        "path": "/users/{userId}/profile/main",
+        "definition": {
+          "entityName": "UserProfile",
+          "schema": {
+            "$ref": "#/backend/entities/UserProfile"
+          },
+          "description": "Stores the user's personal profile information."
+        }
+      },
       {
         "path": "/users/{userId}/companyProfile/{companyProfileId}",
         "definition": {
