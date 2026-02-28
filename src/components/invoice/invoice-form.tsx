@@ -359,8 +359,8 @@ export function InvoiceForm({ userId }: { userId: string }) {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead className="w-[40px]">#</TableHead>
-                  <TableHead className="w-[40%]">Item Description</TableHead>
+                  <TableHead className="w-[60px]">Item</TableHead>
+                  <TableHead className="w-[40%]">Description</TableHead>
                   <TableHead className="text-right">Quantity</TableHead>
                   <TableHead className="text-right">Rate (Rs)</TableHead>
                   <TableHead className="text-right hidden md:table-cell">Amount (Rs)</TableHead>

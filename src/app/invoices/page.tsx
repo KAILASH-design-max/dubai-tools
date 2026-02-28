@@ -116,7 +116,7 @@ function InvoiceDetailModal({ invoice, userId, isOpen, onOpenChange }: { invoice
              <Table>
                <TableHeader className="bg-muted/50">
                  <TableRow>
-                   <TableHead className="w-[50px]">#</TableHead>
+                   <TableHead className="w-[60px]">Item</TableHead>
                    <TableHead>Description</TableHead>
                    <TableHead className="text-right">Qty</TableHead>
                    <TableHead className="text-right">Rate</TableHead>
