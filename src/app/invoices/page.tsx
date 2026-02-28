@@ -99,6 +99,7 @@ function InvoiceDetailModal({ invoice, userId, isOpen, onOpenChange }: { invoice
              <Table>
                <TableHeader className="bg-muted/50">
                  <TableRow>
+                   <TableHead className="w-[50px]">#</TableHead>
                    <TableHead>Description</TableHead>
                    <TableHead className="text-right">Qty</TableHead>
                    <TableHead className="text-right">Rate</TableHead>
@@ -109,19 +110,20 @@ function InvoiceDetailModal({ invoice, userId, isOpen, onOpenChange }: { invoice
                <TableBody>
                  {isLoading ? (
                    <TableRow>
-                     <TableCell colSpan={5} className="text-center py-12">
+                     <TableCell colSpan={6} className="text-center py-12">
                        <div className="flex flex-col items-center gap-2">
                          <Clock className="h-5 w-5 animate-spin text-muted-foreground" />
                          <span className="text-xs text-muted-foreground uppercase tracking-widest">Loading Line Items</span>
                        </div>
                      </TableCell>
                    </TableRow>
-                 ) : lineItems?.map(item => {
+                 ) : lineItems?.map((item, index) => {
                    const qty = parseFloat(item.quantity) || 0;
                    const amount = item.description === 'Labor cost' ? item.rate : qty * item.rate;
                    const total = amount * (1 + item.tax / 100);
                    return (
                      <TableRow key={item.id}>
+                       <TableCell className="text-muted-foreground text-xs">#{index + 1}</TableCell>
                        <TableCell className="font-medium">{item.description}</TableCell>
                        <TableCell className="text-right">{item.quantity}</TableCell>
                        <TableCell className="text-right">{item.rate.toFixed(2)}</TableCell>
