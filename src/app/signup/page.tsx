@@ -10,7 +10,7 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { useAuth, useUser } from '@/firebase';
 import { initiateEmailSignUp } from '@/firebase/non-blocking-login';
-import { Mail, Lock, ArrowLeft, Loader2, UserPlus, User, Phone } from 'lucide-react';
+import { Mail, Lock, ArrowLeft, Loader2, UserPlus, User, Phone, Eye, EyeOff } from 'lucide-react';
 
 export default function SignupPage() {
   const { user, isUserLoading } = useUser();
@@ -20,6 +20,7 @@ export default function SignupPage() {
   const [password, setPassword] = useState('');
   const [fullName, setFullName] = useState('');
   const [phoneNumber, setPhoneNumber] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Redirect if already logged in (and not anonymous)
@@ -34,8 +35,6 @@ export default function SignupPage() {
     if (!auth) return;
     setIsSubmitting(true);
     
-    // Note: The current non-blocking utility handles email/password.
-    // Profile updates (name/phone) are typically handled via updateProfile after creation.
     initiateEmailSignUp(auth, email, password);
     
     // Success is handled by the hook redirect
@@ -117,12 +116,19 @@ export default function SignupPage() {
                   <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                   <Input 
                     id="password" 
-                    type="password" 
-                    className="pl-10" 
+                    type={showPassword ? "text" : "password"} 
+                    className="pl-10 pr-10" 
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     required 
                   />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground hover:text-foreground transition-colors"
+                  >
+                    {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </button>
                 </div>
               </div>
               <Button type="submit" className="w-full" disabled={isSubmitting || isUserLoading}>

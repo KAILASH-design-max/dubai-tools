@@ -10,7 +10,7 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { useAuth, useUser } from '@/firebase';
 import { initiateEmailSignIn } from '@/firebase/non-blocking-login';
-import { Mail, Lock, ArrowLeft, Loader2 } from 'lucide-react';
+import { Mail, Lock, ArrowLeft, Loader2, Eye, EyeOff } from 'lucide-react';
 
 export default function LoginPage() {
   const { user, isUserLoading } = useUser();
@@ -18,6 +18,7 @@ export default function LoginPage() {
   const router = useRouter();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Redirect if already logged in (and not anonymous)
@@ -33,9 +34,6 @@ export default function LoginPage() {
     setIsSubmitting(true);
     initiateEmailSignIn(auth, email, password);
     // Note: Success is handled by the useUser hook redirecting above
-    // Failure/Errors are handled by the global error listener if applicable, 
-    // though Firebase Auth errors often need local handling. 
-    // For this MVP, we rely on the non-blocking pattern.
     setTimeout(() => setIsSubmitting(false), 2000); 
   };
 
@@ -84,12 +82,19 @@ export default function LoginPage() {
                   <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                   <Input 
                     id="password" 
-                    type="password" 
-                    className="pl-10" 
+                    type={showPassword ? "text" : "password"} 
+                    className="pl-10 pr-10" 
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     required 
                   />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground hover:text-foreground transition-colors"
+                  >
+                    {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </button>
                 </div>
               </div>
               <Button type="submit" className="w-full" disabled={isSubmitting || isUserLoading}>
