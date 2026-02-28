@@ -354,6 +354,7 @@ export function InvoiceForm({ userId }: { userId: string }) {
             <Table>
               <TableHeader>
                 <TableRow>
+                  <TableHead className="w-[40px]">#</TableHead>
                   <TableHead className="w-[40%]">Item Description</TableHead>
                   <TableHead className="text-right">Quantity</TableHead>
                   <TableHead className="text-right">Rate (Rs)</TableHead>
@@ -364,7 +365,7 @@ export function InvoiceForm({ userId }: { userId: string }) {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {lineItems && lineItems.map(item => {
+                {lineItems && lineItems.map((item, index) => {
                   const quantityAsString = String(item.quantity);
                   const quantityMatch = quantityAsString.match(/^[0-9.]+/);
                   const quantityAsNumber = quantityMatch ? parseFloat(quantityMatch[0]) : 1;
@@ -380,6 +381,7 @@ export function InvoiceForm({ userId }: { userId: string }) {
                   const total = amount * (1 + item.tax / 100);
                   return (
                     <TableRow key={item.id}>
+                      <TableCell className="text-muted-foreground font-medium text-xs">{index + 1}</TableCell>
                       <TableCell><Input value={item.description} onChange={(e) => handleUpdateLineItem(item.id, 'description', e.target.value)} className="w-full print-no-border" /></TableCell>
                       <TableCell><Input value={item.quantity} onChange={(e) => handleUpdateLineItem(item.id, 'quantity', e.target.value)} className="w-12 sm:w-20 text-right print-no-border" /></TableCell>
                       <TableCell><Input type="number" value={item.rate} onChange={(e) => handleUpdateLineItem(item.id, 'rate', e.target.value)} className="w-20 sm:w-28 text-right print-no-border" /></TableCell>
