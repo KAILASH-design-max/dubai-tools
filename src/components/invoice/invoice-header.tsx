@@ -62,12 +62,12 @@ export function InvoiceHeader({
       </div>
       <div className="space-y-4 text-sm sm:text-right">
           <div className="grid grid-cols-2 sm:grid-cols-[1fr_auto] items-center gap-2">
-              <Label htmlFor="invoiceNumber" className="sm:text-right">Invoice #</Label>
+              <Label htmlFor="invoiceNumber" className="sm:text-right">Invoice</Label>
               <Input id="invoiceNumber" value={invoiceNumber} onChange={(e) => onInvoiceNumberChange(e.target.value)} className="sm:max-w-[150px] print-no-border" />
           </div>
           <div className="grid grid-cols-2 sm:grid-cols-[1fr_auto] items-center gap-2">
               <Label htmlFor="invoiceDate" className="sm:text-right">Invoice Date</Label>
-              <Input id="invoiceDate" type="date" value={invoiceDate} onChange={(e) => onInvoiceDateChange(e.target.value)} className="sm:max-w-[150px] print-no-border" />
+              <Input id="invoiceDate" type="date" value={invoiceDate} onChange={(e) => onInvoiceDateChange(e.target.value)} className="sm:max-w-[150px] print-no-border hide-calendar-icon" />
           </div>
       </div>
     </div>

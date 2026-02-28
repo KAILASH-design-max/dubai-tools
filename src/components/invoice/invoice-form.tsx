@@ -262,6 +262,17 @@ export function InvoiceForm({ userId }: { userId: string }) {
           size: A4;
           margin: 10mm;
         }
+
+        /* Hide calendar icon globally as per request */
+        input[type="date"]::-webkit-calendar-picker-indicator {
+            display: none !important;
+            -webkit-appearance: none;
+            margin: 0;
+        }
+        input[type="date"].hide-calendar-icon {
+            padding-right: 0.75rem !important; /* Adjust padding if needed */
+        }
+
         @media print {
           body {
             -webkit-print-color-adjust: exact;
@@ -282,8 +293,12 @@ export function InvoiceForm({ userId }: { userId: string }) {
             box-shadow: none !important;
            }
           
+          /* Prevent header repetition on next pages */
           thead {
-            display: table-row-group;
+            display: table-header-group;
+          }
+          tr {
+            page-break-inside: avoid;
           }
 
           .print-no-border, .print-no-border:focus, .print-no-border:hover {
@@ -296,11 +311,6 @@ export function InvoiceForm({ userId }: { userId: string }) {
             -moz-appearance: none;
             appearance: none;
             color: inherit !important;
-          }
-          input[type="date"]::-webkit-calendar-picker-indicator {
-            display: none !important;
-            -webkit-appearance: none;
-            margin: 0;
           }
           input.print-no-border {
             padding: 0 !important;
