@@ -10,7 +10,7 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { useAuth, useUser } from '@/firebase';
 import { initiateEmailSignUp } from '@/firebase/non-blocking-login';
-import { Mail, Lock, ArrowLeft, Loader2, UserPlus } from 'lucide-react';
+import { Mail, Lock, ArrowLeft, Loader2, UserPlus, User, Phone } from 'lucide-react';
 
 export default function SignupPage() {
   const { user, isUserLoading } = useUser();
@@ -18,6 +18,8 @@ export default function SignupPage() {
   const router = useRouter();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [fullName, setFullName] = useState('');
+  const [phoneNumber, setPhoneNumber] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Redirect if already logged in (and not anonymous)
@@ -31,7 +33,11 @@ export default function SignupPage() {
     e.preventDefault();
     if (!auth) return;
     setIsSubmitting(true);
+    
+    // Note: The current non-blocking utility handles email/password.
+    // Profile updates (name/phone) are typically handled via updateProfile after creation.
     initiateEmailSignUp(auth, email, password);
+    
     // Success is handled by the hook redirect
     setTimeout(() => setIsSubmitting(false), 2000);
   };
@@ -61,6 +67,21 @@ export default function SignupPage() {
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="space-y-2">
+                <Label htmlFor="fullName">Full Name</Label>
+                <div className="relative">
+                  <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input 
+                    id="fullName" 
+                    type="text" 
+                    placeholder="John Doe" 
+                    className="pl-10" 
+                    value={fullName}
+                    onChange={(e) => setFullName(e.target.value)}
+                    required 
+                  />
+                </div>
+              </div>
+              <div className="space-y-2">
                 <Label htmlFor="email">Email</Label>
                 <div className="relative">
                   <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -71,6 +92,21 @@ export default function SignupPage() {
                     className="pl-10" 
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
+                    required 
+                  />
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="phoneNumber">Phone Number</Label>
+                <div className="relative">
+                  <Phone className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input 
+                    id="phoneNumber" 
+                    type="tel" 
+                    placeholder="+91 98765 43210" 
+                    className="pl-10" 
+                    value={phoneNumber}
+                    onChange={(e) => setPhoneNumber(e.target.value)}
                     required 
                   />
                 </div>
