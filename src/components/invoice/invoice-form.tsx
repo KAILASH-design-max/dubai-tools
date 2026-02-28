@@ -260,7 +260,7 @@ export function InvoiceForm({ userId }: { userId: string }) {
       <style>{`
         @page {
           size: A4;
-          margin: 0;
+          margin: 10mm;
         }
         @media print {
           body {
@@ -278,7 +278,15 @@ export function InvoiceForm({ userId }: { userId: string }) {
             margin: 0;
             padding: 20px;
             box-sizing: border-box;
+            border: none !important;
+            box-shadow: none !important;
            }
+          
+          /* Prevent table header from repeating on subsequent pages */
+          thead {
+            display: table-row-group;
+          }
+
           .print-no-border, .print-no-border:focus, .print-no-border:hover {
             border: none !important;
             background: transparent !important;
@@ -289,7 +297,6 @@ export function InvoiceForm({ userId }: { userId: string }) {
             -moz-appearance: none;
             appearance: none;
             color: inherit !important;
-            -moz-appearance: textfield;
           }
           /* Hide the calendar icon in Chrome/Safari during print */
           input[type="date"]::-webkit-calendar-picker-indicator {

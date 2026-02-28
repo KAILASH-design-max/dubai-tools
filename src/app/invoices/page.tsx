@@ -70,7 +70,24 @@ function InvoiceDetailModal({ invoice, userId, isOpen, onOpenChange }: { invoice
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto invoice-detail-print">
+        <style>{`
+          @media print {
+            body * { visibility: hidden; }
+            .invoice-detail-print, .invoice-detail-print * { visibility: visible; }
+            .invoice-detail-print {
+              position: absolute;
+              left: 0;
+              top: 0;
+              width: 100%;
+              border: none !important;
+              padding: 0 !important;
+            }
+            thead {
+              display: table-row-group;
+            }
+          }
+        `}</style>
         <DialogHeader>
           <div className="flex items-center justify-between pr-8">
             <div>
