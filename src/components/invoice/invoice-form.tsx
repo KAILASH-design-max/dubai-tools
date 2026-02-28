@@ -282,7 +282,6 @@ export function InvoiceForm({ userId }: { userId: string }) {
             box-shadow: none !important;
            }
           
-          /* Prevent table header from repeating on subsequent pages */
           thead {
             display: table-row-group;
           }
@@ -298,7 +297,6 @@ export function InvoiceForm({ userId }: { userId: string }) {
             appearance: none;
             color: inherit !important;
           }
-          /* Hide the calendar icon in Chrome/Safari during print */
           input[type="date"]::-webkit-calendar-picker-indicator {
             display: none !important;
             -webkit-appearance: none;
@@ -388,7 +386,7 @@ export function InvoiceForm({ userId }: { userId: string }) {
                   const total = amount * (1 + item.tax / 100);
                   return (
                     <TableRow key={item.id}>
-                      <TableCell className="text-muted-foreground font-medium text-xs">#{index + 1}</TableCell>
+                      <TableCell className="text-muted-foreground font-medium text-xs">{index + 1}</TableCell>
                       <TableCell><Input value={item.description} onChange={(e) => handleUpdateLineItem(item.id, 'description', e.target.value)} className="w-full print-no-border" /></TableCell>
                       <TableCell><Input value={item.quantity} onChange={(e) => handleUpdateLineItem(item.id, 'quantity', e.target.value)} className="w-12 sm:w-20 text-right print-no-border" /></TableCell>
                       <TableCell><Input type="number" value={item.rate} onChange={(e) => handleUpdateLineItem(item.id, 'rate', e.target.value)} className="w-20 sm:w-28 text-right print-no-border" /></TableCell>

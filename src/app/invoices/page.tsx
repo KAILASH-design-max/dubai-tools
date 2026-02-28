@@ -140,7 +140,7 @@ function InvoiceDetailModal({ invoice, userId, isOpen, onOpenChange }: { invoice
                    const total = amount * (1 + item.tax / 100);
                    return (
                      <TableRow key={item.id}>
-                       <TableCell className="text-muted-foreground text-xs">#{index + 1}</TableCell>
+                       <TableCell className="text-muted-foreground text-xs">{index + 1}</TableCell>
                        <TableCell className="font-medium">{item.description}</TableCell>
                        <TableCell className="text-right">{item.quantity}</TableCell>
                        <TableCell className="text-right">{item.rate.toFixed(2)}</TableCell>
