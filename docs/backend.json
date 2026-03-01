@@ -130,7 +130,7 @@
         },
         "state": {
           "type": "string",
-          "description": "The state or province where the customer is located."
+          "description": "The state or province where the company is located."
         },
         "postalCode": {
           "type": "string",
@@ -287,7 +287,8 @@
   "auth": {
     "providers": [
       "password",
-      "anonymous"
+      "anonymous",
+      "google.com"
     ]
   },
   "firestore": {
