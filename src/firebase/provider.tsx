@@ -168,10 +168,20 @@ export function useMemoFirebase<T>(factory: () => T, deps: DependencyList): T | 
 
 /**
  * Hook specifically for accessing the authenticated user's state.
+ * Safer than useFirebase() for initial SSR/Hydration renders.
  */
 export const useUser = (): UserHookResult => { 
-  const { user, isUserLoading, userError } = useFirebase(); 
-  return { user, isUserLoading, userError };
+  const context = useContext(FirebaseContext);
+  
+  if (context === undefined) {
+    throw new Error('useUser must be used within a FirebaseProvider.');
+  }
+
+  return { 
+    user: context.user, 
+    isUserLoading: context.isUserLoading || !context.areServicesAvailable, 
+    userError: context.userError 
+  };
 };
 
 /**
