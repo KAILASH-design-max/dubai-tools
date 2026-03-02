@@ -30,23 +30,24 @@ export function InvoiceForm({ userId }: { userId: string }) {
   const { data: companyProfile, isLoading: isCompanyProfileLoading } = useCompanyProfile(userId);
 
   const invoiceRef = useMemoFirebase(
-    () => firestore ? doc(firestore, `users/${userId}/invoices/${invoiceId}`) : null,
-    [firestore, userId]
+    () => (firestore ? doc(firestore, `users/${userId}/invoices/${invoiceId}`) : null),
+    [firestore, userId, invoiceId]
   );
   
   const lineItemsCollectionRef = useMemoFirebase(
-    () => invoiceRef ? collection(invoiceRef, 'lineItems') : null,
+    () => (invoiceRef ? collection(invoiceRef, 'lineItems') : null),
     [invoiceRef]
   );
 
   const lineItemsQuery = useMemoFirebase(
-    () => lineItemsCollectionRef ? query(lineItemsCollectionRef, orderBy('sortIndex', 'asc')) : null,
+    () => (lineItemsCollectionRef ? query(lineItemsCollectionRef, orderBy('sortIndex', 'asc')) : null),
     [lineItemsCollectionRef]
   );
 
   const { data: invoice, isLoading: isInvoiceLoading } = useDoc<Invoice>(invoiceRef);
   const { data: lineItems, isLoading: areLineItemsLoading } = useCollection<InvoiceLineItem>(lineItemsQuery);
 
+  // Initialize main invoice document if it doesn't exist
   useEffect(() => {
     if (!isInvoiceLoading && !invoice && invoiceRef) {
       const defaultInvoice: Omit<Invoice, 'id'> = {
@@ -188,25 +189,29 @@ export function InvoiceForm({ userId }: { userId: string }) {
     }
   };
 
-  const { subtotal, taxTotal, grandTotal } = (lineItems || []).reduce((acc, item) => {
-    const quantityAsString = String(item.quantity);
-    const quantityMatch = quantityAsString.match(/^[0-9.]+/);
-    const quantityAsNumber = quantityMatch ? parseFloat(quantityMatch[0]) : 1;
-    const quantity = isNaN(quantityAsNumber) ? 1 : quantityAsNumber;
-    
-    let amount = 0;
-    if (item.description === 'Labor cost') {
-        amount = item.rate;
-    } else {
-        amount = quantity * item.rate;
-    }
-    
-    const taxAmount = amount * (item.tax / 100);
-    acc.subtotal += amount;
-    acc.taxTotal += taxAmount;
-    acc.grandTotal += amount + taxAmount;
-    return acc;
-  }, { subtotal: 0, taxTotal: 0, grandTotal: 0 });
+  const totals = useMemo(() => {
+    return (lineItems || []).reduce((acc, item) => {
+      const quantityAsString = String(item.quantity);
+      const quantityMatch = quantityAsString.match(/^[0-9.]+/);
+      const quantityAsNumber = quantityMatch ? parseFloat(quantityMatch[0]) : 1;
+      const quantity = isNaN(quantityAsNumber) ? 1 : quantityAsNumber;
+      
+      let amount = 0;
+      if (item.description === 'Labor cost') {
+          amount = item.rate;
+      } else {
+          amount = quantity * item.rate;
+      }
+      
+      const taxAmount = amount * (item.tax / 100);
+      acc.subtotal += amount;
+      acc.taxTotal += taxAmount;
+      acc.grandTotal += amount + taxAmount;
+      return acc;
+    }, { subtotal: 0, taxTotal: 0, grandTotal: 0 });
+  }, [lineItems]);
+
+  const { subtotal, taxTotal, grandTotal } = totals;
 
   useEffect(() => {
     if (invoiceRef && invoice && (
@@ -275,9 +280,8 @@ export function InvoiceForm({ userId }: { userId: string }) {
             box-shadow: none !important;
            }
           
-          /* Do not repeat headers on pages after the first */
           thead {
-            display: table-row-group !important;
+            display: table-header-group !important;
           }
           
           thead tr th {
@@ -289,7 +293,6 @@ export function InvoiceForm({ userId }: { userId: string }) {
             page-break-inside: avoid;
           }
 
-          /* Force page break after item 20 to fit 20 on page 1 */
           .invoice-table tbody tr:nth-child(20) {
             page-break-after: always;
           }
@@ -435,10 +438,12 @@ export function InvoiceForm({ userId }: { userId: string }) {
           <div className="signature-area mt-12 print:mt-4">
             <div className="relative h-20 w-40 print:h-12 print:w-32">
               <Image
-                src="/signature.jpeg"
+                src="https://picsum.photos/seed/sig/160/80"
                 alt="Authorized Signature"
-                fill
-                style={{ objectFit: "contain" }}
+                width={160}
+                height={80}
+                className="object-contain"
+                data-ai-hint="signature"
               />
             </div>
             <p className="font-headline text-sm print:text-xs text-muted-foreground pt-2 border-t-2 border-dashed w-40 print:w-32">Authorized Signature</p>
