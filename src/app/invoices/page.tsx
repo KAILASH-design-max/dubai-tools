@@ -83,8 +83,13 @@ function InvoiceDetailModal({ invoice, userId, isOpen, onOpenChange }: { invoice
               border: none !important;
               padding: 0 !important;
             }
+            /* Hide header on pages after the first */
             thead {
-              display: table-row-group;
+              display: table-row-group !important;
+            }
+            /* Force break after 16th item */
+            tbody tr:nth-child(16) {
+              page-break-after: always;
             }
           }
         `}</style>

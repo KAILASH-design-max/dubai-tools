@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useEffect, useState, useMemo } from 'react';
@@ -291,11 +292,11 @@ export function InvoiceForm({ userId }: { userId: string }) {
             box-shadow: none !important;
            }
           
+          /* Do not repeat headers on pages after the first */
           thead {
-            display: table-header-group;
+            display: table-row-group !important;
           }
           
-          /* Only show table header on the first page */
           thead tr th {
             font-weight: bold;
             padding: 4px 2px !important;
@@ -303,6 +304,11 @@ export function InvoiceForm({ userId }: { userId: string }) {
 
           tr {
             page-break-inside: avoid;
+          }
+
+          /* Force page break after item 16 */
+          .invoice-table tbody tr:nth-child(16) {
+            page-break-after: always;
           }
 
           .print-no-border, .print-no-border:focus, .print-no-border:hover {
