@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect } from 'react';
@@ -30,10 +31,7 @@ export function CompanyProfileForm({ userId }: { userId: string }) {
     } else if (!isLoading && !companyProfile) {
       setFormData({
         name: 'DUBAI TOOLS',
-        addressLine1: 'Shivdhara, Darbhanga, Bihar 846005',
-        city: 'Darbhanga',
-        state: 'Bihar',
-        postalCode: '846005',
+        addressLine1: 'Shivdhara',
         phoneNumbers: ['9268863031', '7280944150'],
         email: 'dubaitools2026@gmail.com',
         gstRegistrationNumber: 'Qw1234766666s',
@@ -72,10 +70,6 @@ export function CompanyProfileForm({ userId }: { userId: string }) {
                 <Skeleton className="h-4 w-24" />
                 <Skeleton className="h-10 w-full" />
             </div>
-            <div className="space-y-2">
-                <Skeleton className="h-4 w-24" />
-                <Skeleton className="h-10 w-full" />
-            </div>
             <Skeleton className="h-10 w-32" />
         </div>
     );
@@ -90,20 +84,6 @@ export function CompanyProfileForm({ userId }: { userId: string }) {
       <div className="space-y-2">
         <Label htmlFor="addressLine1">Address</Label>
         <Input id="addressLine1" value={formData.addressLine1 || ''} onChange={handleInputChange} />
-      </div>
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <div className="space-y-2">
-            <Label htmlFor="city">City</Label>
-            <Input id="city" value={formData.city || ''} onChange={handleInputChange} />
-        </div>
-        <div className="space-y-2">
-            <Label htmlFor="state">State</Label>
-            <Input id="state" value={formData.state || ''} onChange={handleInputChange} />
-        </div>
-        <div className="space-y-2">
-            <Label htmlFor="postalCode">Postal Code</Label>
-            <Input id="postalCode" value={formData.postalCode || ''} onChange={handleInputChange} />
-        </div>
       </div>
       <div className="space-y-2">
         <Label htmlFor="email">Email</Label>

@@ -4,9 +4,6 @@ export interface CompanyProfile {
     name: string;
     addressLine1: string;
     addressLine2?: string;
-    city: string;
-    state: string;
-    postalCode: string;
     phoneNumbers: string[];
     email: string;
     gstRegistrationNumber: string;
@@ -27,9 +24,6 @@ export interface Customer {
     phoneNumbers: string[];
     addressLine1: string;
     addressLine2?: string;
-    city: string;
-    state: string;
-    postalCode: string;
     gstRegistrationNumber?: string;
     createdAt: string; 
     updatedAt: string; 

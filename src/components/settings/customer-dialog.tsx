@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect } from 'react';
@@ -22,9 +23,6 @@ const initialFormData: Partial<Customer> = {
   email: '',
   phoneNumbers: [],
   addressLine1: '',
-  city: '',
-  state: '',
-  postalCode: '',
 };
 
 export function CustomerDialog({ isOpen, setIsOpen, userId, customer }: CustomerDialogProps) {
@@ -114,20 +112,6 @@ export function CustomerDialog({ isOpen, setIsOpen, userId, customer }: Customer
           <div className="space-y-2">
             <Label htmlFor="addressLine1">Address</Label>
             <Input id="addressLine1" value={formData.addressLine1 || ''} onChange={handleInputChange} />
-          </div>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            <div className="space-y-2">
-                <Label htmlFor="city">City</Label>
-                <Input id="city" value={formData.city || ''} onChange={handleInputChange} />
-            </div>
-            <div className="space-y-2">
-                <Label htmlFor="state">State</Label>
-                <Input id="state" value={formData.state || ''} onChange={handleInputChange} />
-            </div>
-            <div className="space-y-2">
-                <Label htmlFor="postalCode">Postal Code</Label>
-                <Input id="postalCode" value={formData.postalCode || ''} onChange={handleInputChange} />
-            </div>
           </div>
         </div>
         <DialogFooter>

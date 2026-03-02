@@ -1,3 +1,4 @@
+
 "use client";
 
 import { Input } from "@/components/ui/input";
@@ -20,10 +21,7 @@ export function InvoiceHeader({
   // Use provided business defaults as fallback
   const displayProfile = companyProfile || {
     name: 'DUBAI TOOLS',
-    addressLine1: 'Shivdhara, Darbhanga, Bihar 846005',
-    city: 'Darbhanga',
-    state: 'Bihar',
-    postalCode: '846005',
+    addressLine1: 'Shivdhara',
     phoneNumbers: ['9268863031', '7280944150'],
     email: 'dubaitools2026@gmail.com',
     gstRegistrationNumber: 'Qw1234766666s',
@@ -38,7 +36,6 @@ export function InvoiceHeader({
             </h1>
             <div className="not-italic text-muted-foreground text-sm space-y-1">
                 <p>{displayProfile.addressLine1}</p>
-                <p>{displayProfile.city}{displayProfile.state ? `, ${displayProfile.state}` : ''} {displayProfile.postalCode}</p>
                 {displayProfile.phoneNumbers && displayProfile.phoneNumbers.length > 0 && (
                   <div className="flex items-center gap-1">
                       <span className="font-bold">Phone:</span>
