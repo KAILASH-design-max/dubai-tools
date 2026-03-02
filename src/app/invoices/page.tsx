@@ -87,9 +87,13 @@ function InvoiceDetailModal({ invoice, userId, isOpen, onOpenChange }: { invoice
             thead {
               display: table-row-group !important;
             }
-            /* Force break after 16th item */
-            tbody tr:nth-child(16) {
+            /* Force break after 20th item to allow up to 20 items on page 1 */
+            tbody tr:nth-child(20) {
               page-break-after: always;
+            }
+            .invoice-detail-print td, .invoice-detail-print th {
+              padding: 4px 2px !important;
+              font-size: 9pt !important;
             }
           }
         `}</style>

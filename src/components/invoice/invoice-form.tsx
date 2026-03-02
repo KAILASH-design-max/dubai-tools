@@ -306,8 +306,8 @@ export function InvoiceForm({ userId }: { userId: string }) {
             page-break-inside: avoid;
           }
 
-          /* Force page break after item 16 */
-          .invoice-table tbody tr:nth-child(16) {
+          /* Force page break after item 20 to fit 20 on page 1 */
+          .invoice-table tbody tr:nth-child(20) {
             page-break-after: always;
           }
 
