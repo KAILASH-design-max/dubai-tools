@@ -15,10 +15,9 @@ import { InvoiceActions } from './invoice-actions';
 import { useFirestore, useDoc, useCollection, useMemoFirebase, useCompanyProfile } from '@/firebase';
 import { doc, collection, addDoc, deleteDoc, query, orderBy } from 'firebase/firestore';
 import { addDocumentNonBlocking, deleteDocumentNonBlocking, setDocumentNonBlocking, updateDocumentNonBlocking } from '@/firebase/non-blocking-updates';
-import type { Invoice, InvoiceLineItem, CompanyProfile, Customer } from '@/lib/types';
+import type { Invoice, InvoiceLineItem } from '@/lib/types';
 import { Skeleton } from '../ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
 
@@ -45,14 +44,8 @@ export function InvoiceForm({ userId }: { userId: string }) {
     [lineItemsCollectionRef]
   );
 
-  const customersCollectionRef = useMemoFirebase(
-    () => firestore ? collection(firestore, `users/${userId}/customers`) : null,
-    [firestore, userId]
-  );
-
   const { data: invoice, isLoading: isInvoiceLoading } = useDoc<Invoice>(invoiceRef);
   const { data: lineItems, isLoading: areLineItemsLoading } = useCollection<InvoiceLineItem>(lineItemsQuery);
-  const { data: customers } = useCollection<Customer>(customersCollectionRef);
 
   useEffect(() => {
     if (!isInvoiceLoading && !invoice && invoiceRef) {
@@ -104,16 +97,6 @@ export function InvoiceForm({ userId }: { userId: string }) {
   const handleUpdateInvoice = (field: keyof Omit<Invoice, 'id'>, value: string) => {
     if (!invoiceRef) return;
     updateDocumentNonBlocking(invoiceRef, { [field]: value });
-  }
-
-  const handleSelectCustomer = (customerId: string) => {
-    const selected = customers?.find(c => c.id === customerId);
-    if (selected && invoiceRef) {
-        updateDocumentNonBlocking(invoiceRef, { 
-            customerId: selected.id,
-            customerName: selected.name 
-        });
-    }
   }
 
   const handleSaveInvoice = async () => {
@@ -370,16 +353,6 @@ export function InvoiceForm({ userId }: { userId: string }) {
             <div className="space-y-2">
               <Label htmlFor="customerName" className="font-headline">Bill To</Label>
               <div className="flex flex-col gap-2">
-                <Select onValueChange={handleSelectCustomer} value={invoice?.customerId}>
-                    <SelectTrigger className="print:hidden">
-                        <SelectValue placeholder="Select existing customer" />
-                    </SelectTrigger>
-                    <SelectContent>
-                        {customers?.map(c => (
-                            <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
-                        ))}
-                    </SelectContent>
-                </Select>
                 <Input 
                     id="customerName" 
                     value={invoice?.customerName || ''} 
