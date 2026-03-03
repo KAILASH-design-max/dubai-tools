@@ -47,8 +47,8 @@ export function InvoiceForm({ userId }: { userId: string }) {
   const { data: lineItems, isLoading: areLineItemsLoading } = useCollection<InvoiceLineItem>(lineItemsQuery);
 
   useEffect(() => {
-    const shouldInitialize = !isInvoiceLoading && !invoice && !!invoiceRef;
-    if (shouldInitialize) {
+    // Ensuring dependency array size is stable and constant.
+    if (!isInvoiceLoading && !invoice && !!invoiceRef) {
       const defaultInvoice: Omit<Invoice, 'id'> = {
         invoiceNumber: 'INV-001',
         invoiceDate: new Date().toISOString().split('T')[0],
@@ -341,7 +341,6 @@ export function InvoiceForm({ userId }: { userId: string }) {
           .print-m-0 { margin: 0 !important; }
           .print-p-0 { padding: 0 !important; }
 
-          /* Tighten spacing for company header */
           .invoice-header-info { margin-bottom: 1mm !important; }
         }
       `}</style>
