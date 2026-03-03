@@ -49,10 +49,7 @@ export function InvoiceForm({ userId }: { userId: string }) {
 
   // Initialize main invoice document if it doesn't exist
   useEffect(() => {
-    // Explicitly check for all conditions to maintain hook stability
-    const shouldInitialize = !isInvoiceLoading && !invoice && !!invoiceRef;
-    
-    if (shouldInitialize && invoiceRef) {
+    if (!isInvoiceLoading && !invoice && invoiceRef) {
       const defaultInvoice: Omit<Invoice, 'id'> = {
         invoiceNumber: 'INV-001',
         invoiceDate: new Date().toISOString().split('T')[0],
@@ -185,7 +182,7 @@ export function InvoiceForm({ userId }: { userId: string }) {
         toast({
           variant: "destructive",
           title: "Save Failed",
-          description: "There was an error saving your invoice. Please check your permissions.",
+          description: "There was an error saving your invoice.",
         });
     } finally {
         setIsSaving(false);
@@ -250,7 +247,7 @@ export function InvoiceForm({ userId }: { userId: string }) {
       <style>{`
         @page {
           size: A4;
-          margin: 10mm 10mm 10mm 10mm;
+          margin: 8mm 8mm 8mm 8mm;
         }
 
         input[type="date"]::-webkit-calendar-picker-indicator {
@@ -266,7 +263,7 @@ export function InvoiceForm({ userId }: { userId: string }) {
           body {
             -webkit-print-color-adjust: exact;
             print-color-adjust: exact;
-            font-size: 9pt;
+            font-size: 8pt;
             background: white !important;
           }
           body * { visibility: hidden; }
@@ -278,7 +275,7 @@ export function InvoiceForm({ userId }: { userId: string }) {
             width: 100%;
             height: auto;
             margin: 0;
-            padding: 2mm 5mm;
+            padding: 1mm 4mm;
             box-sizing: border-box;
             border: none !important;
             box-shadow: none !important;
@@ -291,7 +288,7 @@ export function InvoiceForm({ userId }: { userId: string }) {
           
           thead tr th {
             font-weight: bold;
-            padding: 4px 2px !important;
+            padding: 2px 2px !important;
             border-bottom: 1px solid #ddd !important;
           }
 
@@ -313,36 +310,39 @@ export function InvoiceForm({ userId }: { userId: string }) {
           input.print-no-border {
             padding: 0 !important;
             height: auto !important;
-            font-size: 9pt !important;
+            font-size: 8pt !important;
           }
 
           .invoice-totals-area {
             page-break-inside: avoid;
-            margin-top: 3mm;
+            margin-top: 1.5mm;
           }
 
           .signature-area {
             page-break-inside: avoid;
-            margin-top: 5mm;
+            margin-top: 3mm;
           }
 
           .invoice-table td {
-             padding: 2px 2px !important;
-             font-size: 8.5pt !important;
+             padding: 1px 2px !important;
+             font-size: 7.5pt !important;
              border-bottom: 0.5px solid #eee !important;
           }
 
           .invoice-table th {
-             font-size: 8.5pt !important;
+             font-size: 7.5pt !important;
           }
           
           .print-m-0 { margin: 0 !important; }
           .print-p-0 { padding: 0 !important; }
+
+          /* Tighten spacing for company header */
+          .invoice-header-info { margin-bottom: 2mm !important; }
         }
       `}</style>
       <Card className="max-w-4xl mx-auto invoice-print-area p-2 sm:p-4 md:p-6">
         <CardContent className="p-0">
-          <div className="flex flex-col-reverse sm:flex-row justify-between items-start gap-4 mb-6 print:mb-2">
+          <div className="flex flex-col-reverse sm:flex-row justify-between items-start gap-4 mb-6 print:mb-2 invoice-header-info">
             <InvoiceHeader 
               companyProfile={companyProfile}
               invoiceNumber={invoice?.invoiceNumber || ''}
@@ -356,18 +356,18 @@ export function InvoiceForm({ userId }: { userId: string }) {
             </div>
           </div>
 
-          <Separator className="my-6 print:my-2" />
+          <Separator className="my-6 print:my-1" />
 
-          <div className="grid md:grid-cols-2 gap-8 mb-8 print:mb-2">
+          <div className="grid md:grid-cols-2 gap-8 mb-8 print:mb-1">
             <div className="space-y-2">
-              <Label htmlFor="customerName" className="font-headline">Bill To</Label>
+              <Label htmlFor="customerName" className="font-headline text-sm print:text-xs">Bill To</Label>
               <div className="flex flex-col gap-2">
                 <Input 
                     id="customerName" 
                     value={invoice?.customerName || ''} 
                     onChange={(e) => handleUpdateInvoice('customerName', e.target.value)} 
                     placeholder="Customer Name" 
-                    className="print-no-border font-medium" 
+                    className="print-no-border font-medium text-base print:text-sm" 
                 />
               </div>
             </div>
@@ -377,9 +377,9 @@ export function InvoiceForm({ userId }: { userId: string }) {
             <Table className="invoice-table">
               <TableHeader className="print:table-header-group">
                 <TableRow>
-                  <TableHead className="w-[60px] print:w-[40px]">Item</TableHead>
+                  <TableHead className="w-[60px] print:w-[30px]">Item</TableHead>
                   <TableHead className="w-[40%]">Description</TableHead>
-                  <TableHead className="text-right">Quantity</TableHead>
+                  <TableHead className="text-right">Qty</TableHead>
                   <TableHead className="text-right">Rate (Rs)</TableHead>
                   <TableHead className="text-right hidden md:table-cell print:table-cell">Amount (Rs)</TableHead>
                   <TableHead className="text-right">Tax (%)</TableHead>
@@ -404,7 +404,7 @@ export function InvoiceForm({ userId }: { userId: string }) {
                   const total = amount * (1 + item.tax / 100);
                   return (
                     <TableRow key={item.id}>
-                      <TableCell className="text-muted-foreground font-medium text-xs">{index + 1}</TableCell>
+                      <TableCell className="text-muted-foreground font-medium text-xs print:text-[7pt]">{index + 1}</TableCell>
                       <TableCell><Input value={item.description} onChange={(e) => handleUpdateLineItem(item.id, 'description', e.target.value)} className="w-full print-no-border" /></TableCell>
                       <TableCell><Input value={item.quantity} onChange={(e) => handleUpdateLineItem(item.id, 'quantity', e.target.value)} className="w-12 sm:w-20 text-right print-no-border" /></TableCell>
                       <TableCell><Input type="number" value={item.rate} onChange={(e) => handleUpdateLineItem(item.id, 'rate', e.target.value)} className="w-20 sm:w-28 text-right print-no-border" /></TableCell>
@@ -424,7 +424,7 @@ export function InvoiceForm({ userId }: { userId: string }) {
           </Button>
 
           <div className="invoice-totals-area flex justify-end">
-            <div className="w-full md:w-1/2 lg:w-1/3 space-y-1 print:space-y-0 text-sm print:text-xs">
+            <div className="w-full md:w-1/2 lg:w-1/3 space-y-1 print:space-y-0 text-sm print:text-[8pt]">
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Subtotal:</span>
                 <span className="font-medium">{formatCurrency(subtotal)}</span>
@@ -433,7 +433,7 @@ export function InvoiceForm({ userId }: { userId: string }) {
                 <span className="text-muted-foreground">Tax:</span>
                 <span className="font-medium">{formatCurrency(taxTotal)}</span>
               </div>
-              <Separator className="print:my-1" />
+              <Separator className="print:my-0.5" />
               <div className="flex justify-between font-bold text-lg print:text-sm font-headline">
                 <span>Grand Total:</span>
                 <span>{formatCurrency(grandTotal)}</span>
@@ -442,7 +442,7 @@ export function InvoiceForm({ userId }: { userId: string }) {
           </div>
           
           <div className="signature-area mt-8 print:mt-4">
-            <div className="relative h-16 w-32 print:h-10 print:w-24">
+            <div className="relative h-16 w-32 print:h-8 print:w-20">
               <Image
                 src="https://picsum.photos/seed/sig/160/80"
                 alt="Authorized Signature"
@@ -452,7 +452,7 @@ export function InvoiceForm({ userId }: { userId: string }) {
                 data-ai-hint="signature"
               />
             </div>
-            <p className="font-headline text-sm print:text-xs text-muted-foreground pt-1 border-t-2 border-dashed w-40 print:w-24">Authorized Signature</p>
+            <p className="font-headline text-sm print:text-[7pt] text-muted-foreground pt-1 border-t border-dashed w-40 print:w-20">Authorized Signature</p>
           </div>
         </CardContent>
       </Card>
