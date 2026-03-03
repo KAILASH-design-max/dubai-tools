@@ -3,8 +3,8 @@
     {
       "id": "app-logo",
       "description": "Dubai Tools Industrial Logo",
-      "imageUrl": "https://images.unsplash.com/photo-1565323683015-519348764663?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwyfHxpbmR1c3RyaWFsJTIwdG9vbHMlMjBsb2dvfGVufDB8fHx8MTc3MjUyMDM3N3ww&ixlib=rb-4.1.0&q=80&w=1080",
-      "imageHint": "industrial tools logo"
+      "imageUrl": "https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?auto=format&fit=crop&q=80&w=200&h=200",
+      "imageHint": "industrial tools"
     }
   ]
 }
