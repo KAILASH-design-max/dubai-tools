@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useEffect, useState, useMemo } from 'react';
@@ -46,8 +47,10 @@ export function InvoiceForm({ userId }: { userId: string }) {
   const { data: invoice, isLoading: isInvoiceLoading } = useDoc<Invoice>(invoiceRef);
   const { data: lineItems, isLoading: areLineItemsLoading } = useCollection<InvoiceLineItem>(lineItemsQuery);
 
+  // Initialize main invoice if it doesn't exist
   useEffect(() => {
-    if (!isInvoiceLoading && !invoice && invoiceRef) {
+    const shouldInitialize = !isInvoiceLoading && !invoice && !!invoiceRef;
+    if (shouldInitialize) {
       const defaultInvoice: Omit<Invoice, 'id'> = {
         invoiceNumber: 'INV-001',
         invoiceDate: new Date().toISOString().split('T')[0],
@@ -62,9 +65,9 @@ export function InvoiceForm({ userId }: { userId: string }) {
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
       };
-      setDocumentNonBlocking(invoiceRef, defaultInvoice, { merge: false });
+      setDocumentNonBlocking(invoiceRef!, defaultInvoice, { merge: false });
     }
-  }, [isInvoiceLoading, invoice, invoiceRef, userId]);
+  }, [isInvoiceLoading, invoice, invoiceRef]);
   
   const handleAddLineItem = () => {
     if (!lineItemsCollectionRef) return;
@@ -214,12 +217,14 @@ export function InvoiceForm({ userId }: { userId: string }) {
   const { subtotal, taxTotal, grandTotal } = totals;
 
   useEffect(() => {
-    if (invoiceRef && invoice && (
+    const hasChanged = invoiceRef && invoice && (
       Math.abs(invoice.subtotalAmount - subtotal) > 0.01 ||
       Math.abs(invoice.totalTaxAmount - taxTotal) > 0.01 ||
       Math.abs(invoice.grandTotalAmount - grandTotal) > 0.01
-    )) {
-      updateDocumentNonBlocking(invoiceRef, {
+    );
+
+    if (hasChanged) {
+      updateDocumentNonBlocking(invoiceRef!, {
         subtotalAmount: subtotal,
         totalTaxAmount: taxTotal,
         grandTotalAmount: grandTotal,
@@ -344,7 +349,7 @@ export function InvoiceForm({ userId }: { userId: string }) {
       `}</style>
       <Card className="max-w-4xl mx-auto invoice-print-area p-2 sm:p-4 md:p-6">
         <CardContent className="p-0">
-          <div className="flex flex-col-reverse sm:flex-row justify-between items-start gap-4 mb-6 print:mb-1 invoice-header-info">
+          <div className="flex flex-col-reverse sm:flex-row justify-between items-start gap-4 mb-4 print:mb-1 invoice-header-info">
             <InvoiceHeader 
               companyProfile={companyProfile}
               invoiceNumber={invoice?.invoiceNumber || ''}
@@ -358,13 +363,13 @@ export function InvoiceForm({ userId }: { userId: string }) {
             </div>
           </div>
 
-          <Separator className="my-6 print:my-0.5" />
+          <Separator className="my-4 print:my-0.5" />
 
-          <div className="grid md:grid-cols-2 gap-8 mb-8 print:mb-1">
-            <div className="space-y-2">
+          <div className="grid md:grid-cols-2 gap-8 mb-4 print:mb-1">
+            <div className="space-y-1">
               <Label className="font-headline text-sm print:text-[8pt]">Bill To</Label>
-              <div className="border rounded-md p-3 space-y-3 bg-muted/5 print:p-0 print:border-none print:bg-transparent">
-                <div className="space-y-2">
+              <div className="border rounded-md p-3 space-y-2 bg-muted/5 print:p-0 print:border-none print:bg-transparent">
+                <div className="space-y-1">
                   <div className="flex items-center gap-2 group">
                     <User className="h-4 w-4 text-primary shrink-0 opacity-70" />
                     <Input 
@@ -436,12 +441,12 @@ export function InvoiceForm({ userId }: { userId: string }) {
             </Table>
           </div>
 
-          <Button onClick={handleAddLineItem} variant="outline" className="mt-4 print:hidden">
+          <Button onClick={handleAddLineItem} variant="outline" className="mt-2 print:hidden">
             <Plus className="mr-2 h-4 w-4" /> Add Item
           </Button>
 
           <div className="invoice-totals-area flex justify-end">
-            <div className="w-full md:w-1/2 lg:w-1/3 space-y-1 print:space-y-0 text-sm print:text-[8pt]">
+            <div className="w-full md:w-1/2 lg:w-1/3 space-y-0.5 print:space-y-0 text-sm print:text-[8pt]">
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Subtotal:</span>
                 <span className="font-medium">{formatCurrency(subtotal)}</span>
@@ -450,7 +455,7 @@ export function InvoiceForm({ userId }: { userId: string }) {
                 <span className="text-muted-foreground">Tax:</span>
                 <span className="font-medium">{formatCurrency(taxTotal)}</span>
               </div>
-              <Separator className="print:my-0.25" />
+              <Separator className="print:my-0.1" />
               <div className="flex justify-between font-bold text-lg print:text-[9pt] font-headline">
                 <span>Grand Total:</span>
                 <span>{formatCurrency(grandTotal)}</span>
@@ -458,8 +463,8 @@ export function InvoiceForm({ userId }: { userId: string }) {
             </div>
           </div>
           
-          <div className="signature-area mt-8 print:mt-2">
-            <div className="relative h-16 w-32 print:h-8 print:w-20">
+          <div className="signature-area mt-4 print:mt-1">
+            <div className="relative h-12 w-24 print:h-8 print:w-20">
               <Image
                 src="/signature.jpeg"
                 alt="Authorized Signature"
@@ -468,7 +473,7 @@ export function InvoiceForm({ userId }: { userId: string }) {
                 className="object-contain"
               />
             </div>
-            <div className="w-40 print:w-20 border-t border-dashed pt-1">
+            <div className="w-40 print:w-24 border-t border-dashed pt-0.5">
               <Input 
                 value={invoice?.authorizedSignatureName || ''} 
                 onChange={(e) => handleUpdateInvoice('authorizedSignatureName', e.target.value)}
