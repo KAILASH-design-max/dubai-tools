@@ -361,26 +361,28 @@ export function InvoiceForm({ userId }: { userId: string }) {
 
           <Separator className="my-6 print:my-0.5" />
 
-          <div className="grid md:grid-cols-2 gap-8 mb-8 print:mb-0.5">
+          <div className="grid md:grid-cols-2 gap-8 mb-8 print:mb-1">
             <div className="space-y-2">
-              <Label htmlFor="customerName" className="font-headline text-sm print:text-[8pt]">Bill To</Label>
-              <div className="flex flex-col gap-2">
-                <Input 
-                    id="customerName" 
-                    value={invoice?.customerName || ''} 
-                    onChange={(e) => handleUpdateInvoice('customerName', e.target.value)} 
-                    placeholder="Customer Name" 
-                    className="print-no-border font-medium text-base print:text-[8.5pt]" 
-                />
-                <div className="flex items-center gap-2">
-                    <span className="text-xs text-muted-foreground font-bold print:text-[7pt]">Phone:</span>
-                    <Input 
-                        id="customerPhone" 
-                        value={invoice?.customerPhone || ''} 
-                        onChange={(e) => handleUpdateInvoice('customerPhone', e.target.value)} 
-                        placeholder="Customer Phone" 
-                        className="print-no-border text-sm print:text-[8pt] h-auto p-0" 
-                    />
+              <Label className="font-headline text-sm print:text-[8pt]">Bill To</Label>
+              <div className="border rounded-md p-3 space-y-3 bg-muted/5 print:p-0 print:border-none print:bg-transparent">
+                <div className="space-y-1">
+                  <Input 
+                      id="customerName" 
+                      value={invoice?.customerName || ''} 
+                      onChange={(e) => handleUpdateInvoice('customerName', e.target.value)} 
+                      placeholder="Customer Name" 
+                      className="print-no-border font-medium text-lg print:text-[9pt] h-auto p-0 border-none focus-visible:ring-0 shadow-none bg-transparent" 
+                  />
+                  <div className="flex items-center gap-2">
+                      <span className="text-xs text-muted-foreground font-bold print:text-[7pt] shrink-0">Phone:</span>
+                      <Input 
+                          id="customerPhone" 
+                          value={invoice?.customerPhone || ''} 
+                          onChange={(e) => handleUpdateInvoice('customerPhone', e.target.value)} 
+                          placeholder="Enter customer number" 
+                          className="print-no-border text-sm print:text-[8pt] h-auto p-0 border-none focus-visible:ring-0 shadow-none bg-transparent" 
+                      />
+                  </div>
                 </div>
               </div>
             </div>

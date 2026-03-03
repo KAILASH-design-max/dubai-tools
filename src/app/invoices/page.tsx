@@ -112,10 +112,14 @@ function InvoiceDetailModal({ invoice, userId, isOpen, onOpenChange }: { invoice
            <div className="grid grid-cols-2 gap-8 text-sm">
              <div>
                <p className="text-muted-foreground mb-1 uppercase text-[10px] font-bold tracking-wider">Bill To</p>
-               <p className="font-bold text-lg leading-tight">{invoice.customerName}</p>
-               {invoice.customerPhone && (
-                 <p className="text-muted-foreground mt-1 text-xs">Phone: {invoice.customerPhone}</p>
-               )}
+               <div className="border rounded-md p-3 space-y-1 bg-muted/5 print:p-0 print:border-none print:bg-transparent">
+                 <p className="font-bold text-lg leading-tight">{invoice.customerName}</p>
+                 {invoice.customerPhone && (
+                   <p className="text-muted-foreground text-xs flex items-center gap-1">
+                     <span className="font-bold opacity-70">Phone:</span> {invoice.customerPhone}
+                   </p>
+                 )}
+               </div>
              </div>
              <div className="text-right">
                <p className="text-muted-foreground mb-1 uppercase text-[10px] font-bold tracking-wider">Date Issued</p>
