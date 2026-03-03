@@ -81,19 +81,18 @@ function InvoiceDetailModal({ invoice, userId, isOpen, onOpenChange }: { invoice
               top: 0;
               width: 100%;
               border: none !important;
-              padding: 0 !important;
+              padding: 5mm !important;
+              background: white !important;
             }
-            /* Hide header on pages after the first */
             thead {
-              display: table-row-group !important;
-            }
-            /* Force break after 20th item to allow up to 20 items on page 1 */
-            tbody tr:nth-child(20) {
-              page-break-after: always;
+              display: table-header-group !important;
             }
             .invoice-detail-print td, .invoice-detail-print th {
-              padding: 4px 2px !important;
-              font-size: 9pt !important;
+              padding: 2px 2px !important;
+              font-size: 8.5pt !important;
+            }
+            .invoice-totals-container {
+              page-break-inside: avoid;
             }
           }
         `}</style>
@@ -162,7 +161,7 @@ function InvoiceDetailModal({ invoice, userId, isOpen, onOpenChange }: { invoice
              </Table>
            </div>
 
-           <div className="flex justify-end pt-4">
+           <div className="flex justify-end pt-4 invoice-totals-container">
              <div className="w-full md:w-1/2 space-y-3 text-right">
                <div className="flex justify-between items-center px-2">
                  <span className="text-muted-foreground text-xs uppercase font-bold tracking-wider">Subtotal</span>
@@ -571,7 +570,7 @@ export default function InvoicesPage() {
                                     )}
                                     <DropdownMenuSeparator />
                                     <DropdownMenuItem onClick={() => window.print()}>
-                                      <FileText className="mr-2 h-4 w-4" />
+                                      <Printer className="mr-2 h-4 w-4" />
                                       Print Copy
                                     </DropdownMenuItem>
                                     <DropdownMenuSeparator />

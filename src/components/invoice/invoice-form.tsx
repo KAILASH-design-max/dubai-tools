@@ -250,7 +250,7 @@ export function InvoiceForm({ userId }: { userId: string }) {
       <style>{`
         @page {
           size: A4;
-          margin: 10mm;
+          margin: 10mm 10mm 10mm 10mm;
         }
 
         input[type="date"]::-webkit-calendar-picker-indicator {
@@ -266,7 +266,8 @@ export function InvoiceForm({ userId }: { userId: string }) {
           body {
             -webkit-print-color-adjust: exact;
             print-color-adjust: exact;
-            font-size: 10pt;
+            font-size: 9pt;
+            background: white !important;
           }
           body * { visibility: hidden; }
           .invoice-print-area, .invoice-print-area * { visibility: visible; }
@@ -277,10 +278,11 @@ export function InvoiceForm({ userId }: { userId: string }) {
             width: 100%;
             height: auto;
             margin: 0;
-            padding: 5mm;
+            padding: 2mm 5mm;
             box-sizing: border-box;
             border: none !important;
             box-shadow: none !important;
+            background: white !important;
            }
           
           thead {
@@ -290,14 +292,11 @@ export function InvoiceForm({ userId }: { userId: string }) {
           thead tr th {
             font-weight: bold;
             padding: 4px 2px !important;
+            border-bottom: 1px solid #ddd !important;
           }
 
           tr {
             page-break-inside: avoid;
-          }
-
-          .invoice-table tbody tr:nth-child(20) {
-            page-break-after: always;
           }
 
           .print-no-border, .print-no-border:focus, .print-no-border:hover {
@@ -314,27 +313,31 @@ export function InvoiceForm({ userId }: { userId: string }) {
           input.print-no-border {
             padding: 0 !important;
             height: auto !important;
-            font-size: 10pt !important;
+            font-size: 9pt !important;
           }
 
           .invoice-totals-area {
             page-break-inside: avoid;
-            margin-top: 5mm;
+            margin-top: 3mm;
           }
 
           .signature-area {
             page-break-inside: avoid;
-            margin-top: 10mm;
+            margin-top: 5mm;
           }
 
           .invoice-table td {
-             padding: 4px 2px !important;
-             font-size: 9pt !important;
+             padding: 2px 2px !important;
+             font-size: 8.5pt !important;
+             border-bottom: 0.5px solid #eee !important;
           }
 
           .invoice-table th {
-             font-size: 9pt !important;
+             font-size: 8.5pt !important;
           }
+          
+          .print-m-0 { margin: 0 !important; }
+          .print-p-0 { padding: 0 !important; }
         }
       `}</style>
       <Card className="max-w-4xl mx-auto invoice-print-area p-2 sm:p-4 md:p-6">
@@ -355,7 +358,7 @@ export function InvoiceForm({ userId }: { userId: string }) {
 
           <Separator className="my-6 print:my-2" />
 
-          <div className="grid md:grid-cols-2 gap-8 mb-8 print:mb-4">
+          <div className="grid md:grid-cols-2 gap-8 mb-8 print:mb-2">
             <div className="space-y-2">
               <Label htmlFor="customerName" className="font-headline">Bill To</Label>
               <div className="flex flex-col gap-2">
@@ -421,7 +424,7 @@ export function InvoiceForm({ userId }: { userId: string }) {
           </Button>
 
           <div className="invoice-totals-area flex justify-end">
-            <div className="w-full md:w-1/2 lg:w-1/3 space-y-2 print:space-y-1 text-sm print:text-xs">
+            <div className="w-full md:w-1/2 lg:w-1/3 space-y-1 print:space-y-0 text-sm print:text-xs">
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Subtotal:</span>
                 <span className="font-medium">{formatCurrency(subtotal)}</span>
@@ -438,8 +441,8 @@ export function InvoiceForm({ userId }: { userId: string }) {
             </div>
           </div>
           
-          <div className="signature-area mt-12 print:mt-4">
-            <div className="relative h-20 w-40 print:h-12 print:w-32">
+          <div className="signature-area mt-8 print:mt-4">
+            <div className="relative h-16 w-32 print:h-10 print:w-24">
               <Image
                 src="https://picsum.photos/seed/sig/160/80"
                 alt="Authorized Signature"
@@ -449,7 +452,7 @@ export function InvoiceForm({ userId }: { userId: string }) {
                 data-ai-hint="signature"
               />
             </div>
-            <p className="font-headline text-sm print:text-xs text-muted-foreground pt-2 border-t-2 border-dashed w-40 print:w-32">Authorized Signature</p>
+            <p className="font-headline text-sm print:text-xs text-muted-foreground pt-1 border-t-2 border-dashed w-40 print:w-24">Authorized Signature</p>
           </div>
         </CardContent>
       </Card>
