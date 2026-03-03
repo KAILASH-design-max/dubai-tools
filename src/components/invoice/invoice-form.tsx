@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useEffect, useState, useMemo } from 'react';
@@ -65,7 +64,7 @@ export function InvoiceForm({ userId }: { userId: string }) {
       };
       setDocumentNonBlocking(invoiceRef, defaultInvoice, { merge: false });
     }
-  }, [isInvoiceLoading, invoice, invoiceRef]);
+  }, [isInvoiceLoading, invoice, invoiceRef, userId]);
   
   const handleAddLineItem = () => {
     if (!lineItemsCollectionRef) return;
@@ -248,7 +247,7 @@ export function InvoiceForm({ userId }: { userId: string }) {
       <style>{`
         @page {
           size: A4;
-          margin: 5mm 5mm 5mm 5mm;
+          margin: 5mm;
         }
 
         input[type="date"]::-webkit-calendar-picker-indicator {
@@ -276,7 +275,7 @@ export function InvoiceForm({ userId }: { userId: string }) {
             width: 100%;
             height: auto;
             margin: 0;
-            padding: 1mm 2mm;
+            padding: 0;
             box-sizing: border-box;
             border: none !important;
             box-shadow: none !important;
@@ -327,7 +326,7 @@ export function InvoiceForm({ userId }: { userId: string }) {
           }
 
           .invoice-table td {
-             padding: 0.5px 2px !important;
+             padding: 1px 2px !important;
              font-size: 7.5pt !important;
              border-bottom: 0.5px solid #eee !important;
           }
@@ -462,15 +461,22 @@ export function InvoiceForm({ userId }: { userId: string }) {
           <div className="signature-area mt-8 print:mt-2">
             <div className="relative h-16 w-32 print:h-8 print:w-20">
               <Image
-                src="https://picsum.photos/seed/sig/160/80"
+                src="/signature.jpeg"
                 alt="Authorized Signature"
                 width={160}
                 height={80}
                 className="object-contain"
-                data-ai-hint="signature"
               />
             </div>
-            <p className="font-headline text-sm print:text-[7pt] text-muted-foreground pt-1 border-t border-dashed w-40 print:w-20">Authorized Signature</p>
+            <div className="w-40 print:w-20 border-t border-dashed pt-1">
+              <Input 
+                value={invoice?.authorizedSignatureName || ''} 
+                onChange={(e) => handleUpdateInvoice('authorizedSignatureName', e.target.value)}
+                placeholder="Name"
+                className="print-no-border h-auto p-0 border-none focus-visible:ring-0 shadow-none bg-transparent font-headline text-sm print:text-[7pt] font-bold"
+              />
+              <p className="text-[10px] print:text-[6pt] text-muted-foreground opacity-70">Authorized Signature</p>
+            </div>
           </div>
         </CardContent>
       </Card>

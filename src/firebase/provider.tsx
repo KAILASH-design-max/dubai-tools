@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { DependencyList, createContext, useContext, ReactNode, useMemo, useState, useEffect } from 'react';
@@ -122,13 +121,14 @@ export const useFirebase = (): FirebaseServicesAndUser => {
     throw new Error('useFirebase must be used within a FirebaseProvider.');
   }
 
+  // Prevents crashes if services aren't available during initial hydration
   return {
-    firebaseApp: context.firebaseApp,
-    firestore: context.firestore,
-    auth: context.auth,
-    user: context.user,
+    firebaseApp: context.firebaseApp || null,
+    firestore: context.firestore || null,
+    auth: context.auth || null,
+    user: context.user || null,
     isUserLoading: context.isUserLoading,
-    userError: context.userError,
+    userError: context.userError || null,
   };
 };
 
