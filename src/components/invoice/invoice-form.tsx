@@ -46,7 +46,6 @@ export function InvoiceForm({ userId }: { userId: string }) {
   const { data: invoice, isLoading: isInvoiceLoading } = useDoc<Invoice>(invoiceRef);
   const { data: lineItems, isLoading: areLineItemsLoading } = useCollection<InvoiceLineItem>(lineItemsQuery);
 
-  // Initialize main invoice if it doesn't exist
   useEffect(() => {
     const shouldInitialize = !isInvoiceLoading && !invoice && !!invoiceRef;
     if (shouldInitialize) {
@@ -66,7 +65,7 @@ export function InvoiceForm({ userId }: { userId: string }) {
       };
       setDocumentNonBlocking(invoiceRef!, defaultInvoice, { merge: false });
     }
-  }, [isInvoiceLoading, invoice, invoiceRef, userId]); // Added userId to ensure stable dependency array size
+  }, [isInvoiceLoading, invoice, invoiceRef, userId]);
   
   const handleAddLineItem = () => {
     if (!lineItemsCollectionRef) return;
