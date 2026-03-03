@@ -113,6 +113,9 @@ function InvoiceDetailModal({ invoice, userId, isOpen, onOpenChange }: { invoice
              <div>
                <p className="text-muted-foreground mb-1 uppercase text-[10px] font-bold tracking-wider">Bill To</p>
                <p className="font-bold text-lg leading-tight">{invoice.customerName}</p>
+               {invoice.customerPhone && (
+                 <p className="text-muted-foreground mt-1 text-xs">Phone: {invoice.customerPhone}</p>
+               )}
              </div>
              <div className="text-right">
                <p className="text-muted-foreground mb-1 uppercase text-[10px] font-bold tracking-wider">Date Issued</p>
@@ -223,7 +226,8 @@ export default function InvoicesPage() {
       .filter(inv => {
         const matchesSearch = 
           inv.customerName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          inv.invoiceNumber?.toLowerCase().includes(searchTerm.toLowerCase());
+          inv.invoiceNumber?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          inv.customerPhone?.toLowerCase().includes(searchTerm.toLowerCase());
         
         const matchesStatus = statusFilter === 'all' || 
           (statusFilter === 'pending' && (inv.status === 'Sent' || inv.status === 'Draft' || inv.status === 'Overdue')) ||
@@ -308,10 +312,11 @@ export default function InvoicesPage() {
   const exportToCSV = () => {
     if (!filteredInvoices.length) return;
     
-    const headers = ['Invoice #', 'Customer', 'Date', 'Status', 'Subtotal', 'Tax', 'Grand Total'];
+    const headers = ['Invoice #', 'Customer', 'Phone', 'Date', 'Status', 'Subtotal', 'Tax', 'Grand Total'];
     const rows = filteredInvoices.map(inv => [
       inv.invoiceNumber,
       inv.customerName,
+      inv.customerPhone || '',
       inv.invoiceDate,
       inv.status,
       inv.subtotalAmount.toFixed(2),
@@ -489,7 +494,7 @@ export default function InvoicesPage() {
                 <div className="relative w-full md:w-72">
                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                   <Input 
-                    placeholder="Search customer or ID..." 
+                    placeholder="Search customer, phone or ID..." 
                     className="pl-9"
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
@@ -531,7 +536,12 @@ export default function InvoicesPage() {
                                     {invoice.invoiceNumber}
                                 </button>
                             </TableCell>
-                            <TableCell>{invoice.customerName}</TableCell>
+                            <TableCell>
+                              <div>
+                                <p className="font-medium">{invoice.customerName}</p>
+                                {invoice.customerPhone && <p className="text-xs text-muted-foreground">{invoice.customerPhone}</p>}
+                              </div>
+                            </TableCell>
                             <TableCell>{formatDate(invoice.invoiceDate)}</TableCell>
                             <TableCell>{getStatusBadge(invoice.status)}</TableCell>
                             <TableCell className="text-right font-medium">{formatCurrency(invoice.grandTotalAmount)}</TableCell>

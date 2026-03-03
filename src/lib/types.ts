@@ -35,6 +35,7 @@ export interface Invoice {
     invoiceDate: string; 
     customerId: string;
     customerName: string;
+    customerPhone?: string;
     companyProfileId: string;
     subtotalAmount: number;
     totalTaxAmount: number;

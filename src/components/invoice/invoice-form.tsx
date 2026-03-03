@@ -47,13 +47,13 @@ export function InvoiceForm({ userId }: { userId: string }) {
   const { data: invoice, isLoading: isInvoiceLoading } = useDoc<Invoice>(invoiceRef);
   const { data: lineItems, isLoading: areLineItemsLoading } = useCollection<InvoiceLineItem>(lineItemsQuery);
 
-  // Initialize main invoice document if it doesn't exist
   useEffect(() => {
     if (!isInvoiceLoading && !invoice && invoiceRef) {
       const defaultInvoice: Omit<Invoice, 'id'> = {
         invoiceNumber: 'INV-001',
         invoiceDate: new Date().toISOString().split('T')[0],
         customerName: '',
+        customerPhone: '',
         customerId: 'temp-customer',
         companyProfileId: 'main',
         subtotalAmount: 0,
@@ -157,6 +157,7 @@ export function InvoiceForm({ userId }: { userId: string }) {
             invoiceNumber: nextInvoiceNumber,
             invoiceDate: new Date().toISOString().split('T')[0],
             customerName: '',
+            customerPhone: '',
             customerId: 'temp-customer',
             subtotalAmount: 0,
             totalTaxAmount: 0,
@@ -263,7 +264,7 @@ export function InvoiceForm({ userId }: { userId: string }) {
           body {
             -webkit-print-color-adjust: exact;
             print-color-adjust: exact;
-            font-size: 7.5pt;
+            font-size: 8pt;
             background: white !important;
           }
           body * { visibility: hidden; }
@@ -291,7 +292,7 @@ export function InvoiceForm({ userId }: { userId: string }) {
             font-weight: bold;
             padding: 1px 2px !important;
             border-bottom: 1px solid #ddd !important;
-            font-size: 7.5pt !important;
+            font-size: 8pt !important;
           }
 
           tr {
@@ -312,7 +313,7 @@ export function InvoiceForm({ userId }: { userId: string }) {
           input.print-no-border {
             padding: 0 !important;
             height: auto !important;
-            font-size: 7.5pt !important;
+            font-size: 8pt !important;
           }
 
           .invoice-totals-area {
@@ -327,12 +328,12 @@ export function InvoiceForm({ userId }: { userId: string }) {
 
           .invoice-table td {
              padding: 0.5px 2px !important;
-             font-size: 7pt !important;
+             font-size: 7.5pt !important;
              border-bottom: 0.5px solid #eee !important;
           }
 
           .invoice-table th {
-             font-size: 7.5pt !important;
+             font-size: 8pt !important;
           }
           
           .print-m-0 { margin: 0 !important; }
@@ -362,15 +363,25 @@ export function InvoiceForm({ userId }: { userId: string }) {
 
           <div className="grid md:grid-cols-2 gap-8 mb-8 print:mb-0.5">
             <div className="space-y-2">
-              <Label htmlFor="customerName" className="font-headline text-sm print:text-[7pt]">Bill To</Label>
+              <Label htmlFor="customerName" className="font-headline text-sm print:text-[8pt]">Bill To</Label>
               <div className="flex flex-col gap-2">
                 <Input 
                     id="customerName" 
                     value={invoice?.customerName || ''} 
                     onChange={(e) => handleUpdateInvoice('customerName', e.target.value)} 
                     placeholder="Customer Name" 
-                    className="print-no-border font-medium text-base print:text-[8pt]" 
+                    className="print-no-border font-medium text-base print:text-[8.5pt]" 
                 />
+                <div className="flex items-center gap-2">
+                    <span className="text-xs text-muted-foreground font-bold print:text-[7pt]">Phone:</span>
+                    <Input 
+                        id="customerPhone" 
+                        value={invoice?.customerPhone || ''} 
+                        onChange={(e) => handleUpdateInvoice('customerPhone', e.target.value)} 
+                        placeholder="Customer Phone" 
+                        className="print-no-border text-sm print:text-[8pt] h-auto p-0" 
+                    />
+                </div>
               </div>
             </div>
           </div>
@@ -406,7 +417,7 @@ export function InvoiceForm({ userId }: { userId: string }) {
                   const total = amount * (1 + item.tax / 100);
                   return (
                     <TableRow key={item.id}>
-                      <TableCell className="text-muted-foreground font-medium text-xs print:text-[6.5pt]">{index + 1}</TableCell>
+                      <TableCell className="text-muted-foreground font-medium text-xs print:text-[7pt]">{index + 1}</TableCell>
                       <TableCell><Input value={item.description} onChange={(e) => handleUpdateLineItem(item.id, 'description', e.target.value)} className="w-full print-no-border" /></TableCell>
                       <TableCell><Input value={item.quantity} onChange={(e) => handleUpdateLineItem(item.id, 'quantity', e.target.value)} className="w-12 sm:w-20 text-right print-no-border" /></TableCell>
                       <TableCell><Input type="number" value={item.rate} onChange={(e) => handleUpdateLineItem(item.id, 'rate', e.target.value)} className="w-20 sm:w-28 text-right print-no-border" /></TableCell>
@@ -426,7 +437,7 @@ export function InvoiceForm({ userId }: { userId: string }) {
           </Button>
 
           <div className="invoice-totals-area flex justify-end">
-            <div className="w-full md:w-1/2 lg:w-1/3 space-y-1 print:space-y-0 text-sm print:text-[7.5pt]">
+            <div className="w-full md:w-1/2 lg:w-1/3 space-y-1 print:space-y-0 text-sm print:text-[8pt]">
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Subtotal:</span>
                 <span className="font-medium">{formatCurrency(subtotal)}</span>
@@ -436,7 +447,7 @@ export function InvoiceForm({ userId }: { userId: string }) {
                 <span className="font-medium">{formatCurrency(taxTotal)}</span>
               </div>
               <Separator className="print:my-0.25" />
-              <div className="flex justify-between font-bold text-lg print:text-[8.5pt] font-headline">
+              <div className="flex justify-between font-bold text-lg print:text-[9pt] font-headline">
                 <span>Grand Total:</span>
                 <span>{formatCurrency(grandTotal)}</span>
               </div>
@@ -444,7 +455,7 @@ export function InvoiceForm({ userId }: { userId: string }) {
           </div>
           
           <div className="signature-area mt-8 print:mt-2">
-            <div className="relative h-16 w-32 print:h-6 print:w-16">
+            <div className="relative h-16 w-32 print:h-8 print:w-20">
               <Image
                 src="https://picsum.photos/seed/sig/160/80"
                 alt="Authorized Signature"
@@ -454,7 +465,7 @@ export function InvoiceForm({ userId }: { userId: string }) {
                 data-ai-hint="signature"
               />
             </div>
-            <p className="font-headline text-sm print:text-[6.5pt] text-muted-foreground pt-1 border-t border-dashed w-40 print:w-16">Authorized Signature</p>
+            <p className="font-headline text-sm print:text-[7pt] text-muted-foreground pt-1 border-t border-dashed w-40 print:w-20">Authorized Signature</p>
           </div>
         </CardContent>
       </Card>
