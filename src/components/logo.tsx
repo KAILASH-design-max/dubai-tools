@@ -1,11 +1,10 @@
-
 'use client';
 
 import Image from 'next/image';
 import Link from 'next/link';
 import { cn } from '@/lib/utils';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
-import { Hammer } from 'lucide-react';
+import { Zap } from 'lucide-react';
 
 export function Logo({ className }: { className?: string }) {
   const logoImage = PlaceHolderImages.find(img => img.id === 'app-logo');
@@ -24,12 +23,12 @@ export function Logo({ className }: { className?: string }) {
           />
         ) : (
           <div className="flex h-full w-full items-center justify-center">
-            <Hammer className="h-6 w-6 text-primary" />
+            <Zap className="h-6 w-6 text-primary" />
           </div>
         )}
       </div>
       <div className="flex items-center gap-2">
-        {!logoImage && <Hammer className="h-5 w-5 md:hidden" />}
+        {!logoImage && <Zap className="h-5 w-5 md:hidden" />}
         <span className="tracking-tight">DUBAI TOOLS</span>
       </div>
     </Link>

@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useEffect, useState, useMemo } from 'react';
@@ -67,7 +66,7 @@ export function InvoiceForm({ userId }: { userId: string }) {
       };
       setDocumentNonBlocking(invoiceRef!, defaultInvoice, { merge: false });
     }
-  }, [isInvoiceLoading, invoice, invoiceRef]);
+  }, [isInvoiceLoading, invoice, invoiceRef, userId]); // Added userId to ensure stable dependency array size
   
   const handleAddLineItem = () => {
     if (!lineItemsCollectionRef) return;

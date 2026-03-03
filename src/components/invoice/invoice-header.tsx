@@ -1,10 +1,9 @@
-
 "use client";
 
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import type { CompanyProfile } from "@/lib/types";
-import { Hammer } from "lucide-react";
+import { Zap } from "lucide-react";
 
 type InvoiceHeaderProps = {
     invoiceNumber: string;
@@ -33,7 +32,7 @@ export function InvoiceHeader({
       <div className="space-y-2">
           <div className="space-y-1">
             <h1 className="font-headline text-xl sm:text-2xl font-bold text-primary flex items-center gap-2">
-              <Hammer className="h-6 w-6 shrink-0" />
+              <Zap className="h-6 w-6 shrink-0" />
               <span>{displayProfile.name}</span>
             </h1>
             <div className="not-italic text-muted-foreground text-sm space-y-0.5">
