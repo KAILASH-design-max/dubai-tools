@@ -89,7 +89,7 @@ function InvoiceDetailModal({ invoice, userId, isOpen, onOpenChange }: { invoice
             }
             .invoice-detail-print td, .invoice-detail-print th {
               padding: 2px 2px !important;
-              font-size: 8.5pt !important;
+              font-size: 8pt !important;
             }
             .invoice-totals-container {
               page-break-inside: avoid;
