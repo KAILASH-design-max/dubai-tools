@@ -49,7 +49,10 @@ export function InvoiceForm({ userId }: { userId: string }) {
 
   // Initialize main invoice document if it doesn't exist
   useEffect(() => {
-    if (!isInvoiceLoading && !invoice && invoiceRef) {
+    // Explicitly check for all conditions to maintain hook stability
+    const shouldInitialize = !isInvoiceLoading && !invoice && !!invoiceRef;
+    
+    if (shouldInitialize && invoiceRef) {
       const defaultInvoice: Omit<Invoice, 'id'> = {
         invoiceNumber: 'INV-001',
         invoiceDate: new Date().toISOString().split('T')[0],

@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useMemo, type ReactNode, useState, useEffect } from 'react';
@@ -26,13 +27,12 @@ export function FirebaseClientProvider({ children }: FirebaseClientProviderProps
   }, []);
 
   const firebaseServices = useMemo(() => {
-    // initializeFirebase already checks for window, but useMemo double-checks intent
+    // initializeFirebase already checks for window
+    if (typeof window === 'undefined') return null;
     return initializeFirebase();
   }, []);
 
-  // During SSR or initial hydration, we provide an empty context to avoid 
-  // "context undefined" errors in child components while preventing 
-  // the client-only SDK chunks from loading prematurely or incorrectly.
+  // During SSR or initial hydration, we provide an empty context
   if (!isMounted || !firebaseServices) {
     return (
       <FirebaseContext.Provider value={emptyContext}>

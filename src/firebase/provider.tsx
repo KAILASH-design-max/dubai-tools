@@ -83,7 +83,6 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
         setUserAuthState({ user: firebaseUser, isUserLoading: false, userError: null });
       },
       (error) => { // Auth listener error
-        console.error("FirebaseProvider: onAuthStateChanged error:", error);
         setUserAuthState({ user: null, isUserLoading: false, userError: error });
       }
     );
@@ -135,20 +134,20 @@ export const useFirebase = (): FirebaseServicesAndUser => {
 
 /** Hook to access Firebase Auth instance. */
 export const useAuth = (): Auth | null => {
-  const { auth } = useFirebase();
-  return auth;
+  const context = useContext(FirebaseContext);
+  return context?.auth || null;
 };
 
 /** Hook to access Firestore instance. */
 export const useFirestore = (): Firestore | null => {
-  const { firestore } = useFirebase();
-  return firestore;
+  const context = useContext(FirebaseContext);
+  return context?.firestore || null;
 };
 
 /** Hook to access Firebase App instance. */
 export const useFirebaseApp = (): FirebaseApp | null => {
-  const { firebaseApp } = useFirebase();
-  return firebaseApp;
+  const context = useContext(FirebaseContext);
+  return context?.firebaseApp || null;
 };
 
 type MemoFirebase <T> = T & {__memo?: boolean};
