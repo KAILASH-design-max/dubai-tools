@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useMemo } from 'react';
+import { useEffect, useState, useMemo, useCallback } from 'react';
 import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -8,7 +8,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Separator } from '@/components/ui/separator';
 import { Label } from '@/components/ui/label';
-import { Trash2, Plus, Loader2, User, Phone } from 'lucide-react';
+import { Trash2, Plus, Loader2, User, Phone, Zap } from 'lucide-react';
 import { InvoiceHeader } from './invoice-header';
 import { InvoiceActions } from './invoice-actions';
 import { useFirestore, useDoc, useCollection, useMemoFirebase, useCompanyProfile } from '@/firebase';
@@ -24,13 +24,14 @@ export function InvoiceForm({ userId }: { userId: string }) {
   const firestore = useFirestore();
   const { toast } = useToast();
   const [isSaving, setIsSaving] = useState(false);
+  const [printMode, setPrintMode] = useState<'a4' | 'receipt'>('a4');
   const invoiceId = 'main';
 
   const { data: companyProfile, isLoading: isCompanyProfileLoading } = useCompanyProfile(userId);
 
   const invoiceRef = useMemoFirebase(
     () => (firestore ? doc(firestore, `users/${userId}/invoices/${invoiceId}`) : null),
-    [firestore, userId, invoiceId]
+    [firestore, userId]
   );
   
   const lineItemsCollectionRef = useMemoFirebase(
@@ -47,7 +48,6 @@ export function InvoiceForm({ userId }: { userId: string }) {
   const { data: lineItems, isLoading: areLineItemsLoading } = useCollection<InvoiceLineItem>(lineItemsQuery);
 
   useEffect(() => {
-    // Ensuring dependency array size is stable and constant.
     if (!isInvoiceLoading && !invoice && !!invoiceRef) {
       const defaultInvoice: Omit<Invoice, 'id'> = {
         invoiceNumber: 'INV-001',
@@ -65,7 +65,7 @@ export function InvoiceForm({ userId }: { userId: string }) {
       };
       setDocumentNonBlocking(invoiceRef!, defaultInvoice, { merge: false });
     }
-  }, [isInvoiceLoading, invoice, invoiceRef, userId]);
+  }, [isInvoiceLoading, !!invoice, !!invoiceRef]);
   
   const handleAddLineItem = () => {
     if (!lineItemsCollectionRef) return;
@@ -88,10 +88,8 @@ export function InvoiceForm({ userId }: { userId: string }) {
   const handleUpdateLineItem = (id: string, field: keyof Omit<InvoiceLineItem, 'id' | 'invoiceId'>, value: string | number) => {
     if (!lineItemsCollectionRef) return;
     const lineItemRef = doc(lineItemsCollectionRef, id);
-    
     const isNumericField = field === 'rate' || field === 'tax' || field === 'sortIndex';
     const updatedValue = isNumericField ? (typeof value === 'string' ? parseFloat(value) || 0 : value) : value;
-
     updateDocumentNonBlocking(lineItemRef, { [field]: updatedValue });
   };
   
@@ -102,63 +100,41 @@ export function InvoiceForm({ userId }: { userId: string }) {
 
   const handleSaveInvoice = async () => {
     if (!firestore || !userId || !invoice || !lineItems || !invoiceRef || !lineItemsCollectionRef) {
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: "Invoice data not ready to be saved.",
-      });
+      toast({ variant: "destructive", title: "Error", description: "Invoice data not ready." });
       return;
     }
-
     if (!invoice.customerName) {
-        toast({
-            variant: "destructive",
-            title: "Customer Required",
-            description: "Please provide a customer name before saving.",
-        });
+        toast({ variant: "destructive", title: "Customer Required", description: "Please provide a customer name." });
         return;
     }
 
     setIsSaving(true);
     const invoicesCollection = collection(firestore, `users/${userId}/invoices`);
-    
-    const invoiceToSave = {
-        ...invoice,
-        status: 'Sent' as const,
-        updatedAt: new Date().toISOString(),
-    };
-    const { id: dummyId, ...invoiceDataToSave } = invoiceToSave;
+    const invoiceDataToSave = { ...invoice, status: 'Sent' as const, updatedAt: new Date().toISOString() };
+    const { id: dummyId, ...finalData } = invoiceDataToSave;
 
     try {
-        const newInvoiceDocRef = await addDoc(invoicesCollection, invoiceDataToSave);
-        
-        const newLineItemsCollection = collection(newInvoiceDocRef, 'lineItems');
-        const sortedItems = [...lineItems].sort((a, b) => a.sortIndex - b.sortIndex);
-        for (const item of sortedItems) {
-            const { id: itemId, ...lineItemData } = item;
-            await addDoc(newLineItemsCollection, lineItemData);
+        const newDoc = await addDoc(invoicesCollection, finalData);
+        const newLineItemsCol = collection(newDoc, 'lineItems');
+        for (const item of lineItems) {
+            const { id: itemId, ...itemData } = item;
+            await addDoc(newLineItemsCol, itemData);
         }
 
-        const currentInvoiceNumber = invoice.invoiceNumber;
-        const numberMatch = currentInvoiceNumber.match(/\d+$/);
-        let nextInvoiceNumber = currentInvoiceNumber;
-        
-        if (numberMatch) {
-            const numberPart = numberMatch[0];
-            const prefix = currentInvoiceNumber.substring(0, currentInvoiceNumber.length - numberPart.length);
-            const number = parseInt(numberPart, 10) + 1;
-            const nextNumberString = String(number).padStart(numberPart.length, '0');
-            nextInvoiceNumber = `${prefix}${nextNumberString}`;
+        const match = invoice.invoiceNumber.match(/\d+$/);
+        let nextNo = invoice.invoiceNumber;
+        if (match) {
+            const num = parseInt(match[0], 10) + 1;
+            nextNo = invoice.invoiceNumber.substring(0, invoice.invoiceNumber.length - match[0].length) + String(num).padStart(match[0].length, '0');
         } else {
-            nextInvoiceNumber = currentInvoiceNumber + "-1";
+            nextNo += "-1";
         }
 
         updateDocumentNonBlocking(invoiceRef, {
-            invoiceNumber: nextInvoiceNumber,
+            invoiceNumber: nextNo,
             invoiceDate: new Date().toISOString().split('T')[0],
             customerName: '',
             customerPhone: '',
-            customerId: 'temp-customer',
             subtotalAmount: 0,
             totalTaxAmount: 0,
             grandTotalAmount: 0,
@@ -169,22 +145,10 @@ export function InvoiceForm({ userId }: { userId: string }) {
             await deleteDoc(doc(lineItemsCollectionRef, item.id));
         }
 
-        toast({
-          title: "Invoice Saved",
-          description: `Invoice ${invoice.invoiceNumber} has been successfully recorded.`,
-        });
+        toast({ title: "Invoice Saved", description: `Invoice ${invoice.invoiceNumber} recorded.` });
     } catch (error: any) {
-        errorEmitter.emit('permission-error', new FirestorePermissionError({
-          path: invoicesCollection.path,
-          operation: 'create',
-          requestResourceData: invoiceDataToSave
-        }));
-        
-        toast({
-          variant: "destructive",
-          title: "Save Failed",
-          description: "There was an error saving your invoice.",
-        });
+        errorEmitter.emit('permission-error', new FirestorePermissionError({ path: invoicesCollection.path, operation: 'create', requestResourceData: finalData }));
+        toast({ variant: "destructive", title: "Save Failed", description: "Could not save invoice." });
     } finally {
         setIsSaving(false);
     }
@@ -192,22 +156,12 @@ export function InvoiceForm({ userId }: { userId: string }) {
 
   const totals = useMemo(() => {
     return (lineItems || []).reduce((acc, item) => {
-      const quantityAsString = String(item.quantity);
-      const quantityMatch = quantityAsString.match(/^[0-9.]+/);
-      const quantityAsNumber = quantityMatch ? parseFloat(quantityMatch[0]) : 1;
-      const quantity = isNaN(quantityAsNumber) ? 1 : quantityAsNumber;
-      
-      let amount = 0;
-      if (item.description === 'Labor cost') {
-          amount = item.rate;
-      } else {
-          amount = quantity * item.rate;
-      }
-      
-      const taxAmount = amount * (item.tax / 100);
+      const qty = parseFloat(String(item.quantity).match(/^[0-9.]+/)?.[0] || '1') || 1;
+      const amount = item.description === 'Labor cost' ? item.rate : qty * item.rate;
+      const tax = amount * (item.tax / 100);
       acc.subtotal += amount;
-      acc.taxTotal += taxAmount;
-      acc.grandTotal += amount + taxAmount;
+      acc.taxTotal += tax;
+      acc.grandTotal += amount + tax;
       return acc;
     }, { subtotal: 0, taxTotal: 0, grandTotal: 0 });
   }, [lineItems]);
@@ -215,273 +169,204 @@ export function InvoiceForm({ userId }: { userId: string }) {
   const { subtotal, taxTotal, grandTotal } = totals;
 
   useEffect(() => {
-    const hasChanged = invoiceRef && invoice && (
-      Math.abs(invoice.subtotalAmount - subtotal) > 0.01 ||
-      Math.abs(invoice.totalTaxAmount - taxTotal) > 0.01 ||
-      Math.abs(invoice.grandTotalAmount - grandTotal) > 0.01
-    );
-
+    if (!invoiceRef || !invoice) return;
+    const hasChanged = Math.abs(invoice.subtotalAmount - subtotal) > 0.01 || Math.abs(invoice.totalTaxAmount - taxTotal) > 0.01 || Math.abs(invoice.grandTotalAmount - grandTotal) > 0.01;
     if (hasChanged) {
-      updateDocumentNonBlocking(invoiceRef!, {
-        subtotalAmount: subtotal,
-        totalTaxAmount: taxTotal,
-        grandTotalAmount: grandTotal,
-        updatedAt: new Date().toISOString()
-      });
+      updateDocumentNonBlocking(invoiceRef, { subtotalAmount: subtotal, totalTaxAmount: taxTotal, grandTotalAmount: grandTotal, updatedAt: new Date().toISOString() });
     }
-  }, [subtotal, taxTotal, grandTotal, invoice, invoiceRef]);
+  }, [subtotal, taxTotal, grandTotal, !!invoice, !!invoiceRef]);
   
-  const formatCurrency = (amount: number) => new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(amount).replace('₹', 'Rs ');
+  const formatCurrency = (amount: number) => new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR' }).format(amount).replace('₹', 'Rs ');
+
+  const handlePrintA4 = () => {
+    setPrintMode('a4');
+    setTimeout(() => window.print(), 100);
+  };
+
+  const handlePrintReceipt = () => {
+    setPrintMode('receipt');
+    setTimeout(() => window.print(), 100);
+  };
 
   if (isInvoiceLoading || areLineItemsLoading || isCompanyProfileLoading) {
     return (
       <Card className="max-w-4xl mx-auto">
-        <CardContent className="p-2 sm:p-4 md:p-6 space-y-8">
-           <Skeleton className="h-32 w-full" />
-           <Skeleton className="h-64 w-full" />
-           <Skeleton className="h-32 w-full" />
-        </CardContent>
+        <CardContent className="p-6 space-y-8"><Skeleton className="h-32 w-full" /><Skeleton className="h-64 w-full" /></CardContent>
       </Card>
     );
   }
 
+  const activeProfile = companyProfile || { name: 'DUBAI TOOLS', addressLine1: 'Shivdhara', phoneNumbers: ['9268863031', '7280944150'], email: 'dubaitools2026@gmail.com', gstRegistrationNumber: 'Qw1234766666s' };
+
   return (
     <>
       <style>{`
-        @page {
-          size: A4;
-          margin: 5mm;
-        }
-
-        input[type="date"]::-webkit-calendar-picker-indicator {
-            display: none !important;
-            -webkit-appearance: none;
-            margin: 0;
-        }
-        input[type="date"].hide-calendar-icon {
-            padding-right: 0.75rem !important;
+        @page { size: A4; margin: 5mm; }
+        input[type="date"]::-webkit-calendar-picker-indicator { display: none !important; }
+        
+        @media screen {
+          .receipt-view { display: none; }
         }
 
         @media print {
-          body {
-            -webkit-print-color-adjust: exact;
-            print-color-adjust: exact;
-            font-size: 8pt;
-            background: white !important;
-          }
+          body { -webkit-print-color-adjust: exact; print-color-adjust: exact; background: white !important; }
           body * { visibility: hidden; }
-          .invoice-print-area, .invoice-print-area * { visibility: visible; }
-          .invoice-print-area { 
-            position: absolute; 
-            left: 0; 
-            top: 0; 
-            width: 100%;
-            height: auto;
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-            border: none !important;
-            box-shadow: none !important;
-            background: white !important;
-           }
           
-          thead {
-            display: table-header-group !important;
+          /* A4 Mode */
+          .print-a4 .invoice-a4-area, .print-a4 .invoice-a4-area * { visibility: visible; }
+          .print-a4 .invoice-a4-area { 
+            position: absolute; left: 0; top: 0; width: 100%; border: none !important; box-shadow: none !important; padding: 0 !important; font-size: 8pt; 
           }
+          .print-a4 .receipt-view { display: none !important; }
           
-          thead tr th {
-            height: auto !important;
-            font-weight: bold;
-            padding: 1px 2px !important;
-            border-bottom: 1px solid #ddd !important;
-            font-size: 8pt !important;
+          /* Receipt Mode */
+          .print-receipt .receipt-view, .print-receipt .receipt-view * { visibility: visible; }
+          .print-receipt .receipt-view {
+            position: absolute; left: 0; top: 0; width: 80mm; padding: 2mm; font-family: monospace; font-size: 9pt; display: block !important;
           }
+          .print-receipt .invoice-a4-area { display: none !important; }
 
-          tr {
-            page-break-inside: avoid;
-          }
-
-          .print-no-border, .print-no-border:focus, .print-no-border:hover {
-            border: none !important;
-            background: transparent !important;
-            box-shadow: none !important;
-            padding: 0 !important;
-            -webkit-appearance: none;
-            -moz-appearance: none;
-            appearance: none;
-            color: inherit !important;
-          }
-          
-          input.print-no-border {
-            padding: 0 !important;
-            height: auto !important;
-            font-size: 8pt !important;
-          }
-
-          .invoice-totals-area {
-            page-break-inside: avoid;
-            margin-top: 1mm;
-          }
-
-          .signature-area {
-            page-break-inside: avoid;
-            margin-top: 2mm;
-          }
-
-          .invoice-table td {
-             padding: 1px 2px !important;
-             font-size: 7.5pt !important;
-             border-bottom: 0.5px solid #eee !important;
-          }
-
-          .invoice-table th {
-             font-size: 8pt !important;
-          }
-          
-          .print-m-0 { margin: 0 !important; }
-          .print-p-0 { padding: 0 !important; }
-
-          .invoice-header-info { margin-bottom: 1mm !important; }
+          .print-no-border { border: none !important; background: transparent !important; box-shadow: none !important; padding: 0 !important; font-size: inherit !important; height: auto !important; }
+          .invoice-table td, .invoice-table th { padding: 1px 2px !important; border-bottom: 0.5px solid #eee !important; font-size: 7.5pt !important; }
+          .signature-area { page-break-inside: avoid; margin-top: 2mm; }
         }
       `}</style>
-      <Card className="max-w-4xl mx-auto invoice-print-area p-2 sm:p-4 md:p-6">
-        <CardContent className="p-0">
-          <div className="flex flex-col-reverse sm:flex-row justify-between items-start gap-4 mb-4 print:mb-1 invoice-header-info">
-            <InvoiceHeader 
-              companyProfile={companyProfile}
-              invoiceNumber={invoice?.invoiceNumber || ''}
-              onInvoiceNumberChange={(val) => handleUpdateInvoice('invoiceNumber', val)}
-              invoiceDate={invoice?.invoiceDate || ''}
-              onInvoiceDateChange={(val) => handleUpdateInvoice('invoiceDate', val)}
-            />
-            <div className="flex items-center gap-2">
-                {isSaving && <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />}
-                <InvoiceActions onSave={handleSaveInvoice} />
+
+      <div className={printMode === 'a4' ? 'print-a4' : 'print-receipt'}>
+        <Card className="max-w-4xl mx-auto invoice-a4-area p-2 sm:p-4 md:p-6 mb-8">
+          <CardContent className="p-0">
+            <div className="flex flex-col-reverse sm:flex-row justify-between items-start gap-4 mb-4 print:mb-1">
+              <InvoiceHeader 
+                companyProfile={companyProfile}
+                invoiceNumber={invoice?.invoiceNumber || ''}
+                onInvoiceNumberChange={(val) => handleUpdateInvoice('invoiceNumber', val)}
+                invoiceDate={invoice?.invoiceDate || ''}
+                onInvoiceDateChange={(val) => handleUpdateInvoice('invoiceDate', val)}
+              />
+              <InvoiceActions onSave={handleSaveInvoice} onPrintA4={handlePrintA4} onPrintReceipt={handlePrintReceipt} isSaving={isSaving} />
             </div>
-          </div>
 
-          <Separator className="my-4 print:my-0.5" />
+            <Separator className="my-4 print:my-1" />
 
-          <div className="grid md:grid-cols-2 gap-8 mb-4 print:mb-1">
-            <div className="space-y-1">
-              <Label className="font-headline text-sm print:text-[8pt]">Bill To</Label>
-              <div className="border rounded-md p-3 space-y-2 bg-muted/5 print:p-0 print:border-none print:bg-transparent">
-                <div className="space-y-1">
-                  <div className="flex items-center gap-2 group">
+            <div className="grid md:grid-cols-2 gap-8 mb-4 print:mb-1">
+              <div className="space-y-1">
+                <Label className="font-headline text-sm print:text-[8pt]">Bill To</Label>
+                <div className="border rounded-md p-3 space-y-2 bg-muted/5 print:p-0 print:border-none print:bg-transparent">
+                  <div className="flex items-center gap-2">
                     <User className="h-4 w-4 text-primary shrink-0 opacity-70" />
-                    <Input 
-                        id="customerName" 
-                        value={invoice?.customerName || ''} 
-                        onChange={(e) => handleUpdateInvoice('customerName', e.target.value)} 
-                        placeholder="Customer Name" 
-                        className="print-no-border font-medium text-lg print:text-[9pt] h-auto p-0 border-none focus-visible:ring-0 shadow-none bg-transparent" 
-                    />
+                    <Input value={invoice?.customerName || ''} onChange={(e) => handleUpdateInvoice('customerName', e.target.value)} placeholder="Customer Name" className="print-no-border font-medium text-lg print:text-[9pt] h-auto p-0 border-none focus-visible:ring-0 shadow-none bg-transparent" />
                   </div>
-                  <div className="flex items-center gap-2 group">
+                  <div className="flex items-center gap-2">
                     <Phone className="h-4 w-4 text-primary shrink-0 opacity-70" />
-                    <Input 
-                        id="customerPhone" 
-                        value={invoice?.customerPhone || ''} 
-                        onChange={(e) => handleUpdateInvoice('customerPhone', e.target.value)} 
-                        placeholder="Customer Phone" 
-                        className="print-no-border text-sm print:text-[8pt] h-auto p-0 border-none focus-visible:ring-0 shadow-none bg-transparent" 
-                    />
+                    <Input value={invoice?.customerPhone || ''} onChange={(e) => handleUpdateInvoice('customerPhone', e.target.value)} placeholder="Customer Phone" className="print-no-border text-sm print:text-[8pt] h-auto p-0 border-none focus-visible:ring-0 shadow-none bg-transparent" />
                   </div>
                 </div>
               </div>
             </div>
-          </div>
-          
-          <div className="overflow-x-auto">
-            <Table className="invoice-table">
-              <TableHeader className="print:table-header-group">
-                <TableRow>
-                  <TableHead className="w-[60px] print:w-[25px]">Item</TableHead>
-                  <TableHead className="w-[40%]">Description</TableHead>
-                  <TableHead className="text-right">Qty</TableHead>
-                  <TableHead className="text-right">Rate (Rs)</TableHead>
-                  <TableHead className="text-right hidden md:table-cell print:table-cell">Amount (Rs)</TableHead>
-                  <TableHead className="text-right">Tax (%)</TableHead>
-                  <TableHead className="text-right">Total (Rs)</TableHead>
-                  <TableHead className="print:hidden"></TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {lineItems && lineItems.map((item, index) => {
-                  const quantityAsString = String(item.quantity);
-                  const quantityMatch = quantityAsString.match(/^[0-9.]+/);
-                  const quantityAsNumber = quantityMatch ? parseFloat(quantityMatch[0]) : 1;
-                  const quantity = isNaN(quantityAsNumber) ? 1 : quantityAsNumber;
+            
+            <div className="overflow-x-auto">
+              <Table className="invoice-table">
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="w-[40px] print:w-[20px]">#</TableHead>
+                    <TableHead className="w-[40%]">Description</TableHead>
+                    <TableHead className="text-right">Qty</TableHead>
+                    <TableHead className="text-right">Rate</TableHead>
+                    <TableHead className="text-right">Tax%</TableHead>
+                    <TableHead className="text-right">Total</TableHead>
+                    <TableHead className="print:hidden"></TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {lineItems?.map((item, index) => {
+                    const qty = parseFloat(String(item.quantity).match(/^[0-9.]+/)?.[0] || '1') || 1;
+                    const amount = item.description === 'Labor cost' ? item.rate : qty * item.rate;
+                    const total = amount * (1 + item.tax / 100);
+                    return (
+                      <TableRow key={item.id}>
+                        <TableCell className="text-muted-foreground text-xs">{index + 1}</TableCell>
+                        <TableCell><Input value={item.description} onChange={(e) => handleUpdateLineItem(item.id, 'description', e.target.value)} className="w-full print-no-border" /></TableCell>
+                        <TableCell><Input value={item.quantity} onChange={(e) => handleUpdateLineItem(item.id, 'quantity', e.target.value)} className="w-12 text-right print-no-border" /></TableCell>
+                        <TableCell><Input type="number" value={item.rate} onChange={(e) => handleUpdateLineItem(item.id, 'rate', e.target.value)} className="w-20 text-right print-no-border" /></TableCell>
+                        <TableCell><Input type="number" value={item.tax} onChange={(e) => handleUpdateLineItem(item.id, 'tax', e.target.value)} className="w-12 text-right print-no-border" /></TableCell>
+                        <TableCell className="text-right font-medium">{total.toFixed(2)}</TableCell>
+                        <TableCell className="print:hidden"><Button variant="ghost" size="icon" onClick={() => handleRemoveLineItem(item.id)}><Trash2 className="h-4 w-4" /></Button></TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
+            </div>
 
-                  let amount = 0;
-                  if (item.description === 'Labor cost') {
-                      amount = item.rate;
-                  } else {
-                      amount = quantity * item.rate;
-                  }
-                  
-                  const total = amount * (1 + item.tax / 100);
-                  return (
-                    <TableRow key={item.id}>
-                      <TableCell className="text-muted-foreground font-medium text-xs print:text-[7pt]">{index + 1}</TableCell>
-                      <TableCell><Input value={item.description} onChange={(e) => handleUpdateLineItem(item.id, 'description', e.target.value)} className="w-full print-no-border" /></TableCell>
-                      <TableCell><Input value={item.quantity} onChange={(e) => handleUpdateLineItem(item.id, 'quantity', e.target.value)} className="w-12 sm:w-20 text-right print-no-border" /></TableCell>
-                      <TableCell><Input type="number" value={item.rate} onChange={(e) => handleUpdateLineItem(item.id, 'rate', e.target.value)} className="w-20 sm:w-28 text-right print-no-border" /></TableCell>
-                      <TableCell className="text-right hidden md:table-cell print:table-cell">{formatCurrency(amount).replace('Rs ', '')}</TableCell>
-                      <TableCell><Input type="number" value={item.tax} onChange={(e) => handleUpdateLineItem(item.id, 'tax', e.target.value)} className="w-16 sm:w-20 text-right print-no-border" /></TableCell>
-                      <TableCell className="text-right font-medium">{formatCurrency(total).replace('Rs ', '')}</TableCell>
-                      <TableCell className="print:hidden"><Button variant="ghost" size="icon" onClick={() => handleRemoveLineItem(item.id)}><Trash2 className="h-4 w-4 text-muted-foreground" /></Button></TableCell>
-                    </TableRow>
-                  );
-                })}
-              </TableBody>
-            </Table>
-          </div>
+            <Button onClick={handleAddLineItem} variant="outline" className="mt-2 print:hidden"><Plus className="mr-2 h-4 w-4" /> Add Item</Button>
 
-          <Button onClick={handleAddLineItem} variant="outline" className="mt-2 print:hidden">
-            <Plus className="mr-2 h-4 w-4" /> Add Item
-          </Button>
-
-          <div className="invoice-totals-area flex justify-end">
-            <div className="w-full md:w-1/2 lg:w-1/3 space-y-0.5 print:space-y-0 text-sm print:text-[8pt]">
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Subtotal:</span>
-                <span className="font-medium">{formatCurrency(subtotal)}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Tax:</span>
-                <span className="font-medium">{formatCurrency(taxTotal)}</span>
-              </div>
-              <Separator className="print:my-0.1" />
-              <div className="flex justify-between font-bold text-lg print:text-[9pt] font-headline">
-                <span>Grand Total:</span>
-                <span>{formatCurrency(grandTotal)}</span>
+            <div className="flex justify-end mt-2">
+              <div className="w-full md:w-1/3 space-y-1 text-sm print:text-[8pt]">
+                <div className="flex justify-between"><span>Subtotal:</span><span>{formatCurrency(subtotal)}</span></div>
+                <div className="flex justify-between"><span>Tax:</span><span>{formatCurrency(taxTotal)}</span></div>
+                <Separator />
+                <div className="flex justify-between font-bold text-lg print:text-[9pt] font-headline"><span>Total:</span><span>{formatCurrency(grandTotal)}</span></div>
               </div>
             </div>
-          </div>
-          
-          <div className="signature-area mt-4 print:mt-1">
-            <div className="relative h-12 w-24 print:h-8 print:w-20">
-              <Image
-                src="/signature.jpeg"
-                alt="Authorized Signature"
-                width={160}
-                height={80}
-                className="object-contain"
-              />
+            
+            <div className="signature-area flex flex-col items-start gap-1">
+              <div className="relative h-12 w-24">
+                <Image src="/signature.jpeg" alt="Signature" width={100} height={50} className="object-contain" />
+              </div>
+              <div className="w-40 border-t border-dashed pt-1">
+                <Input value={invoice?.authorizedSignatureName || ''} onChange={(e) => handleUpdateInvoice('authorizedSignatureName', e.target.value)} placeholder="Authorized Name" className="print-no-border h-auto p-0 font-bold text-sm" />
+                <p className="text-[10px] text-muted-foreground">Authorized Signature</p>
+              </div>
             </div>
-            <div className="w-40 print:w-24 border-t border-dashed pt-0.5">
-              <Input 
-                value={invoice?.authorizedSignatureName || ''} 
-                onChange={(e) => handleUpdateInvoice('authorizedSignatureName', e.target.value)}
-                placeholder="Name"
-                className="print-no-border h-auto p-0 border-none focus-visible:ring-0 shadow-none bg-transparent font-headline text-sm print:text-[7pt] font-bold"
-              />
-              <p className="text-[10px] print:text-[6pt] text-muted-foreground opacity-70">Authorized Signature</p>
+          </CardContent>
+        </Card>
+
+        {/* 80mm Thermal Receipt View */}
+        <div className="receipt-view hidden">
+          <div className="text-center space-y-1 mb-2">
+            <div className="flex justify-center mb-1"><Zap className="h-6 w-6 text-primary" /></div>
+            <h2 className="font-bold text-lg">{activeProfile.name}</h2>
+            <p className="text-[8pt]">{activeProfile.addressLine1}</p>
+            <p className="text-[8pt]">Ph: {activeProfile.phoneNumbers.join(', ')}</p>
+            <p className="text-[8pt]">GST: {activeProfile.gstRegistrationNumber}</p>
+          </div>
+          <Separator className="border-dashed my-2" />
+          <div className="text-[8pt] space-y-1 mb-2">
+            <div className="flex justify-between"><span>Invoice: {invoice?.invoiceNumber}</span><span>{invoice?.invoiceDate}</span></div>
+            <div className="font-bold">Bill To: {invoice?.customerName}</div>
+            {invoice?.customerPhone && <div>Ph: {invoice?.customerPhone}</div>}
+          </div>
+          <Separator className="border-dashed my-2" />
+          <table className="w-full text-[8pt]">
+            <thead>
+              <tr className="border-b border-dashed">
+                <th className="text-left py-1">Item</th>
+                <th className="text-right py-1">Qty</th>
+                <th className="text-right py-1">Total</th>
+              </tr>
+            </thead>
+            <tbody>
+              {lineItems?.map(item => {
+                const qty = parseFloat(String(item.quantity).match(/^[0-9.]+/)?.[0] || '1') || 1;
+                const total = (item.description === 'Labor cost' ? item.rate : qty * item.rate) * (1 + item.tax / 100);
+                return (
+                  <tr key={item.id} className="border-b border-dashed border-gray-100">
+                    <td className="py-1">{item.description}</td>
+                    <td className="text-right py-1">{item.quantity}</td>
+                    <td className="text-right py-1">{total.toFixed(2)}</td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+          <div className="mt-2 space-y-1 text-[9pt]">
+            <div className="flex justify-between font-bold border-t border-dashed pt-2">
+              <span>GRAND TOTAL:</span><span>{formatCurrency(grandTotal)}</span>
             </div>
           </div>
-        </CardContent>
-      </Card>
+          <div className="mt-4 text-center text-[7pt] italic">Thank you for your business!</div>
+        </div>
+      </div>
     </>
   );
 }

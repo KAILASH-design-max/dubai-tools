@@ -18,7 +18,6 @@ export function InvoiceHeader({
     invoiceDate, onInvoiceDateChange,
     companyProfile
 }: InvoiceHeaderProps) {
-  // Use provided business defaults as fallback
   const displayProfile = companyProfile || {
     name: 'DUBAI TOOLS',
     addressLine1: 'Shivdhara',

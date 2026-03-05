@@ -1,29 +1,29 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
-import { useToast } from "@/hooks/use-toast";
-import { Printer, Save } from "lucide-react";
+import { Printer, Save, Receipt } from "lucide-react";
 
-export const InvoiceActions = ({ onSave }: { onSave: () => void; }) => {
-  const { toast } = useToast();
+interface InvoiceActionsProps {
+  onSave: () => void;
+  onPrintA4: () => void;
+  onPrintReceipt: () => void;
+  isSaving?: boolean;
+}
 
-  const handlePrint = () => {
-    if (typeof window !== 'undefined') {
-      window.print();
-    } else {
-      toast({ title: "Print", description: "Printing is only available in a browser environment." });
-    }
-  };
-
+export const InvoiceActions = ({ onSave, onPrintA4, onPrintReceipt, isSaving }: InvoiceActionsProps) => {
   return (
     <div className="flex flex-wrap items-center justify-end gap-2 print:hidden">
-      <Button variant="outline" size="sm" onClick={handlePrint}>
-        <Printer />
-        <span className="ml-2 hidden md:inline">Print</span>
+      <Button variant="outline" size="sm" onClick={onPrintA4}>
+        <Printer className="mr-2 h-4 w-4" />
+        <span className="hidden md:inline">Print A4</span>
       </Button>
-      <Button size="sm" onClick={onSave}>
-        <Save />
-        <span className="ml-2 hidden md:inline">Save Invoice</span>
+      <Button variant="outline" size="sm" onClick={onPrintReceipt}>
+        <Receipt className="mr-2 h-4 w-4" />
+        <span className="hidden md:inline">Receipt (80mm)</span>
+      </Button>
+      <Button size="sm" onClick={onSave} disabled={isSaving}>
+        <Save className="mr-2 h-4 w-4" />
+        <span className="hidden md:inline">Save Invoice</span>
       </Button>
     </div>
   );
