@@ -3,36 +3,25 @@
 import { useEffect, useState, useMemo } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useUser, useCollection, useFirestore, useMemoFirebase, deleteDocumentNonBlocking, updateDocumentNonBlocking } from '@/firebase';
+import { useUser, useCollection, useFirestore, useMemoFirebase, deleteDocumentNonBlocking } from '@/firebase';
 import { collection, query, where, doc } from 'firebase/firestore';
 import { Invoice, InvoiceLineItem } from '@/lib/types';
 import { Logo } from '@/components/logo';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, Search, Trash2, FileText, IndianRupee, Clock, CheckCircle2, Download, MoreHorizontal, TrendingUp, Check, XCircle, Send, Eye, Printer, Receipt, Zap } from 'lucide-react';
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
+import { ArrowLeft, Search, Trash2, MoreHorizontal, Download, Printer, Receipt, Zap } from 'lucide-react';
+import { Card, CardHeader, CardContent } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Input } from '@/components/ui/input';
-import { format, parseISO } from 'date-fns';
+import { format } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
+import { Separator } from '@/components/ui/separator';
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
@@ -44,8 +33,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { ChartConfig, ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
-import { Bar, BarChart, CartesianGrid, XAxis } from "recharts";
 
 function InvoiceDetailModal({ invoice, userId, isOpen, onOpenChange }: { invoice: Invoice | null, userId: string, isOpen: boolean, onOpenChange: (open: boolean) => void }) {
   const firestore = useFirestore();
@@ -161,6 +148,7 @@ function InvoiceDetailModal({ invoice, userId, isOpen, onOpenChange }: { invoice
           <div className="text-[8pt] space-y-1 mb-2">
             <div className="flex justify-between"><span>Inv: {invoice.invoiceNumber}</span><span>{invoice.invoiceDate}</span></div>
             <div className="font-bold">Bill To: {invoice.customerName}</div>
+            {invoice.customerPhone && <div>Ph: {invoice.customerPhone}</div>}
           </div>
           <Separator className="border-dashed my-2" />
           <table className="w-full text-[8pt]">
@@ -178,9 +166,18 @@ function InvoiceDetailModal({ invoice, userId, isOpen, onOpenChange }: { invoice
               })}
             </tbody>
           </table>
-          <div className="mt-2 text-[9pt] font-bold flex justify-between pt-2 border-t border-dashed">
-            <span>TOTAL:</span><span>{formatCurrency(invoice.grandTotalAmount)}</span>
+          <div className="mt-2 space-y-1 text-[8pt]">
+            <div className="flex justify-between border-t border-dashed pt-2">
+              <span>Subtotal:</span><span>{formatCurrency(invoice.subtotalAmount)}</span>
+            </div>
+            <div className="flex justify-between">
+              <span>Tax:</span><span>{formatCurrency(invoice.totalTaxAmount)}</span>
+            </div>
+            <div className="flex justify-between font-bold text-[9pt] pt-1">
+              <span>GRAND TOTAL:</span><span>{formatCurrency(invoice.grandTotalAmount)}</span>
+            </div>
           </div>
+          <div className="mt-4 text-center text-[7pt] italic">Thank you for your business!</div>
         </div>
 
         <DialogFooter className="flex flex-col sm:flex-row gap-2 print:hidden">
@@ -285,6 +282,7 @@ export default function InvoicesPage() {
                             <DropdownMenuContent align="end">
                               <DropdownMenuItem onClick={() => setViewInvoice(invoice)}><Eye className="mr-2 h-4 w-4" />View</DropdownMenuItem>
                               <DropdownMenuItem onClick={() => { setViewInvoice(invoice); setTimeout(() => window.print(), 200); }}><Printer className="mr-2 h-4 w-4" />Print A4</DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => { setViewInvoice(invoice); setTimeout(() => window.print(), 200); }}><Receipt className="mr-2 h-4 w-4" />Print Receipt</DropdownMenuItem>
                               <DropdownMenuSeparator />
                               <DropdownMenuItem className="text-destructive" onClick={() => deleteDocumentNonBlocking(doc(firestore!, `users/${user!.uid}/invoices/${invoice.id}`))}><Trash2 className="mr-2 h-4 w-4" />Delete</DropdownMenuItem>
                             </DropdownMenuContent>

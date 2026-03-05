@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useMemo, useCallback } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -8,7 +8,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Separator } from '@/components/ui/separator';
 import { Label } from '@/components/ui/label';
-import { Trash2, Plus, Loader2, User, Phone, Zap } from 'lucide-react';
+import { Trash2, Plus, User, Phone, Zap } from 'lucide-react';
 import { InvoiceHeader } from './invoice-header';
 import { InvoiceActions } from './invoice-actions';
 import { useFirestore, useDoc, useCollection, useMemoFirebase, useCompanyProfile } from '@/firebase';
@@ -359,8 +359,14 @@ export function InvoiceForm({ userId }: { userId: string }) {
               })}
             </tbody>
           </table>
-          <div className="mt-2 space-y-1 text-[9pt]">
-            <div className="flex justify-between font-bold border-t border-dashed pt-2">
+          <div className="mt-2 space-y-1 text-[8pt]">
+            <div className="flex justify-between border-t border-dashed pt-2">
+              <span>Subtotal:</span><span>{formatCurrency(subtotal)}</span>
+            </div>
+            <div className="flex justify-between">
+              <span>Tax:</span><span>{formatCurrency(taxTotal)}</span>
+            </div>
+            <div className="flex justify-between font-bold text-[9pt] pt-1">
               <span>GRAND TOTAL:</span><span>{formatCurrency(grandTotal)}</span>
             </div>
           </div>
