@@ -197,7 +197,7 @@ function InvoiceDetailModal({ invoice, userId, isOpen, onOpenChange }: { invoice
               <span>GRAND TOTAL:</span><span>{formatCurrency(invoice.grandTotalAmount)}</span>
             </div>
           </div>
-          <div className="mt-4 text-center text-[7pt] italic">Thank you for your business!</div>
+          <div className="mt-4 text-center text-[7pt] italic">Thank you for Shopping!</div>
         </div>
 
         <DialogFooter className="flex flex-col sm:flex-row gap-2 print:hidden">

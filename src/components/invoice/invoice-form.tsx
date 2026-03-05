@@ -370,7 +370,7 @@ export function InvoiceForm({ userId }: { userId: string }) {
               <span>GRAND TOTAL:</span><span>{formatCurrency(grandTotal)}</span>
             </div>
           </div>
-          <div className="mt-4 text-center text-[7pt] italic">Thank you for your business!</div>
+          <div className="mt-4 text-center text-[7pt] italic">Thank you for Shopping!</div>
         </div>
       </div>
     </>
