@@ -174,7 +174,7 @@ export function InvoiceForm({ userId }: { userId: string }) {
     if (hasChanged) {
       updateDocumentNonBlocking(invoiceRef, { subtotalAmount: subtotal, totalTaxAmount: taxTotal, grandTotalAmount: grandTotal, updatedAt: new Date().toISOString() });
     }
-  }, [subtotal, taxTotal, grandTotal, !!invoice, !!invoiceRef]);
+  }, [subtotal, taxTotal, grandTotal, invoice, invoiceRef]);
   
   const formatCurrency = (amount: number) => new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR' }).format(amount).replace('₹', 'Rs ');
 
@@ -268,7 +268,7 @@ export function InvoiceForm({ userId }: { userId: string }) {
               <Table className="invoice-table">
                 <TableHeader>
                   <TableRow>
-                    <TableHead className="w-[40px] print:w-[20px]">#</TableHead>
+                    <TableHead className="w-[40px] print:w-[30px]">Item</TableHead>
                     <TableHead className="w-[40%]">Description</TableHead>
                     <TableHead className="text-right">Qty</TableHead>
                     <TableHead className="text-right">Rate</TableHead>
