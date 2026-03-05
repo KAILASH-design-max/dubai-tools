@@ -325,14 +325,14 @@ export function InvoiceForm({ userId }: { userId: string }) {
         <div className="receipt-view hidden">
           <div className="text-center space-y-1 mb-2">
             <div className="flex justify-center mb-1"><Zap className="h-6 w-6 text-primary" /></div>
-            <h2 className="font-bold text-lg">{activeProfile.name}</h2>
+            <h2 className="font-bold text-lg uppercase">{activeProfile.name}</h2>
             <p className="text-[8pt]">{activeProfile.addressLine1}</p>
             <p className="text-[8pt]">Ph: {activeProfile.phoneNumbers.join(', ')}</p>
-            <p className="text-[8pt]">GST: {activeProfile.gstRegistrationNumber}</p>
+            {activeProfile.gstRegistrationNumber && <p className="text-[8pt]">GST: {activeProfile.gstRegistrationNumber}</p>}
           </div>
           <Separator className="border-dashed my-2" />
           <div className="text-[8pt] space-y-1 mb-2">
-            <div className="flex justify-between"><span>Invoice: {invoice?.invoiceNumber}</span><span>{invoice?.invoiceDate}</span></div>
+            <div className="flex justify-between"><span>Inv: {invoice?.invoiceNumber}</span><span>{invoice?.invoiceDate}</span></div>
             <div className="font-bold">Bill To: {invoice?.customerName}</div>
             {invoice?.customerPhone && <div>Ph: {invoice?.customerPhone}</div>}
           </div>
@@ -340,18 +340,18 @@ export function InvoiceForm({ userId }: { userId: string }) {
           <table className="w-full text-[8pt]">
             <thead>
               <tr className="border-b border-dashed">
-                <th className="text-left py-1">Item</th>
+                <th className="text-left py-1"># Item</th>
                 <th className="text-right py-1">Qty</th>
                 <th className="text-right py-1">Total</th>
               </tr>
             </thead>
             <tbody>
-              {lineItems?.map(item => {
+              {lineItems?.map((item, idx) => {
                 const qty = parseFloat(String(item.quantity).match(/^[0-9.]+/)?.[0] || '1') || 1;
                 const total = (item.description === 'Labor cost' ? item.rate : qty * item.rate) * (1 + item.tax / 100);
                 return (
-                  <tr key={item.id} className="border-b border-dashed border-gray-100">
-                    <td className="py-1">{item.description}</td>
+                  <tr key={item.id} className="border-b border-dashed border-gray-50">
+                    <td className="py-1">{idx + 1}. {item.description}</td>
                     <td className="text-right py-1">{item.quantity}</td>
                     <td className="text-right py-1">{total.toFixed(2)}</td>
                   </tr>

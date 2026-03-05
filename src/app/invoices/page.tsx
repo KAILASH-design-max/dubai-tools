@@ -3,12 +3,12 @@
 import { useEffect, useState, useMemo } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useUser, useCollection, useFirestore, useMemoFirebase, deleteDocumentNonBlocking } from '@/firebase';
+import { useUser, useCollection, useFirestore, useMemoFirebase, deleteDocumentNonBlocking, useCompanyProfile } from '@/firebase';
 import { collection, query, where, doc } from 'firebase/firestore';
 import { Invoice, InvoiceLineItem } from '@/lib/types';
 import { Logo } from '@/components/logo';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, Search, Trash2, MoreHorizontal, Download, Printer, Receipt, Zap } from 'lucide-react';
+import { ArrowLeft, Search, Trash2, MoreHorizontal, Printer, Receipt, Zap, Eye, Download } from 'lucide-react';
 import { Card, CardHeader, CardContent } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
@@ -37,6 +37,8 @@ import {
 function InvoiceDetailModal({ invoice, userId, isOpen, onOpenChange }: { invoice: Invoice | null, userId: string, isOpen: boolean, onOpenChange: (open: boolean) => void }) {
   const firestore = useFirestore();
   const [printMode, setPrintMode] = useState<'a4' | 'receipt'>('a4');
+  const { data: companyProfile } = useCompanyProfile(userId);
+
   const lineItemsRef = useMemoFirebase(
     () => (firestore && userId && invoice ? collection(firestore, `users/${userId}/invoices/${invoice.id}/lineItems`) : null),
     [firestore, userId, invoice?.id]
@@ -53,6 +55,14 @@ function InvoiceDetailModal({ invoice, userId, isOpen, onOpenChange }: { invoice
   const handlePrint = (mode: 'a4' | 'receipt') => {
     setPrintMode(mode);
     setTimeout(() => window.print(), 100);
+  };
+
+  const activeProfile = companyProfile || { 
+    name: 'DUBAI TOOLS', 
+    addressLine1: 'Shivdhara', 
+    phoneNumbers: ['9268863031', '7280944150'], 
+    email: 'dubaitools2026@gmail.com', 
+    gstRegistrationNumber: 'Qw1234766666s' 
   };
 
   return (
@@ -142,7 +152,10 @@ function InvoiceDetailModal({ invoice, userId, isOpen, onOpenChange }: { invoice
         <div className="receipt-view-modal hidden">
           <div className="text-center space-y-1 mb-2">
             <div className="flex justify-center mb-1"><Zap className="h-6 w-6 text-primary" /></div>
-            <h2 className="font-bold text-lg">DUBAI TOOLS</h2>
+            <h2 className="font-bold text-lg uppercase">{activeProfile.name}</h2>
+            <p className="text-[8pt]">{activeProfile.addressLine1}</p>
+            <p className="text-[8pt]">Ph: {activeProfile.phoneNumbers.join(', ')}</p>
+            {activeProfile.gstRegistrationNumber && <p className="text-[8pt]">GST: {activeProfile.gstRegistrationNumber}</p>}
           </div>
           <Separator className="border-dashed my-2" />
           <div className="text-[8pt] space-y-1 mb-2">
@@ -152,13 +165,20 @@ function InvoiceDetailModal({ invoice, userId, isOpen, onOpenChange }: { invoice
           </div>
           <Separator className="border-dashed my-2" />
           <table className="w-full text-[8pt]">
+            <thead>
+              <tr className="border-b border-dashed">
+                <th className="text-left py-1"># Item</th>
+                <th className="text-right py-1">Qty</th>
+                <th className="text-right py-1">Total</th>
+              </tr>
+            </thead>
             <tbody>
-              {lineItems?.map(item => {
+              {lineItems?.map((item, idx) => {
                 const qty = parseFloat(item.quantity) || 1;
                 const total = (item.description === 'Labor cost' ? item.rate : qty * item.rate) * (1 + item.tax / 100);
                 return (
-                  <tr key={item.id} className="border-b border-dashed">
-                    <td className="py-1">{item.description}</td>
+                  <tr key={item.id} className="border-b border-dashed border-gray-50">
+                    <td className="py-1">{idx + 1}. {item.description}</td>
                     <td className="text-right py-1">{item.quantity}</td>
                     <td className="text-right py-1">{total.toFixed(2)}</td>
                   </tr>
