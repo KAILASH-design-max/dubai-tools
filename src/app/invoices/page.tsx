@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useMemo } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { useUser, useCollection, useFirestore, useMemoFirebase, deleteDocumentNonBlocking, useCompanyProfile } from '@/firebase';
 import { collection, query, where, doc } from 'firebase/firestore';
@@ -87,9 +88,12 @@ function InvoiceDetailModal({ invoice, userId, isOpen, onOpenChange }: { invoice
         
         <div className="invoice-detail-print space-y-6 py-4">
            <div className="flex items-center justify-between">
-              <div>
-                <DialogTitle className="text-2xl font-headline text-primary">Invoice Details</DialogTitle>
-                <DialogDescription>Reference: {invoice.invoiceNumber}</DialogDescription>
+              <div className="flex items-center gap-3">
+                <Zap className="h-8 w-8 text-primary" />
+                <div>
+                  <DialogTitle className="text-2xl font-headline text-primary">Invoice Details</DialogTitle>
+                  <DialogDescription>Reference: {invoice.invoiceNumber}</DialogDescription>
+                </div>
               </div>
               <Badge className={invoice.status === 'Paid' ? 'bg-green-600' : ''}>{invoice.status}</Badge>
            </div>
@@ -112,6 +116,7 @@ function InvoiceDetailModal({ invoice, userId, isOpen, onOpenChange }: { invoice
              <Table>
                <TableHeader className="bg-muted/50">
                  <TableRow>
+                   <TableHead>Item</TableHead>
                    <TableHead>Description</TableHead>
                    <TableHead className="text-right">Qty</TableHead>
                    <TableHead className="text-right">Total</TableHead>
@@ -119,12 +124,13 @@ function InvoiceDetailModal({ invoice, userId, isOpen, onOpenChange }: { invoice
                </TableHeader>
                <TableBody>
                  {isLoading ? (
-                   <TableRow><TableCell colSpan={3} className="text-center py-12">Loading...</TableCell></TableRow>
-                 ) : lineItems?.map((item) => {
+                   <TableRow><TableCell colSpan={4} className="text-center py-12">Loading...</TableCell></TableRow>
+                 ) : lineItems?.map((item, idx) => {
                    const qty = parseFloat(item.quantity) || 1;
                    const total = (item.description === 'Labor cost' ? item.rate : qty * item.rate) * (1 + item.tax / 100);
                    return (
                      <TableRow key={item.id}>
+                       <TableCell className="text-muted-foreground text-xs">{idx + 1}</TableCell>
                        <TableCell className="font-medium">{item.description}</TableCell>
                        <TableCell className="text-right">{item.quantity}</TableCell>
                        <TableCell className="text-right font-bold">{total.toFixed(2)}</TableCell>
@@ -135,7 +141,16 @@ function InvoiceDetailModal({ invoice, userId, isOpen, onOpenChange }: { invoice
              </Table>
            </div>
 
-           <div className="flex justify-end pt-4">
+           <div className="flex justify-between items-end gap-8 pt-4">
+             <div className="signature-area flex flex-col items-start gap-1">
+               <div className="relative h-12 w-24">
+                 <Image src="/signature.jpeg" alt="Signature" width={100} height={50} className="object-contain" />
+               </div>
+               <div className="w-40 border-t border-dashed pt-1">
+                 <p className="font-bold text-sm">{invoice.authorizedSignatureName}</p>
+                 <p className="text-[10px] text-muted-foreground">Authorized Signature</p>
+               </div>
+             </div>
              <div className="w-full md:w-1/2 space-y-2 text-right">
                <div className="flex justify-between px-2"><span>Subtotal</span><span>{formatCurrency(invoice.subtotalAmount)}</span></div>
                <div className="flex justify-between px-2"><span>Tax</span><span>{formatCurrency(invoice.totalTaxAmount)}</span></div>

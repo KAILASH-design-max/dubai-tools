@@ -62,6 +62,7 @@ export function InvoiceForm({ userId }: { userId: string }) {
         status: 'Draft',
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
+        authorizedSignatureName: 'Proprietor',
       };
       setDocumentNonBlocking(invoiceRef!, defaultInvoice, { merge: false });
     }
@@ -174,7 +175,7 @@ export function InvoiceForm({ userId }: { userId: string }) {
     if (hasChanged) {
       updateDocumentNonBlocking(invoiceRef, { subtotalAmount: subtotal, totalTaxAmount: taxTotal, grandTotalAmount: grandTotal, updatedAt: new Date().toISOString() });
     }
-  }, [subtotal, taxTotal, grandTotal, invoice, invoiceRef]);
+  }, [subtotal, taxTotal, grandTotal, invoice?.id, invoiceRef]);
   
   const formatCurrency = (amount: number) => new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR' }).format(amount).replace('₹', 'Rs ');
 
@@ -300,22 +301,21 @@ export function InvoiceForm({ userId }: { userId: string }) {
 
             <Button onClick={handleAddLineItem} variant="outline" className="mt-2 print:hidden"><Plus className="mr-2 h-4 w-4" /> Add Item</Button>
 
-            <div className="flex justify-end mt-2">
+            <div className="flex justify-between items-end gap-8 mt-4 print:mt-2">
+              <div className="signature-area flex flex-col items-start gap-1">
+                <div className="relative h-12 w-24">
+                  <Image src="/signature.jpeg" alt="Signature" width={100} height={50} className="object-contain" />
+                </div>
+                <div className="w-40 border-t border-dashed pt-1">
+                  <Input value={invoice?.authorizedSignatureName || ''} onChange={(e) => handleUpdateInvoice('authorizedSignatureName', e.target.value)} placeholder="Authorized Name" className="print-no-border h-auto p-0 font-bold text-sm" />
+                  <p className="text-[10px] text-muted-foreground">Authorized Signature</p>
+                </div>
+              </div>
               <div className="w-full md:w-1/3 space-y-1 text-sm print:text-[8pt]">
                 <div className="flex justify-between"><span>Subtotal:</span><span>{formatCurrency(subtotal)}</span></div>
                 <div className="flex justify-between"><span>Tax:</span><span>{formatCurrency(taxTotal)}</span></div>
                 <Separator />
                 <div className="flex justify-between font-bold text-lg print:text-[9pt] font-headline"><span>Total:</span><span>{formatCurrency(grandTotal)}</span></div>
-              </div>
-            </div>
-            
-            <div className="signature-area flex flex-col items-start gap-1">
-              <div className="relative h-12 w-24">
-                <Image src="/signature.jpeg" alt="Signature" width={100} height={50} className="object-contain" />
-              </div>
-              <div className="w-40 border-t border-dashed pt-1">
-                <Input value={invoice?.authorizedSignatureName || ''} onChange={(e) => handleUpdateInvoice('authorizedSignatureName', e.target.value)} placeholder="Authorized Name" className="print-no-border h-auto p-0 font-bold text-sm" />
-                <p className="text-[10px] text-muted-foreground">Authorized Signature</p>
               </div>
             </div>
           </CardContent>
