@@ -62,7 +62,6 @@ export function InvoiceForm({ userId }: { userId: string }) {
         status: 'Draft',
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
-        authorizedSignatureName: 'Proprietor',
       };
       setDocumentNonBlocking(invoiceRef!, defaultInvoice, { merge: false });
     }
@@ -307,7 +306,6 @@ export function InvoiceForm({ userId }: { userId: string }) {
                   <Image src="/signature.jpeg" alt="Signature" width={100} height={50} className="object-contain" />
                 </div>
                 <div className="w-40 border-t border-dashed pt-1">
-                  <Input value={invoice?.authorizedSignatureName || ''} onChange={(e) => handleUpdateInvoice('authorizedSignatureName', e.target.value)} placeholder="Authorized Name" className="print-no-border h-auto p-0 font-bold text-sm" />
                   <p className="text-[10px] text-muted-foreground">Authorized Signature</p>
                 </div>
               </div>

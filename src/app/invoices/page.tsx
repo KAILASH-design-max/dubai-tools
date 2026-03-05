@@ -147,7 +147,6 @@ function InvoiceDetailModal({ invoice, userId, isOpen, onOpenChange }: { invoice
                  <Image src="/signature.jpeg" alt="Signature" width={100} height={50} className="object-contain" />
                </div>
                <div className="w-40 border-t border-dashed pt-1">
-                 <p className="font-bold text-sm">{invoice.authorizedSignatureName}</p>
                  <p className="text-[10px] text-muted-foreground">Authorized Signature</p>
                </div>
              </div>
