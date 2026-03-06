@@ -184,6 +184,39 @@
       },
       "required": ["id", "name", "quantity", "sellingPrice"]
     },
+    "Laborer": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Laborer",
+      "type": "object",
+      "description": "Represents a worker or laborer who performs electrical tasks.",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "phone": { "type": "string" },
+        "dailyRate": { "type": "number" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "name", "dailyRate"]
+    },
+    "LaborRecord": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "LaborRecord",
+      "type": "object",
+      "description": "Represents a daily work record for a laborer.",
+      "properties": {
+        "id": { "type": "string" },
+        "laborerId": { "type": "string" },
+        "laborerName": { "type": "string" },
+        "date": { "type": "string", "format": "date" },
+        "workDescription": { "type": "string" },
+        "amount": { "type": "number" },
+        "status": { "type": "string", "enum": ["Paid", "Pending"] },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "laborerId", "date", "amount", "status"]
+    },
     "Invoice": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "Invoice",
@@ -354,6 +387,26 @@
         }
       },
       {
+        "path": "/users/{userId}/laborers/{laborerId}",
+        "definition": {
+          "entityName": "Laborer",
+          "schema": {
+            "$ref": "#/backend/entities/Laborer"
+          },
+          "description": "Contains laborer profiles for the user."
+        }
+      },
+      {
+        "path": "/users/{userId}/laborRecords/{recordId}",
+        "definition": {
+          "entityName": "LaborRecord",
+          "schema": {
+            "$ref": "#/backend/entities/LaborRecord"
+          },
+          "description": "Contains daily work records for laborers."
+        }
+      },
+      {
         "path": "/users/{userId}/invoices/{invoiceId}",
         "definition": {
           "entityName": "Invoice",
@@ -374,6 +427,6 @@
         }
       }
     ],
-    "reasoning": "Data is isolated under each user's UID to ensure privacy and security. Added an inventory collection for tracking stock levels of electrical items."
+    "reasoning": "Data is isolated under each user's UID to ensure privacy and security. Added labor management to track workers and their work records."
   }
 }

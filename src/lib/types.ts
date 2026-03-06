@@ -43,6 +43,27 @@ export interface InventoryItem {
     updatedAt: string;
 }
 
+export interface Laborer {
+    id: string;
+    name: string;
+    phone?: string;
+    dailyRate: number;
+    createdAt: string;
+    updatedAt: string;
+}
+
+export interface LaborRecord {
+    id: string;
+    laborerId: string;
+    laborerName: string;
+    date: string;
+    workDescription?: string;
+    amount: number;
+    status: 'Paid' | 'Pending';
+    createdAt: string;
+    updatedAt: string;
+}
+
 export interface Invoice {
     id: string;
     invoiceNumber: string;
