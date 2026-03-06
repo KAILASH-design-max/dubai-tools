@@ -164,7 +164,8 @@ export function InvoiceForm({ userId }: { userId: string }) {
 
   const totals = useMemo(() => {
     return (lineItems || []).reduce((acc, item) => {
-      const qty = parseFloat(String(item.quantity).match(/^[0-9.]+/)?.[0] || '1') || 1;
+      const qtyText = String(item.quantity).match(/^[0-9.]+/)?.[0] || '1';
+      const qty = parseFloat(qtyText) || 1;
       const amount = item.description === 'Labor cost' ? item.rate : qty * item.rate;
       const tax = amount * (item.tax / 100);
       acc.subtotal += amount;
@@ -287,7 +288,8 @@ export function InvoiceForm({ userId }: { userId: string }) {
                 </TableHeader>
                 <TableBody>
                   {lineItems?.map((item, index) => {
-                    const qty = parseFloat(String(item.quantity).match(/^[0-9.]+/)?.[0] || '1') || 1;
+                    const qtyText = String(item.quantity).match(/^[0-9.]+/)?.[0] || '1';
+                    const qty = parseFloat(qtyText) || 1;
                     const amount = item.description === 'Labor cost' ? item.rate : qty * item.rate;
                     const total = amount * (1 + item.tax / 100);
 
@@ -307,6 +309,7 @@ export function InvoiceForm({ userId }: { userId: string }) {
                             onBlur={() => setTimeout(() => setActiveItemId(null), 250)}
                             onChange={(e) => handleUpdateLineItem(item.id, 'description', e.target.value)} 
                             className="w-full print-no-border" 
+                            placeholder="Type to search stock..."
                           />
                           {activeItemId === item.id && matches.length > 0 && (
                             <div className="absolute left-0 top-full z-[100] w-full min-w-[300px] border bg-card shadow-2xl rounded-md mt-1 overflow-hidden print:hidden border-primary/30 ring-1 ring-primary/20 animate-in fade-in zoom-in-95 duration-150">
@@ -315,7 +318,7 @@ export function InvoiceForm({ userId }: { userId: string }) {
                                   key={match.id}
                                   className="w-full text-left px-3 py-2.5 text-sm hover:bg-primary/10 hover:text-primary transition-colors border-b last:border-0 flex items-center justify-between"
                                   onMouseDown={(e) => {
-                                    e.preventDefault(); // Prevents blur before click
+                                    e.preventDefault();
                                     handleUpdateLineItem(item.id, 'description', match.name);
                                     handleUpdateLineItem(item.id, 'rate', match.sellingPrice);
                                     setActiveItemId(null);
@@ -324,10 +327,13 @@ export function InvoiceForm({ userId }: { userId: string }) {
                                   <div className="flex flex-col">
                                     <span className="font-bold">{match.name}</span>
                                     <span className="text-[10px] text-muted-foreground flex items-center gap-1">
-                                      <Package className="h-3 w-3" /> {match.quantity} {match.unit} available
+                                      <Package className="h-3 w-3" /> {match.quantity} {match.unit} in stock
                                     </span>
                                   </div>
-                                  <span className="font-bold text-primary">Rs {match.sellingPrice}</span>
+                                  <div className="text-right">
+                                    <span className="font-bold text-primary block">Rs {match.sellingPrice}</span>
+                                    <span className="text-[10px] text-muted-foreground">{match.sku || 'No SKU'}</span>
+                                  </div>
                                 </button>
                               ))}
                             </div>
@@ -392,7 +398,8 @@ export function InvoiceForm({ userId }: { userId: string }) {
             </thead>
             <tbody>
               {lineItems?.map((item, idx) => {
-                const qty = parseFloat(String(item.quantity).match(/^[0-9.]+/)?.[0] || '1') || 1;
+                const qtyText = String(item.quantity).match(/^[0-9.]+/)?.[0] || '1';
+                const qty = parseFloat(qtyText) || 1;
                 const total = (item.description === 'Labor cost' ? item.rate : qty * item.rate) * (1 + item.tax / 100);
                 return (
                   <tr key={item.id} className="border-b border-dashed border-gray-50">
