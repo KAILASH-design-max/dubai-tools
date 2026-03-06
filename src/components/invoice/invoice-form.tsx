@@ -272,7 +272,7 @@ export function InvoiceForm({ userId }: { userId: string }) {
               </div>
             </div>
             
-            <div className="overflow-x-auto">
+            <div className="overflow-x-visible">
               <Table className="invoice-table">
                 <TableHeader>
                   <TableRow>
@@ -291,30 +291,31 @@ export function InvoiceForm({ userId }: { userId: string }) {
                     const amount = item.description === 'Labor cost' ? item.rate : qty * item.rate;
                     const total = amount * (1 + item.tax / 100);
 
-                    // Suggestion logic
+                    // Autocomplete matches
                     const matches = (inventoryItems || []).filter(inv => 
-                      item.description.length >= 3 && 
+                      item.description.trim().length >= 3 && 
                       inv.name.toLowerCase().includes(item.description.toLowerCase())
                     ).slice(0, 5);
 
                     return (
-                      <TableRow key={item.id}>
+                      <TableRow key={item.id} className="relative">
                         <TableCell className="text-muted-foreground text-xs">{index + 1}</TableCell>
                         <TableCell className="relative">
                           <Input 
                             value={item.description} 
                             onFocus={() => setActiveItemId(item.id)}
-                            onBlur={() => setTimeout(() => setActiveItemId(null), 200)}
+                            onBlur={() => setTimeout(() => setActiveItemId(null), 250)}
                             onChange={(e) => handleUpdateLineItem(item.id, 'description', e.target.value)} 
                             className="w-full print-no-border" 
                           />
                           {activeItemId === item.id && matches.length > 0 && (
-                            <div className="absolute left-0 top-full z-50 w-full min-w-[250px] border bg-card shadow-xl rounded-md mt-1 overflow-hidden print:hidden border-primary/20">
+                            <div className="absolute left-0 top-full z-[100] w-full min-w-[300px] border bg-card shadow-2xl rounded-md mt-1 overflow-hidden print:hidden border-primary/30 ring-1 ring-primary/20 animate-in fade-in zoom-in-95 duration-150">
                               {matches.map(match => (
                                 <button
                                   key={match.id}
-                                  className="w-full text-left px-3 py-2 text-sm hover:bg-primary/10 hover:text-primary transition-colors border-b last:border-0 flex items-center justify-between"
-                                  onClick={() => {
+                                  className="w-full text-left px-3 py-2.5 text-sm hover:bg-primary/10 hover:text-primary transition-colors border-b last:border-0 flex items-center justify-between"
+                                  onMouseDown={(e) => {
+                                    e.preventDefault(); // Prevents blur before click
                                     handleUpdateLineItem(item.id, 'description', match.name);
                                     handleUpdateLineItem(item.id, 'rate', match.sellingPrice);
                                     setActiveItemId(null);
