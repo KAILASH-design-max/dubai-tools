@@ -7,7 +7,7 @@ import { useRouter } from "next/navigation";
 import { InvoiceForm } from "@/components/invoice/invoice-form";
 import { Logo } from "@/components/logo";
 import { Button } from "@/components/ui/button";
-import { Settings, Share2, History } from "lucide-react";
+import { Settings, Share2, History, Package } from "lucide-react";
 import { useUser } from "@/firebase";
 import { Skeleton } from "@/components/ui/skeleton";
 
@@ -43,6 +43,12 @@ export default function Home() {
               <Share2 className="h-5 w-5" />
               <span className="sr-only">Share</span>
             </Button>
+            <Link href="/inventory">
+              <Button variant="ghost" size="icon" title="Inventory Management">
+                <Package className="h-5 w-5" />
+                <span className="sr-only">Inventory</span>
+              </Button>
+            </Link>
             <Link href="/invoices">
               <Button variant="ghost" size="icon" title="Invoice History">
                 <History className="h-5 w-5" />

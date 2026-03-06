@@ -29,6 +29,20 @@ export interface Customer {
     updatedAt: string; 
 }
 
+export interface InventoryItem {
+    id: string;
+    name: string;
+    description?: string;
+    sku?: string;
+    quantity: number;
+    unit: 'pcs' | 'mtr' | 'box' | 'set' | 'kg';
+    purchasePrice?: number;
+    sellingPrice: number;
+    minStockLevel?: number;
+    createdAt: string;
+    updatedAt: string;
+}
+
 export interface Invoice {
     id: string;
     invoiceNumber: string;

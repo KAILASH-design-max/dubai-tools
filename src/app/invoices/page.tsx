@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useEffect, useState, useMemo } from 'react';
@@ -9,7 +10,7 @@ import { collection, query, where, doc } from 'firebase/firestore';
 import { Invoice, InvoiceLineItem } from '@/lib/types';
 import { Logo } from '@/components/logo';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, Search, Trash2, MoreHorizontal, Printer, Receipt, Zap, Eye, Download } from 'lucide-react';
+import { ArrowLeft, Search, Trash2, MoreHorizontal, Printer, Receipt, Zap, Eye, Download, Package } from 'lucide-react';
 import { Card, CardHeader, CardContent } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
@@ -273,7 +274,14 @@ export default function InvoicesPage() {
       <header className="sticky top-0 z-10 border-b bg-card/80 backdrop-blur-sm">
         <div className="container mx-auto flex h-16 items-center justify-between px-4 md:px-6">
           <Logo />
-          <Link href="/"><Button variant="outline"><ArrowLeft className="mr-2 h-4 w-4" />Back to Editor</Button></Link>
+          <div className="flex items-center gap-2">
+             <Link href="/inventory">
+              <Button variant="ghost" size="icon" title="Inventory Management">
+                <Package className="h-5 w-5" />
+              </Button>
+            </Link>
+            <Link href="/"><Button variant="outline"><ArrowLeft className="mr-2 h-4 w-4" />Back to Editor</Button></Link>
+          </div>
         </div>
       </header>
       <main className="container mx-auto p-4 md:p-6 lg:p-8">

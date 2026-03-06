@@ -164,6 +164,26 @@
         "updatedAt"
       ]
     },
+    "InventoryItem": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "InventoryItem",
+      "type": "object",
+      "description": "Represents an electrical item in the inventory.",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "description": { "type": "string" },
+        "sku": { "type": "string" },
+        "quantity": { "type": "number" },
+        "unit": { "type": "string", "enum": ["pcs", "mtr", "box", "set", "kg"] },
+        "purchasePrice": { "type": "number" },
+        "sellingPrice": { "type": "number" },
+        "minStockLevel": { "type": "number" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "name", "quantity", "sellingPrice"]
+    },
     "Invoice": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "Invoice",
@@ -324,6 +344,16 @@
         }
       },
       {
+        "path": "/users/{userId}/inventory/{itemId}",
+        "definition": {
+          "entityName": "InventoryItem",
+          "schema": {
+            "$ref": "#/backend/entities/InventoryItem"
+          },
+          "description": "Contains inventory items for the user."
+        }
+      },
+      {
         "path": "/users/{userId}/invoices/{invoiceId}",
         "definition": {
           "entityName": "Invoice",
@@ -344,6 +374,6 @@
         }
       }
     ],
-    "reasoning": "The Firestore structure is designed for a multi-tenant application where each user's data is isolated. Data is stored under a top-level `users` collection, and each document within that collection is keyed by the user's UID. This ensures that a user can only access their own data, which is enforced by Firestore security rules. This approach is secure, scalable, and provides strong data isolation between users."
+    "reasoning": "Data is isolated under each user's UID to ensure privacy and security. Added an inventory collection for tracking stock levels of electrical items."
   }
 }
