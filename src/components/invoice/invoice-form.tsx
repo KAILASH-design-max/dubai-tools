@@ -8,23 +8,25 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Separator } from '@/components/ui/separator';
 import { Label } from '@/components/ui/label';
-import { Trash2, Plus, User, Phone, Zap } from 'lucide-react';
+import { Trash2, Plus, User, Phone, Zap, Package } from 'lucide-react';
 import { InvoiceHeader } from './invoice-header';
 import { InvoiceActions } from './invoice-actions';
 import { useFirestore, useDoc, useCollection, useMemoFirebase, useCompanyProfile } from '@/firebase';
 import { doc, collection, addDoc, deleteDoc, query, orderBy } from 'firebase/firestore';
 import { addDocumentNonBlocking, deleteDocumentNonBlocking, setDocumentNonBlocking, updateDocumentNonBlocking } from '@/firebase/non-blocking-updates';
-import type { Invoice, InvoiceLineItem } from '@/lib/types';
+import type { Invoice, InvoiceLineItem, InventoryItem } from '@/lib/types';
 import { Skeleton } from '../ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
+import { cn } from '@/lib/utils';
 
 export function InvoiceForm({ userId }: { userId: string }) {
   const firestore = useFirestore();
   const { toast } = useToast();
   const [isSaving, setIsSaving] = useState(false);
   const [printMode, setPrintMode] = useState<'a4' | 'receipt'>('a4');
+  const [activeItemId, setActiveItemId] = useState<string | null>(null);
   const invoiceId = 'main';
 
   const { data: companyProfile, isLoading: isCompanyProfileLoading } = useCompanyProfile(userId);
@@ -44,8 +46,14 @@ export function InvoiceForm({ userId }: { userId: string }) {
     [lineItemsCollectionRef]
   );
 
+  const inventoryRef = useMemoFirebase(
+    () => (firestore ? collection(firestore, `users/${userId}/inventory`) : null),
+    [firestore, userId]
+  );
+
   const { data: invoice, isLoading: isInvoiceLoading } = useDoc<Invoice>(invoiceRef);
   const { data: lineItems, isLoading: areLineItemsLoading } = useCollection<InvoiceLineItem>(lineItemsQuery);
+  const { data: inventoryItems } = useCollection<InventoryItem>(inventoryRef);
 
   useEffect(() => {
     if (!isInvoiceLoading && !invoice && !!invoiceRef) {
@@ -282,10 +290,48 @@ export function InvoiceForm({ userId }: { userId: string }) {
                     const qty = parseFloat(String(item.quantity).match(/^[0-9.]+/)?.[0] || '1') || 1;
                     const amount = item.description === 'Labor cost' ? item.rate : qty * item.rate;
                     const total = amount * (1 + item.tax / 100);
+
+                    // Suggestion logic
+                    const matches = (inventoryItems || []).filter(inv => 
+                      item.description.length >= 3 && 
+                      inv.name.toLowerCase().includes(item.description.toLowerCase())
+                    ).slice(0, 5);
+
                     return (
                       <TableRow key={item.id}>
                         <TableCell className="text-muted-foreground text-xs">{index + 1}</TableCell>
-                        <TableCell><Input value={item.description} onChange={(e) => handleUpdateLineItem(item.id, 'description', e.target.value)} className="w-full print-no-border" /></TableCell>
+                        <TableCell className="relative">
+                          <Input 
+                            value={item.description} 
+                            onFocus={() => setActiveItemId(item.id)}
+                            onBlur={() => setTimeout(() => setActiveItemId(null), 200)}
+                            onChange={(e) => handleUpdateLineItem(item.id, 'description', e.target.value)} 
+                            className="w-full print-no-border" 
+                          />
+                          {activeItemId === item.id && matches.length > 0 && (
+                            <div className="absolute left-0 top-full z-50 w-full min-w-[250px] border bg-card shadow-xl rounded-md mt-1 overflow-hidden print:hidden border-primary/20">
+                              {matches.map(match => (
+                                <button
+                                  key={match.id}
+                                  className="w-full text-left px-3 py-2 text-sm hover:bg-primary/10 hover:text-primary transition-colors border-b last:border-0 flex items-center justify-between"
+                                  onClick={() => {
+                                    handleUpdateLineItem(item.id, 'description', match.name);
+                                    handleUpdateLineItem(item.id, 'rate', match.sellingPrice);
+                                    setActiveItemId(null);
+                                  }}
+                                >
+                                  <div className="flex flex-col">
+                                    <span className="font-bold">{match.name}</span>
+                                    <span className="text-[10px] text-muted-foreground flex items-center gap-1">
+                                      <Package className="h-3 w-3" /> {match.quantity} {match.unit} available
+                                    </span>
+                                  </div>
+                                  <span className="font-bold text-primary">Rs {match.sellingPrice}</span>
+                                </button>
+                              ))}
+                            </div>
+                          )}
+                        </TableCell>
                         <TableCell><Input value={item.quantity} onChange={(e) => handleUpdateLineItem(item.id, 'quantity', e.target.value)} className="w-12 text-right print-no-border" /></TableCell>
                         <TableCell><Input type="number" value={item.rate} onChange={(e) => handleUpdateLineItem(item.id, 'rate', e.target.value)} className="w-20 text-right print-no-border" /></TableCell>
                         <TableCell><Input type="number" value={item.tax} onChange={(e) => handleUpdateLineItem(item.id, 'tax', e.target.value)} className="w-12 text-right print-no-border" /></TableCell>
