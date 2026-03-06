@@ -273,7 +273,7 @@ export function InvoiceForm({ userId }: { userId: string }) {
               </div>
             </div>
             
-            <div className="overflow-x-visible">
+            <div className="overflow-visible">
               <Table className="invoice-table">
                 <TableHeader>
                   <TableRow>
@@ -300,9 +300,9 @@ export function InvoiceForm({ userId }: { userId: string }) {
                     ).slice(0, 5);
 
                     return (
-                      <TableRow key={item.id} className="relative">
+                      <TableRow key={item.id} className="relative overflow-visible">
                         <TableCell className="text-muted-foreground text-xs">{index + 1}</TableCell>
-                        <TableCell className="relative">
+                        <TableCell className="relative overflow-visible">
                           <Input 
                             value={item.description} 
                             onFocus={() => setActiveItemId(item.id)}
@@ -312,7 +312,7 @@ export function InvoiceForm({ userId }: { userId: string }) {
                             placeholder="Type to search stock..."
                           />
                           {activeItemId === item.id && matches.length > 0 && (
-                            <div className="absolute left-0 top-full z-[100] w-full min-w-[300px] border bg-card shadow-2xl rounded-md mt-1 overflow-hidden print:hidden border-primary/30 ring-1 ring-primary/20 animate-in fade-in zoom-in-95 duration-150">
+                            <div className="absolute left-0 top-full z-[999] w-full min-w-[300px] border bg-card shadow-2xl rounded-md mt-1 overflow-hidden print:hidden border-primary/30 ring-1 ring-primary/20 animate-in fade-in zoom-in-95 duration-150">
                               {matches.map(match => (
                                 <button
                                   key={match.id}
