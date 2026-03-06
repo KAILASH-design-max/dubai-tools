@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useEffect, useState, useMemo } from 'react';
@@ -8,7 +9,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Separator } from '@/components/ui/separator';
 import { Label } from '@/components/ui/label';
-import { Trash2, Plus, User, Phone, Zap, Package } from 'lucide-react';
+import { Trash2, Plus, User, Phone, PlugZap, Package } from 'lucide-react';
 import { InvoiceHeader } from './invoice-header';
 import { InvoiceActions } from './invoice-actions';
 import { useFirestore, useDoc, useCollection, useMemoFirebase, useCompanyProfile } from '@/firebase';
@@ -19,7 +20,6 @@ import { Skeleton } from '../ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
-import { cn } from '@/lib/utils';
 
 export function InvoiceForm({ userId }: { userId: string }) {
   const firestore = useFirestore();
@@ -369,7 +369,7 @@ export function InvoiceForm({ userId }: { userId: string }) {
         {/* 80mm Thermal Receipt View */}
         <div className="receipt-view hidden">
           <div className="text-center space-y-1 mb-2">
-            <div className="flex justify-center mb-1"><Zap className="h-6 w-6 text-primary" /></div>
+            <div className="flex justify-center mb-1"><PlugZap className="h-6 w-6 text-primary" /></div>
             <h2 className="font-bold text-lg uppercase">{activeProfile.name}</h2>
             <p className="text-[8pt]">{activeProfile.addressLine1}</p>
             <p className="text-[8pt]">Ph: {activeProfile.phoneNumbers.join(', ')}</p>
@@ -385,7 +385,7 @@ export function InvoiceForm({ userId }: { userId: string }) {
           <table className="w-full text-[8pt]">
             <thead>
               <tr className="border-b border-dashed">
-                <th className="text-left py-1"># Item</th>
+                <th className="text-left py-1">Item</th>
                 <th className="text-right py-1">Qty</th>
                 <th className="text-right py-1">Total</th>
               </tr>

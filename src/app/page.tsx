@@ -7,7 +7,7 @@ import { useRouter } from "next/navigation";
 import { InvoiceForm } from "@/components/invoice/invoice-form";
 import { Logo } from "@/components/logo";
 import { Button } from "@/components/ui/button";
-import { Settings, Share2, History, Package, Users } from "lucide-react";
+import { Settings, Share2, ReceiptText, Package, Users } from "lucide-react";
 import { useUser } from "@/firebase";
 import { Skeleton } from "@/components/ui/skeleton";
 
@@ -57,7 +57,7 @@ export default function Home() {
             </Link>
             <Link href="/invoices">
               <Button variant="ghost" size="icon" title="Invoice History">
-                <History className="h-5 w-5" />
+                <ReceiptText className="h-5 w-5" />
                 <span className="sr-only">Invoice History</span>
               </Button>
             </Link>

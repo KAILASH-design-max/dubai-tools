@@ -10,7 +10,7 @@ import { collection, query, where, doc } from 'firebase/firestore';
 import { Invoice, InvoiceLineItem } from '@/lib/types';
 import { Logo } from '@/components/logo';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, Search, Trash2, MoreHorizontal, Printer, Receipt, Zap, Eye, Download, Package } from 'lucide-react';
+import { ArrowLeft, Search, Trash2, MoreHorizontal, Printer, Receipt, PlugZap, Eye, Download, Package } from 'lucide-react';
 import { Card, CardHeader, CardContent } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
@@ -90,7 +90,7 @@ function InvoiceDetailModal({ invoice, userId, isOpen, onOpenChange }: { invoice
         <div className="invoice-detail-print space-y-6 py-4">
            <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <Zap className="h-8 w-8 text-primary" />
+                <PlugZap className="h-8 w-8 text-primary" />
                 <div>
                   <DialogTitle className="text-2xl font-headline text-primary">Invoice Details</DialogTitle>
                   <DialogDescription>Reference: {invoice.invoiceNumber}</DialogDescription>
@@ -166,7 +166,7 @@ function InvoiceDetailModal({ invoice, userId, isOpen, onOpenChange }: { invoice
         {/* 80mm Receipt View for Modal */}
         <div className="receipt-view-modal hidden">
           <div className="text-center space-y-1 mb-2">
-            <div className="flex justify-center mb-1"><Zap className="h-6 w-6 text-primary" /></div>
+            <div className="flex justify-center mb-1"><PlugZap className="h-6 w-6 text-primary" /></div>
             <h2 className="font-bold text-lg uppercase">{activeProfile.name}</h2>
             <p className="text-[8pt]">{activeProfile.addressLine1}</p>
             <p className="text-[8pt]">Ph: {activeProfile.phoneNumbers.join(', ')}</p>
@@ -182,7 +182,7 @@ function InvoiceDetailModal({ invoice, userId, isOpen, onOpenChange }: { invoice
           <table className="w-full text-[8pt]">
             <thead>
               <tr className="border-b border-dashed">
-                <th className="text-left py-1"># Item</th>
+                <th className="text-left py-1">Item</th>
                 <th className="text-right py-1">Qty</th>
                 <th className="text-right py-1">Total</th>
               </tr>
@@ -280,7 +280,7 @@ export default function InvoicesPage() {
                 <Package className="h-5 w-5" />
               </Button>
             </Link>
-            <Link href="/"><Button variant="outline"><ArrowLeft className="mr-2 h-4 w-4" />Back to Editor</Button></Link>
+            <Link href="/"><Button variant="outline"><ArrowLeft className="mr-2 h-4 w-4" />Back to Home</Button></Link>
           </div>
         </div>
       </header>
