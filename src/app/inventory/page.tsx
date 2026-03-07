@@ -7,7 +7,7 @@ import { collection, query, orderBy } from 'firebase/firestore';
 import { InventoryItem } from '@/lib/types';
 import { MainHeader } from '@/components/main-header';
 import { Button } from '@/components/ui/button';
-import { Plus, Package, Search } from 'lucide-react';
+import { Plus, Search } from 'lucide-react';
 import { Card, CardHeader, CardContent, CardTitle, CardDescription } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { InventoryList } from '@/components/inventory/inventory-list';
@@ -63,8 +63,7 @@ export default function InventoryPage() {
         <div className="max-w-6xl mx-auto space-y-8">
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
             <div>
-              <h2 className="text-3xl font-bold font-headline flex items-center gap-3">
-                <Package className="h-8 w-8 text-primary" />
+              <h2 className="text-3xl font-bold font-headline">
                 Inventory Management
               </h2>
               <p className="text-muted-foreground mt-1">Track and manage your electrical supplies and tools.</p>
