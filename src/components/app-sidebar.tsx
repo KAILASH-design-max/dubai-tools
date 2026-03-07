@@ -14,7 +14,8 @@ import {
   ChevronRight,
   Share2,
   Home,
-  LayoutDashboard
+  LayoutDashboard,
+  Zap
 } from 'lucide-react';
 import {
   Sidebar,
@@ -74,6 +75,12 @@ export function AppSidebar() {
   };
 
   const menuGroups = [
+    {
+      label: "Overview",
+      items: [
+        { title: "Home", icon: Home, url: "/" },
+      ]
+    },
     {
       label: "Invoicing",
       items: [
