@@ -12,7 +12,6 @@ import {
   Settings,
   LogOut,
   ChevronRight,
-  Share2,
   Home,
   LayoutDashboard,
   Zap
@@ -57,20 +56,6 @@ export function AppSidebar() {
       });
     } catch (e) {
       toast({ variant: 'destructive', title: 'Error', description: 'Sign out failed' });
-    }
-  };
-
-  const handleShare = () => {
-    if (typeof window === 'undefined') return;
-    if (navigator.share) {
-      navigator.share({
-        title: 'Dubai Tools',
-        text: 'Manage invoices and inventory with Dubai Tools',
-        url: window.location.origin,
-      }).catch(() => {});
-    } else {
-      navigator.clipboard.writeText(window.location.origin);
-      toast({ title: 'Link Copied', description: 'URL copied to clipboard.' });
     }
   };
 
@@ -138,16 +123,7 @@ export function AppSidebar() {
         ))}
       </SidebarContent>
 
-      <SidebarFooter className="p-4 border-t space-y-2">
-        <Button 
-          variant="ghost" 
-          className="w-full justify-start h-10 px-2" 
-          onClick={handleShare}
-        >
-          <Share2 className="mr-3 h-4 w-4 text-primary" />
-          <span className="text-sm">Share App</span>
-        </Button>
-        <SidebarSeparator className="my-2" />
+      <SidebarFooter className="p-4 border-t">
         <Button 
           variant="destructive" 
           className="w-full justify-start h-10 px-2 group-data-[collapsible=icon]:justify-center" 
