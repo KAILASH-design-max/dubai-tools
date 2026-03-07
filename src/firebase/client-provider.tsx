@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useMemo, type ReactNode, useState, useEffect } from 'react';
@@ -27,7 +26,6 @@ export function FirebaseClientProvider({ children }: FirebaseClientProviderProps
   }, []);
 
   const firebaseServices = useMemo(() => {
-    // initializeFirebase already checks for window
     if (typeof window === 'undefined') return null;
     return initializeFirebase();
   }, []);
