@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
-import { useUser, useCollection, useFirestore, useMemoFirebase, deleteDocumentNonBlocking, useCompanyProfile } from '@/firebase';
+import { useUser, useCollection, useFirestore, useMemoFirebase, deleteDocumentNonBlocking, useDoc } from '@/firebase';
 import { collection, query, where, doc, addDoc, updateDoc, getDocs } from 'firebase/firestore';
 import { Invoice, InvoiceLineItem, InventoryItem } from '@/lib/types';
 import { MainHeader } from '@/components/main-header';
@@ -80,8 +80,8 @@ function AddItemToSavedInvoiceDialog({
       const lineItemsCol = collection(invoiceRef, 'lineItems');
       
       const qtyNum = parseFloat(quantity) || 1;
-      const amount = description === 'Labor cost' ? rate : qtyNum * rate;
-      const taxAmount = amount * (tax / 100);
+      const isLabor = description.toLowerCase().includes('labor');
+      const amount = isLabor ? rate : qtyNum * rate;
 
       // 1. Add the line item
       await addDoc(lineItemsCol, {
@@ -89,7 +89,7 @@ function AddItemToSavedInvoiceDialog({
         quantity,
         rate,
         tax,
-        sortIndex: Date.now(), // Simple way to keep it at the end
+        sortIndex: Date.now(),
       });
 
       // 2. Fetch all line items to get accurate totals
@@ -100,7 +100,8 @@ function AddItemToSavedInvoiceDialog({
       snap.docs.forEach(d => {
         const item = d.data();
         const q = parseFloat(item.quantity) || 1;
-        const a = item.description === 'Labor cost' ? item.rate : q * item.rate;
+        const labor = item.description.toLowerCase().includes('labor');
+        const a = labor ? item.rate : q * item.rate;
         const t = a * (item.tax / 100);
         newSubtotal += a;
         newTaxTotal += t;
@@ -191,19 +192,25 @@ function AddItemToSavedInvoiceDialog({
   );
 }
 
-function InvoiceDetailModal({ invoice, userId, isOpen, onOpenChange }: { invoice: Invoice | null, userId: string, isOpen: boolean, onOpenChange: (open: boolean) => void }) {
+function InvoiceDetailModal({ invoiceId, userId, isOpen, onOpenChange }: { invoiceId: string | null, userId: string, isOpen: boolean, onOpenChange: (open: boolean) => void }) {
   const firestore = useFirestore();
   const [printMode, setPrintMode] = useState<'a4' | 'receipt'>('a4');
   const [isAddItemOpen, setIsAddItemOpen] = useState(false);
-  const { data: companyProfile } = useCompanyProfile(userId);
+
+  const invoiceRef = useMemoFirebase(
+    () => (firestore && userId && invoiceId ? doc(firestore, `users/${userId}/invoices/${invoiceId}`) : null),
+    [firestore, userId, invoiceId]
+  );
+  
+  const { data: invoice, isLoading: isInvoiceLoading } = useDoc<Invoice>(invoiceRef);
 
   const lineItemsRef = useMemoFirebase(
-    () => (firestore && userId && invoice ? collection(firestore, `users/${userId}/invoices/${invoice.id}/lineItems`) : null),
-    [firestore, userId, invoice?.id]
+    () => (firestore && userId && invoiceId ? collection(firestore, `users/${userId}/invoices/${invoiceId}/lineItems`) : null),
+    [firestore, userId, invoiceId]
   );
-  const { data: lineItems, isLoading } = useCollection<InvoiceLineItem>(lineItemsRef);
+  const { data: lineItems, isLoading: areLineItemsLoading } = useCollection<InvoiceLineItem>(lineItemsRef);
 
-  if (!invoice) return null;
+  if (!invoiceId) return null;
 
   const formatCurrency = (amount: number) => new Intl.NumberFormat('en-IN', { 
     style: 'currency', 
@@ -215,7 +222,7 @@ function InvoiceDetailModal({ invoice, userId, isOpen, onOpenChange }: { invoice
     setTimeout(() => window.print(), 100);
   };
 
-  const activeProfile = companyProfile || { 
+  const activeProfile = { 
     name: 'DUBAI TOOLS', 
     addressLine1: 'Shivdhara', 
     phoneNumbers: ['9268863031', '7280944150'], 
@@ -242,137 +249,147 @@ function InvoiceDetailModal({ invoice, userId, isOpen, onOpenChange }: { invoice
             }
           `}</style>
           
-          <div className="invoice-detail-print space-y-6 py-4">
-            <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <PlugZap className="h-8 w-8 text-primary" />
-                  <div>
-                    <DialogTitle className="text-2xl font-headline text-primary">Invoice Details</DialogTitle>
-                    <DialogDescription>Reference: {invoice.invoiceNumber}</DialogDescription>
+          {isInvoiceLoading ? (
+            <div className="py-20 text-center">Loading invoice details...</div>
+          ) : invoice && (
+            <div className="invoice-detail-print space-y-6 py-4">
+              <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <PlugZap className="h-8 w-8 text-primary" />
+                    <div>
+                      <DialogTitle className="text-2xl font-headline text-primary">Invoice Details</DialogTitle>
+                      <DialogDescription>Reference: {invoice.invoiceNumber}</DialogDescription>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2 print:hidden">
+                    <Button variant="outline" size="sm" onClick={() => setIsAddItemOpen(true)}>
+                      <Plus className="mr-2 h-4 w-4" /> Add Item
+                    </Button>
+                    <Badge className={invoice.status === 'Paid' ? 'bg-green-600' : ''}>{invoice.status}</Badge>
+                  </div>
+              </div>
+              
+              <div className="grid grid-cols-2 gap-8 text-sm">
+                <div>
+                  <p className="text-muted-foreground mb-1 uppercase text-[10px] font-bold tracking-wider">Bill To</p>
+                  <div className="border rounded-md p-3 space-y-1 bg-muted/5 print:p-0 print:border-none">
+                    <p className="font-bold text-lg leading-tight">{invoice.customerName}</p>
+                    {invoice.customerPhone && <p className="text-muted-foreground text-xs">Ph: {invoice.customerPhone}</p>}
                   </div>
                 </div>
-                <div className="flex items-center gap-2 print:hidden">
-                  <Button variant="outline" size="sm" onClick={() => setIsAddItemOpen(true)}>
-                    <Plus className="mr-2 h-4 w-4" /> Add Item
-                  </Button>
-                  <Badge className={invoice.status === 'Paid' ? 'bg-green-600' : ''}>{invoice.status}</Badge>
-                </div>
-            </div>
-            
-            <div className="grid grid-cols-2 gap-8 text-sm">
-              <div>
-                <p className="text-muted-foreground mb-1 uppercase text-[10px] font-bold tracking-wider">Bill To</p>
-                <div className="border rounded-md p-3 space-y-1 bg-muted/5 print:p-0 print:border-none">
-                  <p className="font-bold text-lg leading-tight">{invoice.customerName}</p>
-                  {invoice.customerPhone && <p className="text-muted-foreground text-xs">Ph: {invoice.customerPhone}</p>}
+                <div className="text-right">
+                  <p className="text-muted-foreground mb-1 uppercase text-[10px] font-bold tracking-wider">Date Issued</p>
+                  <p className="font-medium">{format(new Date(`${invoice.invoiceDate}T00:00:00`), 'PP')}</p>
                 </div>
               </div>
-              <div className="text-right">
-                <p className="text-muted-foreground mb-1 uppercase text-[10px] font-bold tracking-wider">Date Issued</p>
-                <p className="font-medium">{format(new Date(`${invoice.invoiceDate}T00:00:00`), 'PP')}</p>
-              </div>
-            </div>
 
-            <div className="rounded-md border overflow-hidden">
-              <Table>
-                <TableHeader className="bg-muted/50">
-                  <TableRow>
-                    <TableHead>Item</TableHead>
-                    <TableHead>Description</TableHead>
-                    <TableHead className="text-right">Qty</TableHead>
-                    <TableHead className="text-right">Total</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {isLoading ? (
-                    <TableRow><TableCell colSpan={4} className="text-center py-12">Loading...</TableCell></TableRow>
-                  ) : lineItems?.map((item, idx) => {
+              <div className="rounded-md border overflow-hidden">
+                <Table>
+                  <TableHeader className="bg-muted/50">
+                    <TableRow>
+                      <TableHead>Item</TableHead>
+                      <TableHead>Description</TableHead>
+                      <TableHead className="text-right">Qty</TableHead>
+                      <TableHead className="text-right">Total</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {areLineItemsLoading ? (
+                      <TableRow><TableCell colSpan={4} className="text-center py-12">Loading...</TableCell></TableRow>
+                    ) : lineItems?.map((item, idx) => {
+                      const qty = parseFloat(item.quantity) || 1;
+                      const isLabor = item.description.toLowerCase().includes('labor');
+                      const amount = isLabor ? item.rate : qty * item.rate;
+                      const total = amount * (1 + item.tax / 100);
+                      return (
+                        <TableRow key={item.id}>
+                          <TableCell className="text-muted-foreground text-xs">{idx + 1}</TableCell>
+                          <TableCell className="font-medium">{item.description}</TableCell>
+                          <TableCell className="text-right">{item.quantity}</TableCell>
+                          <TableCell className="text-right font-bold">{total.toFixed(2)}</TableCell>
+                        </TableRow>
+                      )
+                    })}
+                  </TableBody>
+                </Table>
+              </div>
+
+              <div className="flex justify-between items-end gap-8 pt-4">
+                <div className="signature-area flex flex-col items-start gap-1">
+                  <div className="relative h-12 w-24">
+                    <Image src="https://picsum.photos/seed/sig1/100/50" data-ai-hint="digital signature" alt="Signature" width={100} height={50} className="object-contain" />
+                  </div>
+                  <div className="w-40 border-t border-dashed pt-1">
+                    <p className="text-[10px] text-muted-foreground">Authorized Signature</p>
+                  </div>
+                </div>
+                <div className="w-full md:w-1/2 space-y-2 text-right">
+                  <div className="flex justify-between px-2"><span>Subtotal</span><span>{formatCurrency(invoice.subtotalAmount)}</span></div>
+                  <div className="flex justify-between px-2"><span>Tax</span><span>{formatCurrency(invoice.totalTaxAmount)}</span></div>
+                  <Separator />
+                  <div className="flex justify-between bg-primary/5 p-4 rounded-lg border border-primary/20">
+                    <span className="font-headline font-bold text-primary">Grand Total</span>
+                    <span className="font-headline font-bold text-2xl text-primary">{formatCurrency(invoice.grandTotalAmount)}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {invoice && (
+            <div className="receipt-view-modal hidden">
+              <div className="text-center space-y-1 mb-2">
+                <div className="flex justify-center mb-1"><PlugZap className="h-6 w-6 text-primary" /></div>
+                <h2 className="font-bold text-lg uppercase">{activeProfile.name}</h2>
+                <p className="text-[8pt]">{activeProfile.addressLine1}</p>
+                <p className="text-[8pt]">Ph: {activeProfile.phoneNumbers.join(', ')}</p>
+                {activeProfile.gstRegistrationNumber && <p className="text-[8pt]">GST: {activeProfile.gstRegistrationNumber}</p>}
+              </div>
+              <Separator className="border-dashed my-2" />
+              <div className="text-[8pt] space-y-1 mb-2">
+                <div className="flex justify-between"><span>Inv: {invoice.invoiceNumber}</span><span>{invoice.invoiceDate}</span></div>
+                <div className="font-bold">Bill To: {invoice.customerName}</div>
+                {invoice.customerPhone && <div>Ph: {invoice.customerPhone}</div>}
+              </div>
+              <Separator className="border-dashed my-2" />
+              <table className="w-full text-[8pt]">
+                <thead>
+                  <tr className="border-b border-dashed">
+                    <th className="text-left py-1">Item</th>
+                    <th className="text-right py-1">Qty</th>
+                    <th className="text-right py-1">Total</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {lineItems?.map((item, idx) => {
                     const qty = parseFloat(item.quantity) || 1;
-                    const total = (item.description === 'Labor cost' ? item.rate : qty * item.rate) * (1 + item.tax / 100);
+                    const isLabor = item.description.toLowerCase().includes('labor');
+                    const amount = isLabor ? item.rate : qty * item.rate;
+                    const total = amount * (1 + item.tax / 100);
                     return (
-                      <TableRow key={item.id}>
-                        <TableCell className="text-muted-foreground text-xs">{idx + 1}</TableCell>
-                        <TableCell className="font-medium">{item.description}</TableCell>
-                        <TableCell className="text-right">{item.quantity}</TableCell>
-                        <TableCell className="text-right font-bold">{total.toFixed(2)}</TableCell>
-                      </TableRow>
-                    )
+                      <tr key={item.id} className="border-b border-dashed border-gray-50">
+                        <td className="py-1">{idx + 1}. {item.description}</td>
+                        <td className="text-right py-1">{item.quantity}</td>
+                        <td className="text-right py-1">{total.toFixed(2)}</td>
+                      </tr>
+                    );
                   })}
-                </TableBody>
-              </Table>
-            </div>
-
-            <div className="flex justify-between items-end gap-8 pt-4">
-              <div className="signature-area flex flex-col items-start gap-1">
-                <div className="relative h-12 w-24">
-                  <Image src="https://picsum.photos/seed/sig1/100/50" data-ai-hint="digital signature" alt="Signature" width={100} height={50} className="object-contain" />
+                </tbody>
+              </table>
+              <div className="mt-2 space-y-1 text-[8pt]">
+                <div className="flex justify-between border-t border-dashed pt-2">
+                  <span>Subtotal:</span><span>{formatCurrency(invoice.subtotalAmount)}</span>
                 </div>
-                <div className="w-40 border-t border-dashed pt-1">
-                  <p className="text-[10px] text-muted-foreground">Authorized Signature</p>
+                <div className="flex justify-between">
+                  <span>Tax:</span><span>{formatCurrency(invoice.totalTaxAmount)}</span>
                 </div>
-              </div>
-              <div className="w-full md:w-1/2 space-y-2 text-right">
-                <div className="flex justify-between px-2"><span>Subtotal</span><span>{formatCurrency(invoice.subtotalAmount)}</span></div>
-                <div className="flex justify-between px-2"><span>Tax</span><span>{formatCurrency(invoice.totalTaxAmount)}</span></div>
-                <Separator />
-                <div className="flex justify-between bg-primary/5 p-4 rounded-lg border border-primary/20">
-                  <span className="font-headline font-bold text-primary">Grand Total</span>
-                  <span className="font-headline font-bold text-2xl text-primary">{formatCurrency(invoice.grandTotalAmount)}</span>
+                <div className="flex justify-between font-bold text-[9pt] pt-1">
+                  <span>GRAND TOTAL:</span><span>{formatCurrency(invoice.grandTotalAmount)}</span>
                 </div>
               </div>
+              <div className="mt-4 text-center text-[7pt] italic">Thank you for Shopping!</div>
             </div>
-          </div>
-
-          <div className="receipt-view-modal hidden">
-            <div className="text-center space-y-1 mb-2">
-              <div className="flex justify-center mb-1"><PlugZap className="h-6 w-6 text-primary" /></div>
-              <h2 className="font-bold text-lg uppercase">{activeProfile.name}</h2>
-              <p className="text-[8pt]">{activeProfile.addressLine1}</p>
-              <p className="text-[8pt]">Ph: {activeProfile.phoneNumbers.join(', ')}</p>
-              {activeProfile.gstRegistrationNumber && <p className="text-[8pt]">GST: {activeProfile.gstRegistrationNumber}</p>}
-            </div>
-            <Separator className="border-dashed my-2" />
-            <div className="text-[8pt] space-y-1 mb-2">
-              <div className="flex justify-between"><span>Inv: {invoice.invoiceNumber}</span><span>{invoice.invoiceDate}</span></div>
-              <div className="font-bold">Bill To: {invoice.customerName}</div>
-              {invoice.customerPhone && <div>Ph: {invoice.customerPhone}</div>}
-            </div>
-            <Separator className="border-dashed my-2" />
-            <table className="w-full text-[8pt]">
-              <thead>
-                <tr className="border-b border-dashed">
-                  <th className="text-left py-1">Item</th>
-                  <th className="text-right py-1">Qty</th>
-                  <th className="text-right py-1">Total</th>
-                </tr>
-              </thead>
-              <tbody>
-                {lineItems?.map((item, idx) => {
-                  const qty = parseFloat(item.quantity) || 1;
-                  const total = (item.description === 'Labor cost' ? item.rate : qty * item.rate) * (1 + item.tax / 100);
-                  return (
-                    <tr key={item.id} className="border-b border-dashed border-gray-50">
-                      <td className="py-1">{idx + 1}. {item.description}</td>
-                      <td className="text-right py-1">{item.quantity}</td>
-                      <td className="text-right py-1">{total.toFixed(2)}</td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-            <div className="mt-2 space-y-1 text-[8pt]">
-              <div className="flex justify-between border-t border-dashed pt-2">
-                <span>Subtotal:</span><span>{formatCurrency(invoice.subtotalAmount)}</span>
-              </div>
-              <div className="flex justify-between">
-                <span>Tax:</span><span>{formatCurrency(invoice.totalTaxAmount)}</span>
-              </div>
-              <div className="flex justify-between font-bold text-[9pt] pt-1">
-                <span>GRAND TOTAL:</span><span>{formatCurrency(invoice.grandTotalAmount)}</span>
-              </div>
-            </div>
-            <div className="mt-4 text-center text-[7pt] italic">Thank you for Shopping!</div>
-          </div>
+          )}
 
           <DialogFooter className="flex flex-col sm:flex-row gap-2 print:hidden">
             <Button variant="outline" className="w-full sm:w-auto" onClick={() => handlePrint('a4')}>
@@ -386,13 +403,15 @@ function InvoiceDetailModal({ invoice, userId, isOpen, onOpenChange }: { invoice
         </DialogContent>
       </Dialog>
       
-      <AddItemToSavedInvoiceDialog 
-        isOpen={isAddItemOpen} 
-        onOpenChange={setIsAddItemOpen} 
-        invoiceId={invoice.id} 
-        userId={userId}
-        onItemAdded={() => {}} // Hook can be used here for local state refresh if needed
-      />
+      {invoiceId && (
+        <AddItemToSavedInvoiceDialog 
+          isOpen={isAddItemOpen} 
+          onOpenChange={setIsAddItemOpen} 
+          invoiceId={invoiceId} 
+          userId={userId}
+          onItemAdded={() => {}} 
+        />
+      )}
     </>
   );
 }
@@ -401,10 +420,9 @@ export default function InvoicesPage() {
   const { user, isUserLoading } = useUser();
   const firestore = useFirestore();
   const router = useRouter();
-  const { toast } = useToast();
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
-  const [viewInvoice, setViewInvoice] = useState<Invoice | null>(null);
+  const [viewInvoiceId, setViewInvoiceId] = useState<string | null>(null);
 
   useEffect(() => {
     if (!isUserLoading && (!user || user.isAnonymous)) {
@@ -466,7 +484,7 @@ export default function InvoicesPage() {
                   <TableBody>
                     {filteredInvoices.map(invoice => (
                       <TableRow key={invoice.id}>
-                        <TableCell><button onClick={() => setViewInvoice(invoice)} className="hover:underline text-primary">{invoice.invoiceNumber}</button></TableCell>
+                        <TableCell><button onClick={() => setViewInvoiceId(invoice.id)} className="hover:underline text-primary">{invoice.invoiceNumber}</button></TableCell>
                         <TableCell>{invoice.customerName}</TableCell>
                         <TableCell>{invoice.invoiceDate}</TableCell>
                         <TableCell><Badge variant={invoice.status === 'Paid' ? 'default' : 'outline'}>{invoice.status}</Badge></TableCell>
@@ -475,9 +493,9 @@ export default function InvoicesPage() {
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild><Button variant="ghost" size="icon"><MoreHorizontal className="h-4 w-4" /></Button></DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
-                              <DropdownMenuItem onClick={() => setViewInvoice(invoice)}><Eye className="mr-2 h-4 w-4" />View</DropdownMenuItem>
-                              <DropdownMenuItem onClick={() => { setViewInvoice(invoice); setTimeout(() => window.print(), 200); }}><Printer className="mr-2 h-4 w-4" />Print A4</DropdownMenuItem>
-                              <DropdownMenuItem onClick={() => { setViewInvoice(invoice); setTimeout(() => window.print(), 200); }}><Receipt className="mr-2 h-4 w-4" />Print Receipt</DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => setViewInvoiceId(invoice.id)}><Eye className="mr-2 h-4 w-4" />View</DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => { setViewInvoiceId(invoice.id); setTimeout(() => window.print(), 200); }}><Printer className="mr-2 h-4 w-4" />Print A4</DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => { setViewInvoiceId(invoice.id); setTimeout(() => window.print(), 200); }}><Receipt className="mr-2 h-4 w-4" />Print Receipt</DropdownMenuItem>
                               <DropdownMenuSeparator />
                               <DropdownMenuItem className="text-destructive" onClick={() => deleteDocumentNonBlocking(doc(firestore!, `users/${user!.uid}/invoices/${invoice.id}`))}><Trash2 className="mr-2 h-4 w-4" />Delete</DropdownMenuItem>
                             </DropdownMenuContent>
@@ -492,7 +510,7 @@ export default function InvoicesPage() {
           </Card>
         </div>
       </main>
-      <InvoiceDetailModal invoice={viewInvoice} userId={user?.uid || ''} isOpen={!!viewInvoice} onOpenChange={(open) => !open && setViewInvoice(null)} />
+      <InvoiceDetailModal invoiceId={viewInvoiceId} userId={user?.uid || ''} isOpen={!!viewInvoiceId} onOpenChange={(open) => !open && setViewInvoiceId(null)} />
     </div>
   );
 }
