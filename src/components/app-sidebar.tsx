@@ -11,10 +11,7 @@ import {
   Users,
   Settings,
   LogOut,
-  ChevronRight,
   Home,
-  LayoutDashboard,
-  Zap
 } from 'lucide-react';
 import {
   Sidebar,
@@ -27,7 +24,7 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
-  SidebarSeparator,
+  useSidebar,
 } from '@/components/ui/sidebar';
 import { Logo } from '@/components/logo';
 import { Button } from '@/components/ui/button';
@@ -39,6 +36,7 @@ export function AppSidebar() {
   const router = useRouter();
   const pathname = usePathname();
   const { toast } = useToast();
+  const { setOpenMobile } = useSidebar();
 
   // Don't show sidebar on auth pages or if not logged in
   if (isUserLoading || !user || user.isAnonymous || pathname === '/login' || pathname === '/signup') {
@@ -49,6 +47,7 @@ export function AppSidebar() {
     if (!auth) return;
     try {
       await signOut(auth);
+      setOpenMobile(false);
       router.push('/login');
       toast({
         title: "Signed Out",
@@ -57,6 +56,11 @@ export function AppSidebar() {
     } catch (e) {
       toast({ variant: 'destructive', title: 'Error', description: 'Sign out failed' });
     }
+  };
+
+  const handleNavigation = (url: string) => {
+    router.push(url);
+    setOpenMobile(false);
   };
 
   const menuGroups = [
@@ -110,7 +114,7 @@ export function AppSidebar() {
                       tooltip={item.title}
                       className="h-11 px-4"
                     >
-                      <button onClick={() => router.push(item.url)}>
+                      <button onClick={() => handleNavigation(item.url)}>
                         <item.icon className="mr-3 h-5 w-5 text-primary" />
                         <span className="font-medium">{item.title}</span>
                       </button>
