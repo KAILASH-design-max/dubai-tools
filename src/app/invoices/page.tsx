@@ -317,7 +317,7 @@ function InvoiceDetailModal({ invoiceId, userId, isOpen, onOpenChange }: { invoi
               <div className="flex justify-between items-end gap-8 pt-4">
                 <div className="signature-area flex flex-col items-start gap-1">
                   <div className="relative h-12 w-24">
-                    <Image src="https://picsum.photos/seed/sig1/100/50" data-ai-hint="digital signature" alt="Signature" width={100} height={50} className="object-contain" />
+                    <Image src="/signature.jpeg" alt="Signature" width={100} height={50} className="object-contain" />
                   </div>
                   <div className="w-40 border-t border-dashed pt-1">
                     <p className="text-[10px] text-muted-foreground">Authorized Signature</p>
