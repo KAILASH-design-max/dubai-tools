@@ -194,10 +194,11 @@
         "name": { "type": "string" },
         "phone": { "type": "string" },
         "dailyRate": { "type": "number" },
+        "joiningDate": { "type": "string", "format": "date" },
         "createdAt": { "type": "string", "format": "date-time" },
         "updatedAt": { "type": "string", "format": "date-time" }
       },
-      "required": ["id", "name", "dailyRate"]
+      "required": ["id", "name", "dailyRate", "joiningDate"]
     },
     "LaborRecord": {
       "$schema": "http://json-schema.org/draft-07/schema#",

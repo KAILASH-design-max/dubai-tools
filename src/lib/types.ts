@@ -48,6 +48,7 @@ export interface Laborer {
     name: string;
     phone?: string;
     dailyRate: number;
+    joiningDate: string;
     createdAt: string;
     updatedAt: string;
 }

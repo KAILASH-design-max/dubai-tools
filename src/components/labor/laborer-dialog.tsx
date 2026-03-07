@@ -23,6 +23,7 @@ const initialFormData: Partial<Laborer> = {
   name: '',
   phone: '',
   dailyRate: 0,
+  joiningDate: new Date().toISOString().split('T')[0],
 };
 
 export function LaborerDialog({ isOpen, onOpenChange, laborer, userId }: LaborerDialogProps) {
@@ -34,12 +35,18 @@ export function LaborerDialog({ isOpen, onOpenChange, laborer, userId }: Laborer
     if (laborer) {
       setFormData(laborer);
     } else {
-      setFormData(initialFormData);
+      setFormData({
+        ...initialFormData,
+        joiningDate: new Date().toISOString().split('T')[0]
+      });
     }
   }, [laborer, isOpen]);
 
   const handleSave = () => {
-    if (!firestore || !formData.name) return;
+    if (!firestore || !formData.name) {
+      toast({ variant: "destructive", title: "Error", description: "Name is required." });
+      return;
+    }
 
     const laborersCollection = collection(firestore, `users/${userId}/laborers`);
     
@@ -69,7 +76,7 @@ export function LaborerDialog({ isOpen, onOpenChange, laborer, userId }: Laborer
         <DialogHeader>
           <DialogTitle>{laborer ? 'Edit Laborer' : 'Add New Laborer'}</DialogTitle>
           <DialogDescription>
-            Enter details for your worker. Set their standard daily wage rate.
+            Enter details for your worker. Set their standard daily wage rate and joining date.
           </DialogDescription>
         </DialogHeader>
         <div className="grid gap-4 py-4">
@@ -89,6 +96,15 @@ export function LaborerDialog({ isOpen, onOpenChange, laborer, userId }: Laborer
               value={formData.phone} 
               onChange={(e) => setFormData({ ...formData, phone: e.target.value })} 
               placeholder="e.g. 9876543210"
+            />
+          </div>
+          <div className="grid gap-2">
+            <Label htmlFor="joiningDate">Joining Date</Label>
+            <Input 
+              id="joiningDate" 
+              type="date"
+              value={formData.joiningDate} 
+              onChange={(e) => setFormData({ ...formData, joiningDate: e.target.value })} 
             />
           </div>
           <div className="grid gap-2">
