@@ -7,7 +7,7 @@ import { collection, query, where, doc } from 'firebase/firestore';
 import { Invoice, InvoiceLineItem } from '@/lib/types';
 import { MainHeader } from '@/components/main-header';
 import { Button } from '@/components/ui/button';
-import { Search, Trash2, MoreHorizontal, Printer, Receipt, Eye, Download } from 'lucide-react';
+import { Search, Trash2, MoreHorizontal, Printer, Receipt, Eye } from 'lucide-react';
 import { Card, CardHeader, CardContent } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
@@ -275,9 +275,6 @@ export default function InvoicesPage() {
         <div className="max-w-6xl mx-auto space-y-8">
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
             <h2 className="text-3xl font-bold font-headline">Invoice Dashboard</h2>
-            <Button onClick={() => toast({ title: "Export", description: "Exporting feature coming soon." })} variant="outline">
-              <Download className="mr-2 h-4 w-4" />Export CSV
-            </Button>
           </div>
           <Card>
             <CardHeader className="pb-3">
