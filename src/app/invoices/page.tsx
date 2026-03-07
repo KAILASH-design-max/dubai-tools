@@ -32,7 +32,7 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from "@/Dialog";
+} from "@/components/ui/dialog";
 import Image from 'next/image';
 import { PlugZap } from 'lucide-react';
 
@@ -232,9 +232,7 @@ function InvoiceDetailModal({ invoice, userId, isOpen, onOpenChange }: { invoice
             @media print {
               body * { visibility: hidden; }
               .print-a4 .invoice-detail-print, .print-a4 .invoice-detail-print * { visibility: visible; }
-              .print-receipt .receipt-view-modal, .print-receipt .receipt-view-modal * { visibility: visible; }
-              
-              .invoice-detail-print {
+              .print-a4 .invoice-detail-print {
                 position: absolute; left: 0; top: 0; width: 100%; border: none !important; padding: 5mm !important; background: white !important; font-size: 8pt;
               }
               .receipt-view-modal {
@@ -307,7 +305,7 @@ function InvoiceDetailModal({ invoice, userId, isOpen, onOpenChange }: { invoice
             <div className="flex justify-between items-end gap-8 pt-4">
               <div className="signature-area flex flex-col items-start gap-1">
                 <div className="relative h-12 w-24">
-                  <Image src="/signature.jpeg" alt="Signature" width={100} height={50} className="object-contain" />
+                  <Image src="https://picsum.photos/seed/sig1/100/50" data-ai-hint="digital signature" alt="Signature" width={100} height={50} className="object-contain" />
                 </div>
                 <div className="w-40 border-t border-dashed pt-1">
                   <p className="text-[10px] text-muted-foreground">Authorized Signature</p>
