@@ -33,6 +33,13 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import Image from 'next/image';
 import { PlugZap } from 'lucide-react';
 
@@ -194,6 +201,7 @@ function AddItemToSavedInvoiceDialog({
 
 function InvoiceDetailModal({ invoiceId, userId, isOpen, onOpenChange }: { invoiceId: string | null, userId: string, isOpen: boolean, onOpenChange: (open: boolean) => void }) {
   const firestore = useFirestore();
+  const { toast } = useToast();
   const [printMode, setPrintMode] = useState<'a4' | 'receipt'>('a4');
   const [isAddItemOpen, setIsAddItemOpen] = useState(false);
 
@@ -209,6 +217,20 @@ function InvoiceDetailModal({ invoiceId, userId, isOpen, onOpenChange }: { invoi
     [firestore, userId, invoiceId]
   );
   const { data: lineItems, isLoading: areLineItemsLoading } = useCollection<InvoiceLineItem>(lineItemsRef);
+
+  const handleStatusChange = async (newStatus: string) => {
+    if (!firestore || !userId || !invoiceId) return;
+    try {
+      const docRef = doc(firestore, `users/${userId}/invoices/${invoiceId}`);
+      await updateDoc(docRef, { 
+        status: newStatus,
+        updatedAt: new Date().toISOString()
+      });
+      toast({ title: "Status Updated", description: `Invoice status changed to ${newStatus}.` });
+    } catch (e) {
+      toast({ variant: "destructive", title: "Error", description: "Failed to update status." });
+    }
+  };
 
   if (!invoiceId) return null;
 
@@ -253,7 +275,7 @@ function InvoiceDetailModal({ invoiceId, userId, isOpen, onOpenChange }: { invoi
             <div className="py-20 text-center">Loading invoice details...</div>
           ) : invoice && (
             <div className="invoice-detail-print space-y-6 py-4">
-              <div className="flex items-center justify-between">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                   <div className="flex items-center gap-3">
                     <PlugZap className="h-8 w-8 text-primary" />
                     <div>
@@ -265,7 +287,18 @@ function InvoiceDetailModal({ invoiceId, userId, isOpen, onOpenChange }: { invoi
                     <Button variant="outline" size="sm" onClick={() => setIsAddItemOpen(true)}>
                       <Plus className="mr-2 h-4 w-4" /> Add Item
                     </Button>
-                    <Badge className={invoice.status === 'Paid' ? 'bg-green-600' : ''}>{invoice.status}</Badge>
+                    <Select value={invoice.status} onValueChange={handleStatusChange}>
+                      <SelectTrigger className="w-[120px] h-9">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="Draft">Draft</SelectItem>
+                        <SelectItem value="Sent">Sent</SelectItem>
+                        <SelectItem value="Paid">Paid</SelectItem>
+                        <SelectItem value="Overdue">Overdue</SelectItem>
+                        <SelectItem value="Cancelled">Cancelled</SelectItem>
+                      </SelectContent>
+                    </Select>
                   </div>
               </div>
               
