@@ -1,15 +1,13 @@
-
 'use client';
 
 import { useEffect, useState } from 'react';
-import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { collection, query, orderBy } from 'firebase/firestore';
 import { InventoryItem } from '@/lib/types';
-import { Logo } from '@/components/logo';
+import { MainHeader } from '@/components/main-header';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, Plus, Package, Search } from 'lucide-react';
+import { Plus, Package, Search } from 'lucide-react';
 import { Card, CardHeader, CardContent, CardTitle, CardDescription } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { InventoryList } from '@/components/inventory/inventory-list';
@@ -60,17 +58,7 @@ export default function InventoryPage() {
 
   return (
     <div className="min-h-screen bg-background text-foreground">
-      <header className="sticky top-0 z-10 border-b bg-card/80 backdrop-blur-sm">
-        <div className="container mx-auto flex h-16 items-center justify-between px-4 md:px-6">
-          <Logo />
-          <Link href="/">
-            <Button variant="outline">
-              <ArrowLeft className="mr-2 h-4 w-4" />
-              Back to Editor
-            </Button>
-          </Link>
-        </div>
-      </header>
+      <MainHeader />
       <main className="container mx-auto p-4 md:p-6 lg:p-8">
         <div className="max-w-6xl mx-auto space-y-8">
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">

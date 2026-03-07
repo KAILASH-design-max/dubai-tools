@@ -1,16 +1,13 @@
-
 'use client';
 
 import { useEffect, useState, useMemo } from 'react';
-import Link from 'next/link';
-import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { useUser, useCollection, useFirestore, useMemoFirebase, deleteDocumentNonBlocking, useCompanyProfile } from '@/firebase';
 import { collection, query, where, doc } from 'firebase/firestore';
 import { Invoice, InvoiceLineItem } from '@/lib/types';
-import { Logo } from '@/components/logo';
+import { MainHeader } from '@/components/main-header';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, Search, Trash2, MoreHorizontal, Printer, Receipt, PlugZap, Eye, Download, Package } from 'lucide-react';
+import { Search, Trash2, MoreHorizontal, Printer, Receipt, Eye, Download } from 'lucide-react';
 import { Card, CardHeader, CardContent } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
@@ -35,6 +32,8 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import Image from 'next/image';
+import { PlugZap } from 'lucide-react';
 
 function InvoiceDetailModal({ invoice, userId, isOpen, onOpenChange }: { invoice: Invoice | null, userId: string, isOpen: boolean, onOpenChange: (open: boolean) => void }) {
   const firestore = useFirestore();
@@ -271,19 +270,7 @@ export default function InvoicesPage() {
 
   return (
     <div className="min-h-screen bg-background text-foreground">
-      <header className="sticky top-0 z-10 border-b bg-card/80 backdrop-blur-sm">
-        <div className="container mx-auto flex h-16 items-center justify-between px-4 md:px-6">
-          <Logo />
-          <div className="flex items-center gap-2">
-             <Link href="/inventory">
-              <Button variant="ghost" size="icon" title="Inventory Management">
-                <Package className="h-5 w-5" />
-              </Button>
-            </Link>
-            <Link href="/"><Button variant="outline"><ArrowLeft className="mr-2 h-4 w-4" />Back to Home</Button></Link>
-          </div>
-        </div>
-      </header>
+      <MainHeader />
       <main className="container mx-auto p-4 md:p-6 lg:p-8">
         <div className="max-w-6xl mx-auto space-y-8">
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">

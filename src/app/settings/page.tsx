@@ -1,12 +1,10 @@
-
 "use client";
 
 import { useEffect } from "react";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Logo } from "@/components/logo";
+import { MainHeader } from "@/components/main-header";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, User, Building2, Users, LogOut } from "lucide-react";
+import { User, Building2, Users, LogOut } from "lucide-react";
 import { useUser, useAuth } from "@/firebase";
 import { Skeleton } from "@/components/ui/skeleton";
 import { CompanyProfileForm } from "@/components/settings/company-profile-form";
@@ -61,17 +59,7 @@ export default function SettingsPage() {
 
   return (
     <div className="min-h-screen bg-background text-foreground">
-      <header className="sticky top-0 z-10 border-b bg-card/80 backdrop-blur-sm">
-        <div className="container mx-auto flex h-16 items-center justify-between px-4 md:px-6">
-          <Logo />
-          <Link href="/">
-            <Button variant="outline">
-              <ArrowLeft className="mr-2 h-4 w-4" />
-              Back to Invoice
-            </Button>
-          </Link>
-        </div>
-      </header>
+      <MainHeader />
       <main className="container mx-auto p-2 sm:p-4 md:p-6">
         <div className="max-w-2xl mx-auto space-y-8">
             <h1 className="text-3xl font-bold font-headline">Settings</h1>
