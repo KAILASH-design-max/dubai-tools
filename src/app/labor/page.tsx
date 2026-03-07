@@ -105,8 +105,7 @@ export default function LaborManagementPage() {
         <div className="max-w-6xl mx-auto space-y-8">
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
             <div>
-              <h2 className="text-3xl font-bold font-headline flex items-center gap-3">
-                <Users className="h-8 w-8 text-primary" />
+              <h2 className="text-3xl font-bold font-headline">
                 Labor Management
               </h2>
               <p className="text-muted-foreground mt-1">Manage your workers and their daily wage records.</p>
