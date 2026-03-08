@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
-import { useUser, useCollection, useFirestore, useMemoFirebase, deleteDocumentNonBlocking, useDoc } from '@/firebase';
+import { useUser, useCollection, useFirestore, useMemoFirebase, deleteDocumentNonBlocking, useDoc, useCompanyProfile } from '@/firebase';
 import { collection, query, where, doc, addDoc, updateDoc, getDocs, deleteDoc } from 'firebase/firestore';
 import { Invoice, InvoiceLineItem, InventoryItem } from '@/lib/types';
 import { MainHeader } from '@/components/main-header';
@@ -208,6 +208,8 @@ function InvoiceDetailModal({ invoiceId, userId, isOpen, onOpenChange, initialPr
     if (initialPrintMode) setPrintMode(initialPrintMode);
   }, [initialPrintMode]);
 
+  const { data: companyProfile } = useCompanyProfile(userId);
+
   const invoiceRef = useMemoFirebase(
     () => (firestore && userId && invoiceId ? doc(firestore, `users/${userId}/invoices/${invoiceId}`) : null),
     [firestore, userId, invoiceId]
@@ -284,7 +286,7 @@ function InvoiceDetailModal({ invoiceId, userId, isOpen, onOpenChange, initialPr
     setTimeout(() => window.print(), 300);
   };
 
-  const activeProfile = { 
+  const activeProfile = companyProfile || { 
     name: 'DUBAI TOOLS', 
     addressLine1: 'Shivdhara', 
     phoneNumbers: ['9268863031', '7280944150'], 
@@ -347,6 +349,11 @@ function InvoiceDetailModal({ invoiceId, userId, isOpen, onOpenChange, initialPr
                     <div>
                       <h2 className="text-xl font-headline font-bold text-primary">{activeProfile.name}</h2>
                       <p className="text-xs text-muted-foreground">{activeProfile.addressLine1}</p>
+                      <div className="text-[10px] text-muted-foreground space-y-0.5 mt-1">
+                        {activeProfile.phoneNumbers?.length > 0 && <p>Ph: {activeProfile.phoneNumbers.join(', ')}</p>}
+                        {activeProfile.email && <p>Email: {activeProfile.email}</p>}
+                        {activeProfile.gstRegistrationNumber && <p>GST: {activeProfile.gstRegistrationNumber}</p>}
+                      </div>
                     </div>
                   </div>
                   <div className="flex items-center gap-2 print-hidden">
@@ -454,7 +461,9 @@ function InvoiceDetailModal({ invoiceId, userId, isOpen, onOpenChange, initialPr
                 <div className="flex justify-center mb-1"><PlugZap className="h-6 w-6 text-primary" /></div>
                 <h2 className="font-bold text-lg uppercase">{activeProfile.name}</h2>
                 <p className="text-[8pt]">{activeProfile.addressLine1}</p>
-                <p className="text-[8pt]">Ph: {activeProfile.phoneNumbers.join(', ')}</p>
+                <p className="text-[8pt]">Ph: {activeProfile.phoneNumbers?.join(', ')}</p>
+                {activeProfile.email && <p className="text-[8pt]">Email: {activeProfile.email}</p>}
+                {activeProfile.gstRegistrationNumber && <p className="text-[8pt]">GST: {activeProfile.gstRegistrationNumber}</p>}
               </div>
               <Separator className="border-dashed my-2" />
               <div className="text-[8pt] space-y-1 mb-2">
