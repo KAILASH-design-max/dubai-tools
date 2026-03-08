@@ -99,7 +99,8 @@ function AddItemToSavedInvoiceDialog({
 
       snap.docs.forEach(d => {
         const item = d.data();
-        const q = parseFloat(item.quantity) || 1;
+        const qText = String(item.quantity).match(/^[0-9.]+/)?.[0] || '1';
+        const q = parseFloat(qText) || 1;
         const labor = item.description.toLowerCase().includes('labor');
         const a = labor ? item.rate : q * item.rate;
         const t = a * (item.tax / 100);
@@ -250,7 +251,8 @@ function InvoiceDetailModal({ invoiceId, userId, isOpen, onOpenChange, initialPr
 
       snap.docs.forEach(d => {
         const item = d.data();
-        const q = parseFloat(item.quantity) || 1;
+        const qText = String(item.quantity).match(/^[0-9.]+/)?.[0] || '1';
+        const q = parseFloat(qText) || 1;
         const labor = item.description.toLowerCase().includes('labor');
         const a = labor ? item.rate : q * item.rate;
         const t = a * (item.tax / 100);
@@ -272,12 +274,10 @@ function InvoiceDetailModal({ invoiceId, userId, isOpen, onOpenChange, initialPr
     }
   };
 
-  if (!invoiceId) return null;
-
   const formatCurrency = (amount: number) => new Intl.NumberFormat('en-IN', { 
     style: 'currency', 
     currency: 'INR'
-  }).format(amount).replace('₹', 'Rs ');
+  }).format(amount || 0).replace('₹', 'Rs ');
 
   const handlePrint = (mode: 'a4' | 'receipt') => {
     setPrintMode(mode);
@@ -291,6 +291,8 @@ function InvoiceDetailModal({ invoiceId, userId, isOpen, onOpenChange, initialPr
     email: 'dubaitools2026@gmail.com', 
     gstRegistrationNumber: 'Qw1234766666s' 
   };
+
+  if (!invoiceId) return null;
 
   return (
     <>
@@ -396,7 +398,8 @@ function InvoiceDetailModal({ invoiceId, userId, isOpen, onOpenChange, initialPr
                     {areLineItemsLoading ? (
                       <TableRow><TableCell colSpan={5} className="text-center py-12">Loading...</TableCell></TableRow>
                     ) : lineItems?.map((item, idx) => {
-                      const qty = parseFloat(item.quantity) || 1;
+                      const qText = String(item.quantity).match(/^[0-9.]+/)?.[0] || '1';
+                      const qty = parseFloat(qText) || 1;
                       const isLabor = item.description.toLowerCase().includes('labor');
                       const amount = isLabor ? item.rate : qty * item.rate;
                       const total = amount * (1 + item.tax / 100);
@@ -469,7 +472,8 @@ function InvoiceDetailModal({ invoiceId, userId, isOpen, onOpenChange, initialPr
                 </thead>
                 <tbody>
                   {lineItems?.map((item, idx) => {
-                    const qty = parseFloat(item.quantity) || 1;
+                    const qText = String(item.quantity).match(/^[0-9.]+/)?.[0] || '1';
+                    const qty = parseFloat(qText) || 1;
                     const isLabor = item.description.toLowerCase().includes('labor');
                     const amount = isLabor ? item.rate : qty * item.rate;
                     const total = amount * (1 + item.tax / 100);
@@ -488,7 +492,7 @@ function InvoiceDetailModal({ invoiceId, userId, isOpen, onOpenChange, initialPr
                   <span>Subtotal:</span><span>{formatCurrency(invoice.subtotalAmount)}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span>Tax:</span><span>{formatCurrency(taxTotal)}</span>
+                  <span>Tax:</span><span>{formatCurrency(invoice.totalTaxAmount)}</span>
                 </div>
                 <div className="flex justify-between font-bold text-[9pt] pt-1">
                   <span>GRAND TOTAL:</span><span>{formatCurrency(invoice.grandTotalAmount)}</span>
