@@ -296,20 +296,55 @@ function InvoiceDetailModal({ invoiceId, userId, isOpen, onOpenChange }: { invoi
       <Dialog open={isOpen} onOpenChange={onOpenChange}>
         <DialogContent className={`max-w-3xl max-h-[90vh] overflow-y-auto ${printMode === 'a4' ? 'print-a4' : 'print-receipt'}`}>
           <style>{`
-            @media screen { .receipt-view-modal { display: none; } }
+            @media screen { 
+              .receipt-view-modal { display: none; } 
+            }
             @media print {
-              body * { visibility: hidden; }
-              .print-a4 .invoice-detail-print, .print-a4 .invoice-detail-print * { visibility: visible; }
+              body { background: white !important; overflow: visible !important; }
+              body > * { visibility: hidden !important; }
+              [data-radix-portal], [data-radix-portal] * { visibility: visible !important; }
+              
               .print-a4 .invoice-detail-print {
-                position: absolute; left: 0; top: 0; width: 100%; border: none !important; padding: 5mm !important; background: white !important; font-size: 8pt;
+                position: fixed !important;
+                left: 0 !important;
+                top: 0 !important;
+                width: 100% !important;
+                height: auto !important;
+                border: none !important;
+                padding: 10mm !important;
+                background: white !important;
+                z-index: 99999 !important;
+                font-size: 8pt;
               }
-              .receipt-view-modal {
-                position: absolute; left: 0; top: 0; width: 80mm; padding: 2mm; font-family: monospace; font-size: 9pt; display: block !important; background: white !important;
+              
+              .print-receipt .receipt-view-modal {
+                position: fixed !important;
+                left: 0 !important;
+                top: 0 !important;
+                width: 80mm !important;
+                height: auto !important;
+                padding: 4mm !important;
+                background: white !important;
+                z-index: 99999 !important;
+                display: block !important;
+                font-family: monospace;
+                font-size: 9pt;
               }
+              
+              /* Hide modal UI elements during print */
+              [role="dialog"] > button,
+              .print-hidden,
+              .dialog-footer-print { display: none !important; }
+              
               thead { display: table-header-group !important; }
             }
           `}</style>
           
+          <DialogHeader className="print:hidden">
+            <DialogTitle className="text-2xl font-headline text-primary">Invoice Details</DialogTitle>
+            <DialogDescription>Reference: {invoice?.invoiceNumber}</DialogDescription>
+          </DialogHeader>
+
           {isInvoiceLoading ? (
             <div className="py-20 text-center">Loading invoice details...</div>
           ) : invoice && (
@@ -318,8 +353,8 @@ function InvoiceDetailModal({ invoiceId, userId, isOpen, onOpenChange }: { invoi
                   <div className="flex items-center gap-3">
                     <PlugZap className="h-8 w-8 text-primary" />
                     <div>
-                      <DialogTitle className="text-2xl font-headline text-primary">Invoice Details</DialogTitle>
-                      <DialogDescription>Reference: {invoice.invoiceNumber}</DialogDescription>
+                      <h2 className="text-xl font-headline font-bold text-primary">{activeProfile.name}</h2>
+                      <p className="text-xs text-muted-foreground">{activeProfile.addressLine1}</p>
                     </div>
                   </div>
                   <div className="flex items-center gap-2 print:hidden">
@@ -352,6 +387,7 @@ function InvoiceDetailModal({ invoiceId, userId, isOpen, onOpenChange }: { invoi
                 <div className="text-right">
                   <p className="text-muted-foreground mb-1 uppercase text-[10px] font-bold tracking-wider">Date Issued</p>
                   <p className="font-medium">{format(new Date(`${invoice.invoiceDate}T00:00:00`), 'PP')}</p>
+                  <p className="text-muted-foreground text-xs">Invoice #: {invoice.invoiceNumber}</p>
                 </div>
               </div>
 
@@ -359,7 +395,7 @@ function InvoiceDetailModal({ invoiceId, userId, isOpen, onOpenChange }: { invoi
                 <Table>
                   <TableHeader className="bg-muted/50">
                     <TableRow>
-                      <TableHead>Item</TableHead>
+                      <TableHead className="w-[40px]">#</TableHead>
                       <TableHead>Description</TableHead>
                       <TableHead className="text-right">Qty</TableHead>
                       <TableHead className="text-right">Total</TableHead>
@@ -407,8 +443,8 @@ function InvoiceDetailModal({ invoiceId, userId, isOpen, onOpenChange }: { invoi
                   </div>
                 </div>
                 <div className="w-full md:w-1/2 space-y-2 text-right">
-                  <div className="flex justify-between px-2"><span>Subtotal</span><span>{formatCurrency(invoice.subtotalAmount)}</span></div>
-                  <div className="flex justify-between px-2"><span>Tax</span><span>{formatCurrency(invoice.totalTaxAmount)}</span></div>
+                  <div className="flex justify-between px-2 text-sm"><span>Subtotal</span><span>{formatCurrency(invoice.subtotalAmount)}</span></div>
+                  <div className="flex justify-between px-2 text-sm"><span>Tax</span><span>{formatCurrency(invoice.totalTaxAmount)}</span></div>
                   <Separator />
                   <div className="flex justify-between bg-primary/5 p-4 rounded-lg border border-primary/20">
                     <span className="font-headline font-bold text-primary">Grand Total</span>
@@ -426,13 +462,11 @@ function InvoiceDetailModal({ invoiceId, userId, isOpen, onOpenChange }: { invoi
                 <h2 className="font-bold text-lg uppercase">{activeProfile.name}</h2>
                 <p className="text-[8pt]">{activeProfile.addressLine1}</p>
                 <p className="text-[8pt]">Ph: {activeProfile.phoneNumbers.join(', ')}</p>
-                {activeProfile.gstRegistrationNumber && <p className="text-[8pt]">GST: {activeProfile.gstRegistrationNumber}</p>}
               </div>
               <Separator className="border-dashed my-2" />
               <div className="text-[8pt] space-y-1 mb-2">
                 <div className="flex justify-between"><span>Inv: {invoice.invoiceNumber}</span><span>{invoice.invoiceDate}</span></div>
                 <div className="font-bold">Bill To: {invoice.customerName}</div>
-                {invoice.customerPhone && <div>Ph: {invoice.customerPhone}</div>}
               </div>
               <Separator className="border-dashed my-2" />
               <table className="w-full text-[8pt]">
@@ -474,7 +508,7 @@ function InvoiceDetailModal({ invoiceId, userId, isOpen, onOpenChange }: { invoi
             </div>
           )}
 
-          <DialogFooter className="flex flex-col sm:flex-row gap-2 print:hidden">
+          <DialogFooter className="flex flex-col sm:flex-row gap-2 print:hidden dialog-footer-print">
             <Button variant="outline" className="w-full sm:w-auto" onClick={() => handlePrint('a4')}>
               <Printer className="mr-2 h-4 w-4" /> A4 Print
             </Button>
