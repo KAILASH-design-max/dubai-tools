@@ -3,7 +3,7 @@
 import { useEffect, useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { useUser, useCollection, useFirestore, useMemoFirebase, deleteDocumentNonBlocking, useDoc } from '@/firebase';
-import { collection, query, where, doc, addDoc, updateDoc, getDocs } from 'firebase/firestore';
+import { collection, query, where, doc, addDoc, updateDoc, getDocs, deleteDoc } from 'firebase/firestore';
 import { Invoice, InvoiceLineItem, InventoryItem } from '@/lib/types';
 import { MainHeader } from '@/components/main-header';
 import { Button } from '@/components/ui/button';
@@ -232,6 +232,45 @@ function InvoiceDetailModal({ invoiceId, userId, isOpen, onOpenChange }: { invoi
     }
   };
 
+  const handleDeleteLineItem = async (lineItemId: string) => {
+    if (!firestore || !userId || !invoiceId) return;
+    if (!confirm("Are you sure you want to remove this item?")) return;
+
+    try {
+      const lineItemRef = doc(firestore, `users/${userId}/invoices/${invoiceId}/lineItems/${lineItemId}`);
+      await deleteDoc(lineItemRef);
+
+      // Recalculate totals after deletion
+      const lineItemsCol = collection(firestore, `users/${userId}/invoices/${invoiceId}/lineItems`);
+      const snap = await getDocs(lineItemsCol);
+      
+      let newSubtotal = 0;
+      let newTaxTotal = 0;
+
+      snap.docs.forEach(d => {
+        const item = d.data();
+        const q = parseFloat(item.quantity) || 1;
+        const labor = item.description.toLowerCase().includes('labor');
+        const a = labor ? item.rate : q * item.rate;
+        const t = a * (item.tax / 100);
+        newSubtotal += a;
+        newTaxTotal += t;
+      });
+
+      const invoiceRef = doc(firestore, `users/${userId}/invoices/${invoiceId}`);
+      await updateDoc(invoiceRef, {
+        subtotalAmount: newSubtotal,
+        totalTaxAmount: newTaxTotal,
+        grandTotalAmount: newSubtotal + newTaxTotal,
+        updatedAt: new Date().toISOString(),
+      });
+
+      toast({ title: "Item Removed", description: "The invoice totals have been updated." });
+    } catch (e) {
+      toast({ variant: "destructive", title: "Error", description: "Failed to remove item." });
+    }
+  };
+
   if (!invoiceId) return null;
 
   const formatCurrency = (amount: number) => new Intl.NumberFormat('en-IN', { 
@@ -324,11 +363,12 @@ function InvoiceDetailModal({ invoiceId, userId, isOpen, onOpenChange }: { invoi
                       <TableHead>Description</TableHead>
                       <TableHead className="text-right">Qty</TableHead>
                       <TableHead className="text-right">Total</TableHead>
+                      <TableHead className="text-right print:hidden">Actions</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {areLineItemsLoading ? (
-                      <TableRow><TableCell colSpan={4} className="text-center py-12">Loading...</TableCell></TableRow>
+                      <TableRow><TableCell colSpan={5} className="text-center py-12">Loading...</TableCell></TableRow>
                     ) : lineItems?.map((item, idx) => {
                       const qty = parseFloat(item.quantity) || 1;
                       const isLabor = item.description.toLowerCase().includes('labor');
@@ -340,6 +380,16 @@ function InvoiceDetailModal({ invoiceId, userId, isOpen, onOpenChange }: { invoi
                           <TableCell className="font-medium">{item.description}</TableCell>
                           <TableCell className="text-right">{item.quantity}</TableCell>
                           <TableCell className="text-right font-bold">{total.toFixed(2)}</TableCell>
+                          <TableCell className="text-right print:hidden">
+                            <Button 
+                              variant="ghost" 
+                              size="icon" 
+                              className="text-destructive h-8 w-8" 
+                              onClick={() => handleDeleteLineItem(item.id)}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </TableCell>
                         </TableRow>
                       )
                     })}
