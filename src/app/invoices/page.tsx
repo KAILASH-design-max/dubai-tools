@@ -7,7 +7,7 @@ import { collection, query, where, doc, addDoc, updateDoc, getDocs, deleteDoc } 
 import { Invoice, InvoiceLineItem, InventoryItem } from '@/lib/types';
 import { MainHeader } from '@/components/main-header';
 import { Button } from '@/components/ui/button';
-import { Search, Trash2, MoreHorizontal, Printer, Receipt, Eye, Plus, Package } from 'lucide-react';
+import { Search, Trash2, MoreHorizontal, Printer, Receipt, Eye, Plus } from 'lucide-react';
 import { Card, CardHeader, CardContent } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
@@ -90,7 +90,6 @@ function AddItemToSavedInvoiceDialog({
       const isLabor = description.toLowerCase().includes('labor');
       const amount = isLabor ? rate : qtyNum * rate;
 
-      // 1. Add the line item
       await addDoc(lineItemsCol, {
         description,
         quantity,
@@ -99,7 +98,6 @@ function AddItemToSavedInvoiceDialog({
         sortIndex: Date.now(),
       });
 
-      // 2. Fetch all line items to get accurate totals
       const snap = await getDocs(lineItemsCol);
       let newSubtotal = 0;
       let newTaxTotal = 0;
@@ -114,7 +112,6 @@ function AddItemToSavedInvoiceDialog({
         newTaxTotal += t;
       });
 
-      // 3. Update the invoice doc
       await updateDoc(invoiceRef, {
         subtotalAmount: newSubtotal,
         totalTaxAmount: newTaxTotal,
@@ -240,7 +237,6 @@ function InvoiceDetailModal({ invoiceId, userId, isOpen, onOpenChange }: { invoi
       const lineItemRef = doc(firestore, `users/${userId}/invoices/${invoiceId}/lineItems/${lineItemId}`);
       await deleteDoc(lineItemRef);
 
-      // Recalculate totals after deletion
       const lineItemsCol = collection(firestore, `users/${userId}/invoices/${invoiceId}/lineItems`);
       const snap = await getDocs(lineItemsCol);
       
@@ -280,7 +276,7 @@ function InvoiceDetailModal({ invoiceId, userId, isOpen, onOpenChange }: { invoi
 
   const handlePrint = (mode: 'a4' | 'receipt') => {
     setPrintMode(mode);
-    setTimeout(() => window.print(), 100);
+    setTimeout(() => window.print(), 200);
   };
 
   const activeProfile = { 
@@ -300,47 +296,55 @@ function InvoiceDetailModal({ invoiceId, userId, isOpen, onOpenChange }: { invoi
               .receipt-view-modal { display: none; } 
             }
             @media print {
-              body { background: white !important; overflow: visible !important; }
-              body > * { visibility: hidden !important; }
-              [data-radix-portal], [data-radix-portal] * { visibility: visible !important; }
+              html, body {
+                height: 100% !important;
+                margin: 0 !important;
+                padding: 0 !important;
+                overflow: visible !important;
+                background: white !important;
+              }
+              body > :not([data-radix-portal]) {
+                display: none !important;
+              }
+              [data-radix-portal] {
+                display: block !important;
+                position: absolute !important;
+                top: 0 !important;
+                left: 0 !important;
+                width: 100% !important;
+              }
               
               .print-a4 .invoice-detail-print {
-                position: fixed !important;
-                left: 0 !important;
-                top: 0 !important;
-                width: 100% !important;
-                height: auto !important;
-                border: none !important;
-                padding: 10mm !important;
+                visibility: visible !important;
+                display: block !important;
+                padding: 15mm !important;
                 background: white !important;
-                z-index: 99999 !important;
-                font-size: 8pt;
+                width: 100% !important;
+                box-sizing: border-box !important;
               }
               
               .print-receipt .receipt-view-modal {
-                position: fixed !important;
-                left: 0 !important;
-                top: 0 !important;
+                visibility: visible !important;
+                display: block !important;
                 width: 80mm !important;
-                height: auto !important;
                 padding: 4mm !important;
                 background: white !important;
-                z-index: 99999 !important;
-                display: block !important;
                 font-family: monospace;
-                font-size: 9pt;
               }
               
-              /* Hide modal UI elements during print */
-              [role="dialog"] > button,
               .print-hidden,
-              .dialog-footer-print { display: none !important; }
+              .dialog-footer-print,
+              [role="dialog"] > button,
+              .dropdown-trigger-print { display: none !important; }
               
-              thead { display: table-header-group !important; }
+              * {
+                -webkit-print-color-adjust: exact !important;
+                print-color-adjust: exact !important;
+              }
             }
           `}</style>
           
-          <DialogHeader className="print:hidden">
+          <DialogHeader className="print-hidden">
             <DialogTitle className="text-2xl font-headline text-primary">Invoice Details</DialogTitle>
             <DialogDescription>Reference: {invoice?.invoiceNumber}</DialogDescription>
           </DialogHeader>
@@ -357,7 +361,7 @@ function InvoiceDetailModal({ invoiceId, userId, isOpen, onOpenChange }: { invoi
                       <p className="text-xs text-muted-foreground">{activeProfile.addressLine1}</p>
                     </div>
                   </div>
-                  <div className="flex items-center gap-2 print:hidden">
+                  <div className="flex items-center gap-2 print-hidden">
                     <Button variant="outline" size="sm" onClick={() => setIsAddItemOpen(true)}>
                       <Plus className="mr-2 h-4 w-4" /> Add Item
                     </Button>
@@ -399,7 +403,7 @@ function InvoiceDetailModal({ invoiceId, userId, isOpen, onOpenChange }: { invoi
                       <TableHead>Description</TableHead>
                       <TableHead className="text-right">Qty</TableHead>
                       <TableHead className="text-right">Total</TableHead>
-                      <TableHead className="text-right print:hidden">Actions</TableHead>
+                      <TableHead className="text-right print-hidden">Actions</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -416,7 +420,7 @@ function InvoiceDetailModal({ invoiceId, userId, isOpen, onOpenChange }: { invoi
                           <TableCell className="font-medium">{item.description}</TableCell>
                           <TableCell className="text-right">{item.quantity}</TableCell>
                           <TableCell className="text-right font-bold">{total.toFixed(2)}</TableCell>
-                          <TableCell className="text-right print:hidden">
+                          <TableCell className="text-right print-hidden">
                             <Button 
                               variant="ghost" 
                               size="icon" 
@@ -508,7 +512,7 @@ function InvoiceDetailModal({ invoiceId, userId, isOpen, onOpenChange }: { invoi
             </div>
           )}
 
-          <DialogFooter className="flex flex-col sm:flex-row gap-2 print:hidden dialog-footer-print">
+          <DialogFooter className="flex flex-col sm:flex-row gap-2 print-hidden dialog-footer-print">
             <Button variant="outline" className="w-full sm:w-auto" onClick={() => handlePrint('a4')}>
               <Printer className="mr-2 h-4 w-4" /> A4 Print
             </Button>
@@ -608,11 +612,11 @@ export default function InvoicesPage() {
                         <TableCell className="text-right font-medium">{formatCurrency(invoice.grandTotalAmount)}</TableCell>
                         <TableCell className="text-right">
                           <DropdownMenu>
-                            <DropdownMenuTrigger asChild><Button variant="ghost" size="icon"><MoreHorizontal className="h-4 w-4" /></Button></DropdownMenuTrigger>
+                            <DropdownMenuTrigger asChild><Button variant="ghost" size="icon" className="dropdown-trigger-print"><MoreHorizontal className="h-4 w-4" /></Button></DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
                               <DropdownMenuItem onClick={() => setViewInvoiceId(invoice.id)}><Eye className="mr-2 h-4 w-4" />View</DropdownMenuItem>
-                              <DropdownMenuItem onClick={() => { setViewInvoiceId(invoice.id); setTimeout(() => window.print(), 200); }}><Printer className="mr-2 h-4 w-4" />Print A4</DropdownMenuItem>
-                              <DropdownMenuItem onClick={() => { setViewInvoiceId(invoice.id); setTimeout(() => window.print(), 200); }}><Receipt className="mr-2 h-4 w-4" />Print Receipt</DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => { setViewInvoiceId(invoice.id); setTimeout(() => handlePrint('a4'), 300); }}><Printer className="mr-2 h-4 w-4" />Print A4</DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => { setViewInvoiceId(invoice.id); setTimeout(() => handlePrint('receipt'), 300); }}><Receipt className="mr-2 h-4 w-4" />Print Receipt</DropdownMenuItem>
                               <DropdownMenuSeparator />
                               <DropdownMenuItem className="text-destructive" onClick={() => deleteDocumentNonBlocking(doc(firestore!, `users/${user!.uid}/invoices/${invoice.id}`))}><Trash2 className="mr-2 h-4 w-4" />Delete</DropdownMenuItem>
                             </DropdownMenuContent>
