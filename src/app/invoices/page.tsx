@@ -347,12 +347,12 @@ function InvoiceDetailModal({ invoiceId, userId, isOpen, onOpenChange, initialPr
           ) : invoice && (
             <div className="invoice-detail-print space-y-6 py-4">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                  <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-2">
                     <PlugZap className="h-8 w-8 text-primary" />
                     <div>
-                      <h2 className="text-xl font-headline font-bold text-primary">{activeProfile.name}</h2>
-                      <p className="text-xs text-muted-foreground">{activeProfile.addressLine1}</p>
-                      <div className="text-[10px] text-muted-foreground space-y-0.5 mt-1">
+                      <h2 className="text-xl font-headline font-bold text-primary leading-none">{activeProfile.name}</h2>
+                      <p className="text-xs text-muted-foreground mt-0.5">{activeProfile.addressLine1}</p>
+                      <div className="text-[10px] text-muted-foreground space-y-0 mt-0.5">
                         {activeProfile.phoneNumbers?.length > 0 && <p>Ph: {activeProfile.phoneNumbers.join(', ')}</p>}
                         {activeProfile.email && <p>Email: {activeProfile.email}</p>}
                         {activeProfile.gstRegistrationNumber && <p>GST: {activeProfile.gstRegistrationNumber}</p>}
@@ -460,13 +460,15 @@ function InvoiceDetailModal({ invoiceId, userId, isOpen, onOpenChange, initialPr
 
           {invoice && (
             <div className="receipt-view-modal hidden">
-              <div className="text-center space-y-1 mb-2">
-                <div className="flex justify-center mb-1"><PlugZap className="h-6 w-6 text-primary" /></div>
+              <div className="text-center space-y-0 mb-2">
+                <div className="flex justify-center mb-0.5"><PlugZap className="h-6 w-6 text-primary" /></div>
                 <h2 className="font-bold text-lg uppercase">{activeProfile.name}</h2>
                 <p className="text-[8pt]">{activeProfile.addressLine1}</p>
-                <p className="text-[8pt]">Ph: {activeProfile.phoneNumbers?.join(', ')}</p>
-                {activeProfile.email && <p className="text-[8pt]">Email: {activeProfile.email}</p>}
-                {activeProfile.gstRegistrationNumber && <p className="text-[8pt]">GST: {activeProfile.gstRegistrationNumber}</p>}
+                <div className="text-[7pt] space-y-0 mt-0.5">
+                  <p>Ph: {activeProfile.phoneNumbers?.join(', ')}</p>
+                  {activeProfile.email && <p>Email: {activeProfile.email}</p>}
+                  {activeProfile.gstRegistrationNumber && <p>GST: {activeProfile.gstRegistrationNumber}</p>}
+                </div>
               </div>
               <Separator className="border-dashed my-2" />
               <div className="text-[8pt] space-y-1 mb-2">

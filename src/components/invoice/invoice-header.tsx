@@ -29,12 +29,12 @@ export function InvoiceHeader({
   return (
     <div className="font-body grid sm:grid-cols-2 gap-4 w-full">
       <div className="space-y-2">
-          <div className="space-y-1">
-            <h1 className="font-headline text-xl sm:text-2xl font-bold text-primary flex items-center gap-2">
+          <div className="space-y-0">
+            <h1 className="font-headline text-xl sm:text-2xl font-bold text-primary flex items-center gap-2 mb-0.5">
               <Zap className="h-6 w-6 shrink-0" />
               <span>{displayProfile.name}</span>
             </h1>
-            <div className="not-italic text-muted-foreground text-sm space-y-0.5">
+            <div className="not-italic text-muted-foreground text-sm space-y-0">
                 <p>{displayProfile.addressLine1}</p>
                 {displayProfile.phoneNumbers && displayProfile.phoneNumbers.length > 0 && (
                   <div className="flex items-center gap-1">
