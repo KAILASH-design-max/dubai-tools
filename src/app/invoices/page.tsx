@@ -7,7 +7,7 @@ import { collection, query, where, doc, addDoc, updateDoc, getDocs, deleteDoc } 
 import { Invoice, InvoiceLineItem, InventoryItem } from '@/lib/types';
 import { MainHeader } from '@/components/main-header';
 import { Button } from '@/components/ui/button';
-import { Search, Trash2, MoreHorizontal, Printer, Receipt, Eye, Plus } from 'lucide-react';
+import { Search, Trash2, MoreHorizontal, Printer, Receipt, Eye, Plus, PlugZap } from 'lucide-react';
 import { Card, CardHeader, CardContent } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
@@ -41,7 +41,6 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import Image from 'next/image';
-import { PlugZap } from 'lucide-react';
 
 function AddItemToSavedInvoiceDialog({ 
   isOpen, 
@@ -86,10 +85,6 @@ function AddItemToSavedInvoiceDialog({
       const invoiceRef = doc(firestore, `users/${userId}/invoices/${invoiceId}`);
       const lineItemsCol = collection(invoiceRef, 'lineItems');
       
-      const qtyNum = parseFloat(quantity) || 1;
-      const isLabor = description.toLowerCase().includes('labor');
-      const amount = isLabor ? rate : qtyNum * rate;
-
       await addDoc(lineItemsCol, {
         description,
         quantity,
@@ -196,11 +191,21 @@ function AddItemToSavedInvoiceDialog({
   );
 }
 
-function InvoiceDetailModal({ invoiceId, userId, isOpen, onOpenChange }: { invoiceId: string | null, userId: string, isOpen: boolean, onOpenChange: (open: boolean) => void }) {
+function InvoiceDetailModal({ invoiceId, userId, isOpen, onOpenChange, initialPrintMode }: { 
+  invoiceId: string | null, 
+  userId: string, 
+  isOpen: boolean, 
+  onOpenChange: (open: boolean) => void,
+  initialPrintMode?: 'a4' | 'receipt'
+}) {
   const firestore = useFirestore();
   const { toast } = useToast();
-  const [printMode, setPrintMode] = useState<'a4' | 'receipt'>('a4');
+  const [printMode, setPrintMode] = useState<'a4' | 'receipt'>(initialPrintMode || 'a4');
   const [isAddItemOpen, setIsAddItemOpen] = useState(false);
+
+  useEffect(() => {
+    if (initialPrintMode) setPrintMode(initialPrintMode);
+  }, [initialPrintMode]);
 
   const invoiceRef = useMemoFirebase(
     () => (firestore && userId && invoiceId ? doc(firestore, `users/${userId}/invoices/${invoiceId}`) : null),
@@ -276,7 +281,7 @@ function InvoiceDetailModal({ invoiceId, userId, isOpen, onOpenChange }: { invoi
 
   const handlePrint = (mode: 'a4' | 'receipt') => {
     setPrintMode(mode);
-    setTimeout(() => window.print(), 200);
+    setTimeout(() => window.print(), 300);
   };
 
   const activeProfile = { 
@@ -296,51 +301,32 @@ function InvoiceDetailModal({ invoiceId, userId, isOpen, onOpenChange }: { invoi
               .receipt-view-modal { display: none; } 
             }
             @media print {
-              html, body {
-                height: 100% !important;
-                margin: 0 !important;
-                padding: 0 !important;
-                overflow: visible !important;
-                background: white !important;
-              }
-              body > :not([data-radix-portal]) {
-                display: none !important;
-              }
-              [data-radix-portal] {
-                display: block !important;
-                position: absolute !important;
-                top: 0 !important;
-                left: 0 !important;
-                width: 100% !important;
-              }
+              body * { visibility: hidden; }
+              [data-radix-portal] { visibility: visible !important; position: absolute; left: 0; top: 0; width: 100%; }
+              [data-radix-portal] *, 
+              .invoice-detail-print, 
+              .invoice-detail-print *,
+              .receipt-view-modal,
+              .receipt-view-modal * { visibility: visible !important; }
               
               .print-a4 .invoice-detail-print {
-                visibility: visible !important;
                 display: block !important;
-                padding: 15mm !important;
-                background: white !important;
                 width: 100% !important;
-                box-sizing: border-box !important;
+                padding: 10mm !important;
               }
               
               .print-receipt .receipt-view-modal {
-                visibility: visible !important;
                 display: block !important;
                 width: 80mm !important;
-                padding: 4mm !important;
-                background: white !important;
-                font-family: monospace;
+                padding: 5mm !important;
               }
-              
-              .print-hidden,
+
+              .print-hidden, 
+              [role="dialog"] button[aria-label="Close"], 
               .dialog-footer-print,
-              [role="dialog"] > button,
               .dropdown-trigger-print { display: none !important; }
               
-              * {
-                -webkit-print-color-adjust: exact !important;
-                print-color-adjust: exact !important;
-              }
+              * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
             }
           `}</style>
           
@@ -502,7 +488,7 @@ function InvoiceDetailModal({ invoiceId, userId, isOpen, onOpenChange }: { invoi
                   <span>Subtotal:</span><span>{formatCurrency(invoice.subtotalAmount)}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span>Tax:</span><span>{formatCurrency(invoice.totalTaxAmount)}</span>
+                  <span>Tax:</span><span>{formatCurrency(taxTotal)}</span>
                 </div>
                 <div className="flex justify-between font-bold text-[9pt] pt-1">
                   <span>GRAND TOTAL:</span><span>{formatCurrency(invoice.grandTotalAmount)}</span>
@@ -544,6 +530,7 @@ export default function InvoicesPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [viewInvoiceId, setViewInvoiceId] = useState<string | null>(null);
+  const [initialPrintMode, setInitialPrintMode] = useState<'a4' | 'receipt' | undefined>(undefined);
 
   useEffect(() => {
     if (!isUserLoading && (!user || user.isAnonymous)) {
@@ -576,6 +563,14 @@ export default function InvoicesPage() {
 
   const formatCurrency = (amount: number) => new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR' }).format(amount).replace('₹', 'Rs ');
 
+  const handlePrintRequest = (id: string, mode: 'a4' | 'receipt') => {
+    setViewInvoiceId(id);
+    setInitialPrintMode(mode);
+    setTimeout(() => {
+      window.print();
+    }, 500);
+  };
+
   return (
     <div className="min-h-screen bg-background text-foreground">
       <MainHeader />
@@ -605,7 +600,7 @@ export default function InvoicesPage() {
                   <TableBody>
                     {filteredInvoices.map(invoice => (
                       <TableRow key={invoice.id}>
-                        <TableCell><button onClick={() => setViewInvoiceId(invoice.id)} className="hover:underline text-primary">{invoice.invoiceNumber}</button></TableCell>
+                        <TableCell><button onClick={() => { setViewInvoiceId(invoice.id); setInitialPrintMode(undefined); }} className="hover:underline text-primary">{invoice.invoiceNumber}</button></TableCell>
                         <TableCell>{invoice.customerName}</TableCell>
                         <TableCell>{invoice.invoiceDate}</TableCell>
                         <TableCell><Badge variant={invoice.status === 'Paid' ? 'default' : 'outline'}>{invoice.status}</Badge></TableCell>
@@ -614,9 +609,9 @@ export default function InvoicesPage() {
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild><Button variant="ghost" size="icon" className="dropdown-trigger-print"><MoreHorizontal className="h-4 w-4" /></Button></DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
-                              <DropdownMenuItem onClick={() => setViewInvoiceId(invoice.id)}><Eye className="mr-2 h-4 w-4" />View</DropdownMenuItem>
-                              <DropdownMenuItem onClick={() => { setViewInvoiceId(invoice.id); setTimeout(() => handlePrint('a4'), 300); }}><Printer className="mr-2 h-4 w-4" />Print A4</DropdownMenuItem>
-                              <DropdownMenuItem onClick={() => { setViewInvoiceId(invoice.id); setTimeout(() => handlePrint('receipt'), 300); }}><Receipt className="mr-2 h-4 w-4" />Print Receipt</DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => { setViewInvoiceId(invoice.id); setInitialPrintMode(undefined); }}><Eye className="mr-2 h-4 w-4" />View</DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => handlePrintRequest(invoice.id, 'a4')}><Printer className="mr-2 h-4 w-4" />Print A4</DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => handlePrintRequest(invoice.id, 'receipt')}><Receipt className="mr-2 h-4 w-4" />Print Receipt</DropdownMenuItem>
                               <DropdownMenuSeparator />
                               <DropdownMenuItem className="text-destructive" onClick={() => deleteDocumentNonBlocking(doc(firestore!, `users/${user!.uid}/invoices/${invoice.id}`))}><Trash2 className="mr-2 h-4 w-4" />Delete</DropdownMenuItem>
                             </DropdownMenuContent>
@@ -631,7 +626,13 @@ export default function InvoicesPage() {
           </Card>
         </div>
       </main>
-      <InvoiceDetailModal invoiceId={viewInvoiceId} userId={user?.uid || ''} isOpen={!!viewInvoiceId} onOpenChange={(open) => !open && setViewInvoiceId(null)} />
+      <InvoiceDetailModal 
+        invoiceId={viewInvoiceId} 
+        userId={user?.uid || ''} 
+        isOpen={!!viewInvoiceId} 
+        onOpenChange={(open) => !open && setViewInvoiceId(null)} 
+        initialPrintMode={initialPrintMode}
+      />
     </div>
   );
 }
