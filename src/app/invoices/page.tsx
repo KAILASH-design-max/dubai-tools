@@ -313,6 +313,9 @@ function InvoiceDetailModal({ invoiceId, userId, isOpen, onOpenChange, initialPr
               .receipt-view-modal,
               .receipt-view-modal * { visibility: visible !important; }
               
+              /* Logic to only show the relevant view based on printMode class */
+              .invoice-detail-print, .receipt-view-modal { display: none !important; }
+
               .print-a4 .invoice-detail-print {
                 display: block !important;
                 width: 100% !important;
