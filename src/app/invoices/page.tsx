@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useEffect, useState, useMemo } from 'react';
@@ -313,7 +314,6 @@ function InvoiceDetailModal({ invoiceId, userId, isOpen, onOpenChange, initialPr
               .receipt-view-modal,
               .receipt-view-modal * { visibility: visible !important; }
               
-              /* Logic to only show the relevant view based on printMode class */
               .invoice-detail-print, .receipt-view-modal { display: none !important; }
 
               .print-a4 .invoice-detail-print {
@@ -345,14 +345,14 @@ function InvoiceDetailModal({ invoiceId, userId, isOpen, onOpenChange, initialPr
           {isInvoiceLoading ? (
             <div className="py-20 text-center">Loading invoice details...</div>
           ) : invoice && (
-            <div className="invoice-detail-print space-y-6 py-4">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div className="invoice-detail-print space-y-4 py-4">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                   <div className="flex items-center gap-2">
-                    <PlugZap className="h-8 w-8 text-primary" />
-                    <div>
-                      <h2 className="text-xl font-headline font-bold text-primary leading-none">{activeProfile.name}</h2>
-                      <p className="text-xs text-muted-foreground mt-0.5">{activeProfile.addressLine1}</p>
-                      <div className="text-[10px] text-muted-foreground space-y-0 mt-0.5">
+                    <PlugZap className="h-7 w-7 text-primary" />
+                    <div className="space-y-0">
+                      <h2 className="text-lg font-headline font-bold text-primary leading-none">{activeProfile.name}</h2>
+                      <p className="text-[10px] text-muted-foreground leading-tight">{activeProfile.addressLine1}</p>
+                      <div className="text-[9px] text-muted-foreground flex flex-wrap gap-x-2 mt-0">
                         {activeProfile.phoneNumbers?.length > 0 && <p>Ph: {activeProfile.phoneNumbers.join(', ')}</p>}
                         {activeProfile.email && <p>Email: {activeProfile.email}</p>}
                         {activeProfile.gstRegistrationNumber && <p>GST: {activeProfile.gstRegistrationNumber}</p>}
@@ -378,35 +378,35 @@ function InvoiceDetailModal({ invoiceId, userId, isOpen, onOpenChange, initialPr
                   </div>
               </div>
               
-              <div className="grid grid-cols-2 gap-8 text-sm">
+              <div className="grid grid-cols-2 gap-8 text-sm pt-2">
                 <div>
                   <p className="text-muted-foreground mb-1 uppercase text-[10px] font-bold tracking-wider">Bill To</p>
-                  <div className="border rounded-md p-3 space-y-1 bg-muted/5 print:p-0 print:border-none">
-                    <p className="font-bold text-lg leading-tight">{invoice.customerName}</p>
+                  <div className="border rounded-md p-2 space-y-1 bg-muted/5 print:p-0 print:border-none">
+                    <p className="font-bold text-base leading-tight">{invoice.customerName}</p>
                     {invoice.customerPhone && <p className="text-muted-foreground text-xs">Ph: {invoice.customerPhone}</p>}
                   </div>
                 </div>
                 <div className="text-right">
                   <p className="text-muted-foreground mb-1 uppercase text-[10px] font-bold tracking-wider">Date Issued</p>
-                  <p className="font-medium">{format(new Date(`${invoice.invoiceDate}T00:00:00`), 'PP')}</p>
-                  <p className="text-muted-foreground text-xs">Invoice #: {invoice.invoiceNumber}</p>
+                  <p className="font-medium text-sm">{format(new Date(`${invoice.invoiceDate}T00:00:00`), 'PP')}</p>
+                  <p className="text-muted-foreground text-[10px]">Invoice #: {invoice.invoiceNumber}</p>
                 </div>
               </div>
 
-              <div className="rounded-md border overflow-hidden">
+              <div className="rounded-md border overflow-hidden mt-2">
                 <Table>
                   <TableHeader className="bg-muted/50">
-                    <TableRow>
-                      <TableHead className="w-[40px]">#</TableHead>
-                      <TableHead>Description</TableHead>
-                      <TableHead className="text-right">Qty</TableHead>
-                      <TableHead className="text-right">Total</TableHead>
-                      <TableHead className="text-right print-hidden">Actions</TableHead>
+                    <TableRow className="h-8">
+                      <TableHead className="w-[30px] h-8 text-[10px]">#</TableHead>
+                      <TableHead className="h-8 text-[10px]">Description</TableHead>
+                      <TableHead className="text-right h-8 text-[10px]">Qty</TableHead>
+                      <TableHead className="text-right h-8 text-[10px]">Total</TableHead>
+                      <TableHead className="text-right print-hidden h-8 text-[10px]">Actions</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {areLineItemsLoading ? (
-                      <TableRow><TableCell colSpan={5} className="text-center py-12">Loading...</TableCell></TableRow>
+                      <TableRow><TableCell colSpan={5} className="text-center py-8">Loading...</TableCell></TableRow>
                     ) : lineItems?.map((item, idx) => {
                       const qText = String(item.quantity).match(/^[0-9.]+/)?.[0] || '1';
                       const qty = parseFloat(qText) || 1;
@@ -414,19 +414,19 @@ function InvoiceDetailModal({ invoiceId, userId, isOpen, onOpenChange, initialPr
                       const amount = isLabor ? item.rate : qty * item.rate;
                       const total = amount * (1 + item.tax / 100);
                       return (
-                        <TableRow key={item.id}>
-                          <TableCell className="text-muted-foreground text-xs">{idx + 1}</TableCell>
-                          <TableCell className="font-medium">{item.description}</TableCell>
-                          <TableCell className="text-right">{item.quantity}</TableCell>
-                          <TableCell className="text-right font-bold">{total.toFixed(2)}</TableCell>
-                          <TableCell className="text-right print-hidden">
+                        <TableRow key={item.id} className="h-8">
+                          <TableCell className="text-muted-foreground text-[10px] py-1">{idx + 1}</TableCell>
+                          <TableCell className="font-medium text-xs py-1">{item.description}</TableCell>
+                          <TableCell className="text-right text-xs py-1">{item.quantity}</TableCell>
+                          <TableCell className="text-right font-bold text-xs py-1">{total.toFixed(2)}</TableCell>
+                          <TableCell className="text-right print-hidden py-1">
                             <Button 
                               variant="ghost" 
                               size="icon" 
-                              className="text-destructive h-8 w-8" 
+                              className="text-destructive h-6 w-6" 
                               onClick={() => handleDeleteLineItem(item.id)}
                             >
-                              <Trash2 className="h-4 w-4" />
+                              <Trash2 className="h-3 w-3" />
                             </Button>
                           </TableCell>
                         </TableRow>
@@ -436,22 +436,22 @@ function InvoiceDetailModal({ invoiceId, userId, isOpen, onOpenChange, initialPr
                 </Table>
               </div>
 
-              <div className="flex justify-between items-end gap-8 pt-4">
+              <div className="flex justify-between items-end gap-8 pt-2">
                 <div className="signature-area flex flex-col items-start gap-1">
-                  <div className="relative h-12 w-24">
-                    <Image src="/signature.jpeg" alt="Signature" width={100} height={50} className="object-contain" />
+                  <div className="relative h-10 w-20">
+                    <Image src="/signature.jpeg" alt="Signature" width={80} height={40} className="object-contain" />
                   </div>
-                  <div className="w-40 border-t border-dashed pt-1">
-                    <p className="text-[10px] text-muted-foreground">Authorized Signature</p>
+                  <div className="w-32 border-t border-dashed pt-1">
+                    <p className="text-[9px] text-muted-foreground">Authorized Signature</p>
                   </div>
                 </div>
-                <div className="w-full md:w-1/2 space-y-2 text-right">
-                  <div className="flex justify-between px-2 text-sm"><span>Subtotal</span><span>{formatCurrency(invoice.subtotalAmount)}</span></div>
-                  <div className="flex justify-between px-2 text-sm"><span>Tax</span><span>{formatCurrency(invoice.totalTaxAmount)}</span></div>
+                <div className="w-full md:w-1/2 space-y-1 text-right">
+                  <div className="flex justify-between px-2 text-xs"><span>Subtotal</span><span>{formatCurrency(invoice.subtotalAmount)}</span></div>
+                  <div className="flex justify-between px-2 text-xs"><span>Tax</span><span>{formatCurrency(invoice.totalTaxAmount)}</span></div>
                   <Separator />
-                  <div className="flex justify-between bg-primary/5 p-4 rounded-lg border border-primary/20">
-                    <span className="font-headline font-bold text-primary">Grand Total</span>
-                    <span className="font-headline font-bold text-2xl text-primary">{formatCurrency(invoice.grandTotalAmount)}</span>
+                  <div className="flex justify-between bg-primary/5 p-2 rounded-lg border border-primary/20">
+                    <span className="font-headline font-bold text-primary text-sm">Grand Total</span>
+                    <span className="font-headline font-bold text-lg text-primary">{formatCurrency(invoice.grandTotalAmount)}</span>
                   </div>
                 </div>
               </div>
@@ -460,28 +460,28 @@ function InvoiceDetailModal({ invoiceId, userId, isOpen, onOpenChange, initialPr
 
           {invoice && (
             <div className="receipt-view-modal hidden">
-              <div className="text-center space-y-0 mb-2">
-                <div className="flex justify-center mb-0.5"><PlugZap className="h-6 w-6 text-primary" /></div>
-                <h2 className="font-bold text-lg uppercase">{activeProfile.name}</h2>
-                <p className="text-[8pt]">{activeProfile.addressLine1}</p>
+              <div className="text-center space-y-0 mb-1">
+                <div className="flex justify-center mb-0.5"><PlugZap className="h-5 w-5 text-primary" /></div>
+                <h2 className="font-bold text-base uppercase leading-tight">{activeProfile.name}</h2>
+                <p className="text-[7pt] leading-tight">{activeProfile.addressLine1}</p>
                 <div className="text-[7pt] space-y-0 mt-0.5">
                   <p>Ph: {activeProfile.phoneNumbers?.join(', ')}</p>
                   {activeProfile.email && <p>Email: {activeProfile.email}</p>}
                   {activeProfile.gstRegistrationNumber && <p>GST: {activeProfile.gstRegistrationNumber}</p>}
                 </div>
               </div>
-              <Separator className="border-dashed my-2" />
-              <div className="text-[8pt] space-y-1 mb-2">
+              <Separator className="border-dashed my-1" />
+              <div className="text-[7pt] space-y-0.5 mb-1">
                 <div className="flex justify-between"><span>Inv: {invoice.invoiceNumber}</span><span>{invoice.invoiceDate}</span></div>
                 <div className="font-bold">Bill To: {invoice.customerName}</div>
               </div>
-              <Separator className="border-dashed my-2" />
-              <table className="w-full text-[8pt]">
+              <Separator className="border-dashed my-1" />
+              <table className="w-full text-[7pt]">
                 <thead>
                   <tr className="border-b border-dashed">
-                    <th className="text-left py-1">Item</th>
-                    <th className="text-right py-1">Qty</th>
-                    <th className="text-right py-1">Total</th>
+                    <th className="text-left py-0.5">Item</th>
+                    <th className="text-right py-0.5">Qty</th>
+                    <th className="text-right py-0.5">Total</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -493,30 +493,30 @@ function InvoiceDetailModal({ invoiceId, userId, isOpen, onOpenChange, initialPr
                     const total = amount * (1 + item.tax / 100);
                     return (
                       <tr key={item.id} className="border-b border-dashed border-gray-50">
-                        <td className="py-1">{idx + 1}. {item.description}</td>
-                        <td className="text-right py-1">{item.quantity}</td>
-                        <td className="text-right py-1">{total.toFixed(2)}</td>
+                        <td className="py-0.5">{idx + 1}. {item.description}</td>
+                        <td className="text-right py-0.5">{item.quantity}</td>
+                        <td className="text-right py-0.5">{total.toFixed(2)}</td>
                       </tr>
                     );
                   })}
                 </tbody>
               </table>
-              <div className="mt-2 space-y-1 text-[8pt]">
-                <div className="flex justify-between border-t border-dashed pt-2">
+              <div className="mt-1 space-y-0.5 text-[7pt]">
+                <div className="flex justify-between border-t border-dashed pt-1">
                   <span>Subtotal:</span><span>{formatCurrency(invoice.subtotalAmount)}</span>
                 </div>
                 <div className="flex justify-between">
                   <span>Tax:</span><span>{formatCurrency(invoice.totalTaxAmount)}</span>
                 </div>
-                <div className="flex justify-between font-bold text-[9pt] pt-1">
+                <div className="flex justify-between font-bold text-[8pt] pt-0.5">
                   <span>GRAND TOTAL:</span><span>{formatCurrency(invoice.grandTotalAmount)}</span>
                 </div>
               </div>
-              <div className="mt-4 text-center text-[7pt] italic">Thank you for Shopping!</div>
+              <div className="mt-2 text-center text-[6pt] italic">Thank you for Shopping!</div>
             </div>
           )}
 
-          <DialogFooter className="flex flex-col sm:flex-row gap-2 print-hidden dialog-footer-print">
+          <DialogFooter className="flex flex-col sm:flex-row gap-2 print-hidden dialog-footer-print mt-4">
             <Button variant="outline" className="w-full sm:w-auto" onClick={() => handlePrint('a4')}>
               <Printer className="mr-2 h-4 w-4" /> A4 Print
             </Button>
