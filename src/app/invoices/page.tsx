@@ -336,9 +336,14 @@ function InvoiceDetailModal({ invoiceId, userId, isOpen, onOpenChange, initialPr
             }
           `}</style>
           
-          <DialogHeader className="print-hidden">
-            <DialogTitle className="text-2xl font-headline text-primary">Invoice Details</DialogTitle>
-            <DialogDescription>Reference: {invoice?.invoiceNumber}</DialogDescription>
+          <DialogHeader className="print-hidden flex flex-row items-center justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <Image src="/dubaitools.png" alt="Logo" width={32} height={32} className="object-contain" />
+              <div>
+                <DialogTitle className="text-xl font-headline text-primary uppercase leading-none">Dubai Tools</DialogTitle>
+                <DialogDescription className="text-xs">Invoice: {invoice?.invoiceNumber}</DialogDescription>
+              </div>
+            </div>
           </DialogHeader>
 
           {isInvoiceLoading ? (
@@ -349,7 +354,7 @@ function InvoiceDetailModal({ invoiceId, userId, isOpen, onOpenChange, initialPr
                   <div className="flex items-center gap-3">
                     <Image src="/dubaitools.png" alt="Logo" width={42} height={42} className="object-contain" />
                     <div className="space-y-0">
-                      <h2 className="text-lg font-headline font-bold text-primary leading-none">{activeProfile.name}</h2>
+                      <h2 className="text-lg font-headline font-bold text-primary leading-none uppercase">{activeProfile.name}</h2>
                       <p className="text-[10px] text-muted-foreground leading-tight mt-1">{activeProfile.addressLine1}</p>
                       <div className="text-[9px] text-muted-foreground flex flex-wrap gap-x-2 mt-0">
                         {activeProfile.phoneNumbers?.length > 0 && <p>Ph: {activeProfile.phoneNumbers.join(', ')}</p>}
@@ -629,7 +634,7 @@ export default function InvoicesPage() {
                             <DropdownMenuTrigger asChild><Button variant="ghost" size="icon" className="dropdown-trigger-print"><MoreHorizontal className="h-4 w-4" /></Button></DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
                               <DropdownMenuItem onClick={() => { setViewInvoiceId(invoice.id); setInitialPrintMode(undefined); }}><Eye className="mr-2 h-4 w-4" />View</DropdownMenuItem>
-                              <DropdownMenuItem onClick={() => handlePrintRequest(invoice.id, 'a4')}><Printer className="mr-2 h-4 w-4" />Print A4</Printer>
+                              <DropdownMenuItem onClick={() => handlePrintRequest(invoice.id, 'a4')}><Printer className="mr-2 h-4 w-4" />Print A4</DropdownMenuItem>
                               <DropdownMenuItem onClick={() => handlePrintRequest(invoice.id, 'receipt')}><Receipt className="mr-2 h-4 w-4" />Print Receipt</DropdownMenuItem>
                               <DropdownMenuSeparator />
                               <DropdownMenuItem className="text-destructive" onClick={() => deleteDocumentNonBlocking(doc(firestore!, `users/${user!.uid}/invoices/${invoice.id}`))}><Trash2 className="mr-2 h-4 w-4" />Delete</DropdownMenuItem>
