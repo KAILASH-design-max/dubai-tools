@@ -1,10 +1,9 @@
-
 "use client";
 
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import Image from "next/image";
 import type { CompanyProfile } from "@/lib/types";
-import { Zap } from "lucide-react";
 
 type InvoiceHeaderProps = {
     invoiceNumber: string;
@@ -29,13 +28,21 @@ export function InvoiceHeader({
 
   return (
     <div className="font-body grid sm:grid-cols-2 gap-2 w-full">
-      <div className="space-y-1">
+      <div className="flex items-center gap-3">
+          <div className="shrink-0">
+            <Image 
+              src="/dubaitools.png" 
+              alt="Logo" 
+              width={48} 
+              height={48} 
+              className="object-contain"
+            />
+          </div>
           <div className="space-y-0">
-            <h1 className="font-headline text-xl sm:text-2xl font-bold text-primary flex items-center gap-2">
-              <Zap className="h-6 w-6 shrink-0" />
-              <span>{displayProfile.name}</span>
+            <h1 className="font-headline text-xl sm:text-2xl font-bold text-primary leading-none">
+              {displayProfile.name}
             </h1>
-            <div className="not-italic text-muted-foreground text-xs sm:text-sm space-y-0 leading-tight">
+            <div className="not-italic text-muted-foreground text-xs sm:text-sm space-y-0 leading-tight mt-1">
                 <p>{displayProfile.addressLine1}</p>
                 <div className="flex flex-wrap items-center gap-x-2 gap-y-0 text-[10px] sm:text-xs">
                   {displayProfile.phoneNumbers && displayProfile.phoneNumbers.length > 0 && (
