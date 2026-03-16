@@ -67,12 +67,6 @@ export function AppSidebar() {
 
   const menuGroups = [
     {
-      label: "Overview",
-      items: [
-        { title: "Dashboard", icon: LayoutDashboard, url: "/dashboard" },
-      ]
-    },
-    {
       label: "Invoicing",
       items: [
         { title: "New Invoice", icon: PlusCircle, url: "/" },
@@ -84,6 +78,12 @@ export function AppSidebar() {
       items: [
         { title: "Inventory", icon: Package, url: "/inventory" },
         { title: "Labor Management", icon: Users, url: "/labor" },
+      ]
+    },
+    {
+      label: "Overview",
+      items: [
+        { title: "Dashboard", icon: LayoutDashboard, url: "/dashboard" },
       ]
     },
     {
