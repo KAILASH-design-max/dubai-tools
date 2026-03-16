@@ -35,7 +35,7 @@ export function CompanyProfileForm({ userId }: { userId: string }) {
         phoneNumbers: ['9268863031', '7280944150'],
         email: 'dubaitools2026@gmail.com',
         gstRegistrationNumber: 'Qw1234766666s',
-        defaultInvoiceNotes: '1. All payments should be made to Dubai Tools.\n2. Goods once sold will not be taken back or exchanged.\n3. Warranty claims are subject to manufacturer policy.',
+        defaultInvoiceNotes: '1. All payments should be made in favor of DUBAI TOOLS.\n2. Goods once sold will not be taken back or exchanged under any circumstances.\n3. Any warranty claims must be directed to the respective manufacturer.\n4. 18% p.a. interest will be charged if the bill is not paid within the due date.\n5. All disputes are subject to local jurisdiction only.',
       });
     }
   }, [companyProfile, isLoading]);
@@ -55,7 +55,7 @@ export function CompanyProfileForm({ userId }: { userId: string }) {
       setDocumentNonBlocking(companyProfileRef, formData, { merge: true });
       toast({
         title: "Profile Updated",
-        description: "Your company profile has been successfully updated.",
+        description: "Your company profile and default terms have been successfully updated.",
       });
     }
   };
@@ -108,18 +108,18 @@ export function CompanyProfileForm({ userId }: { userId: string }) {
         <p className="text-xs text-muted-foreground">Enter multiple phone numbers separated by commas.</p>
       </div>
       <div className="space-y-2">
-        <Label htmlFor="defaultInvoiceNotes">Default Invoice Terms / Notes</Label>
+        <Label htmlFor="defaultInvoiceNotes">Default Terms & Conditions</Label>
         <Textarea 
           id="defaultInvoiceNotes" 
           value={formData.defaultInvoiceNotes || ''} 
           onChange={handleInputChange} 
-          placeholder="Enter terms, bank details, or payment instructions that will appear on every new invoice."
-          className="min-h-[120px]"
+          placeholder="Enter terms, bank details, or payment instructions..."
+          className="min-h-[150px]"
         />
-        <p className="text-xs text-muted-foreground">These notes will automatically load for every new invoice created.</p>
+        <p className="text-xs text-muted-foreground">These terms will automatically appear on every new invoice.</p>
       </div>
 
-      <Button onClick={handleSaveChanges} className="w-full sm:w-auto">Save Changes</Button>
+      <Button onClick={handleSaveChanges} className="w-full sm:w-auto">Save Business Profile</Button>
     </div>
   );
 }
