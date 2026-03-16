@@ -331,6 +331,7 @@ export function InvoiceForm({ userId }: { userId: string }) {
                     const amount = isLabor ? item.rate : qty * item.rate;
                     const total = amount * (1 + item.tax / 100);
 
+                    // Local search for inventory items
                     const matches = (inventoryItems || []).filter(inv => 
                       item.description.trim().length >= 3 && 
                       inv.name.toLowerCase().includes(item.description.toLowerCase())
