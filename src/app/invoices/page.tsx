@@ -7,7 +7,7 @@ import { collection, query, where, doc, addDoc, updateDoc, getDocs, deleteDoc } 
 import { Invoice, InvoiceLineItem, InventoryItem } from '@/lib/types';
 import { MainHeader } from '@/components/main-header';
 import { Button } from '@/components/ui/button';
-import { Search, Trash2, MoreHorizontal, Printer, ReceiptText, Eye, Plus } from 'lucide-react';
+import { Search, Trash2, MoreHorizontal, Printer, ReceiptText, Eye, Plus, CheckCircle } from 'lucide-react';
 import { Card, CardHeader, CardContent } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
@@ -551,6 +551,7 @@ export default function InvoicesPage() {
   const { user, isUserLoading } = useUser();
   const firestore = useFirestore();
   const router = useRouter();
+  const { toast } = useToast();
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [viewInvoiceId, setViewInvoiceId] = useState<string | null>(null);
@@ -595,6 +596,17 @@ export default function InvoicesPage() {
     }, 500);
   };
 
+  const handleMarkAsPaid = async (invoiceId: string) => {
+    if (!firestore || !user) return;
+    try {
+      const docRef = doc(firestore, `users/${user.uid}/invoices/${invoiceId}`);
+      await updateDoc(docRef, { status: 'Paid', updatedAt: new Date().toISOString() });
+      toast({ title: "Invoice Paid", description: "Status updated to Paid." });
+    } catch (e) {
+      toast({ variant: "destructive", title: "Error", description: "Failed to update status." });
+    }
+  };
+
   return (
     <div className="min-h-screen bg-background text-foreground">
       <MainHeader />
@@ -634,6 +646,9 @@ export default function InvoicesPage() {
                             <DropdownMenuTrigger asChild><Button variant="ghost" size="icon" className="dropdown-trigger-print"><MoreHorizontal className="h-4 w-4" /></Button></DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
                               <DropdownMenuItem onClick={() => { setViewInvoiceId(invoice.id); setInitialPrintMode(undefined); }}><Eye className="mr-2 h-4 w-4" />View</DropdownMenuItem>
+                              {invoice.status !== 'Paid' && (
+                                <DropdownMenuItem onClick={() => handleMarkAsPaid(invoice.id)}><CheckCircle className="mr-2 h-4 w-4 text-green-500" />Mark Paid</DropdownMenuItem>
+                              )}
                               <DropdownMenuItem onClick={() => handlePrintRequest(invoice.id, 'a4')}><Printer className="mr-2 h-4 w-4" />Print A4</DropdownMenuItem>
                               <DropdownMenuItem onClick={() => handlePrintRequest(invoice.id, 'receipt')}><ReceiptText className="mr-2 h-4 w-4" />Print Receipt</DropdownMenuItem>
                               <DropdownMenuSeparator />

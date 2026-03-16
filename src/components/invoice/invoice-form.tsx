@@ -8,13 +8,13 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Separator } from '@/components/ui/separator';
 import { Label } from '@/components/ui/label';
-import { Trash2, Plus, User, Phone, Package } from 'lucide-react';
+import { Trash2, Plus, User, Phone, Package, Search } from 'lucide-react';
 import { InvoiceHeader } from './invoice-header';
 import { InvoiceActions } from './invoice-actions';
 import { useFirestore, useDoc, useCollection, useMemoFirebase, useCompanyProfile } from '@/firebase';
 import { doc, collection, addDoc, deleteDoc, query, orderBy } from 'firebase/firestore';
 import { addDocumentNonBlocking, deleteDocumentNonBlocking, setDocumentNonBlocking, updateDocumentNonBlocking } from '@/firebase/non-blocking-updates';
-import type { Invoice, InvoiceLineItem, InventoryItem } from '@/lib/types';
+import type { Invoice, InvoiceLineItem, InventoryItem, Customer } from '@/lib/types';
 import { Skeleton } from '../ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { errorEmitter } from '@/firebase/error-emitter';
@@ -26,6 +26,7 @@ export function InvoiceForm({ userId }: { userId: string }) {
   const [isSaving, setIsSaving] = useState(false);
   const [printMode, setPrintMode] = useState<'a4' | 'receipt'>('a4');
   const [activeItemId, setActiveItemId] = useState<string | null>(null);
+  const [isCustomerSearchActive, setIsCustomerSearchActive] = useState(false);
   const invoiceId = 'main';
 
   const { data: companyProfile, isLoading: isCompanyProfileLoading } = useCompanyProfile(userId);
@@ -50,9 +51,15 @@ export function InvoiceForm({ userId }: { userId: string }) {
     [firestore, userId]
   );
 
+  const customersRef = useMemoFirebase(
+    () => (firestore ? collection(firestore, `users/${userId}/customers`) : null),
+    [firestore, userId]
+  );
+
   const { data: invoice, isLoading: isInvoiceLoading } = useDoc<Invoice>(invoiceRef);
   const { data: lineItems, isLoading: areLineItemsLoading } = useCollection<InvoiceLineItem>(lineItemsQuery);
   const { data: inventoryItems } = useCollection<InventoryItem>(inventoryRef);
+  const { data: customers } = useCollection<Customer>(customersRef);
 
   useEffect(() => {
     if (!isInvoiceLoading && !invoice && !!invoiceRef) {
@@ -118,8 +125,6 @@ export function InvoiceForm({ userId }: { userId: string }) {
     setIsSaving(true);
     setPrintMode(targetPrintMode);
 
-    // Brief delay to allow CSS/DOM layout shift for print mode
-    // We initiate save first, then trigger print
     const invoicesCollection = collection(firestore, `users/${userId}/invoices`);
     const invoiceDataToSave = { ...invoice, status: 'Sent' as const, updatedAt: new Date().toISOString() };
     const { id: dummyId, ...finalData } = invoiceDataToSave;
@@ -141,10 +146,8 @@ export function InvoiceForm({ userId }: { userId: string }) {
             nextNo += "-1";
         }
 
-        // Trigger the browser print dialog
         setTimeout(() => window.print(), 300);
 
-        // Reset the form
         updateDocumentNonBlocking(invoiceRef, {
             invoiceNumber: nextNo,
             invoiceDate: new Date().toISOString().split('T')[0],
@@ -194,6 +197,13 @@ export function InvoiceForm({ userId }: { userId: string }) {
   
   const formatCurrency = (amount: number) => new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR' }).format(amount).replace('₹', 'Rs ');
 
+  const customerMatches = useMemo(() => {
+    if (!invoice?.customerName || invoice.customerName.length < 2 || !customers) return [];
+    return customers.filter(c => 
+      c.name.toLowerCase().includes(invoice.customerName.toLowerCase())
+    ).slice(0, 5);
+  }, [invoice?.customerName, customers]);
+
   if (isInvoiceLoading || areLineItemsLoading || isCompanyProfileLoading) {
     return (
       <Card className="max-w-4xl mx-auto">
@@ -218,14 +228,12 @@ export function InvoiceForm({ userId }: { userId: string }) {
           body { -webkit-print-color-adjust: exact; print-color-adjust: exact; background: white !important; }
           body * { visibility: hidden; }
           
-          /* A4 Mode */
           .print-a4 .invoice-a4-area, .print-a4 .invoice-a4-area * { visibility: visible; }
           .print-a4 .invoice-a4-area { 
             position: absolute; left: 0; top: 0; width: 100%; border: none !important; box-shadow: none !important; padding: 0 !important; font-size: 8pt; 
           }
           .print-a4 .receipt-view { display: none !important; }
           
-          /* Receipt Mode */
           .print-receipt .receipt-view, .print-receipt .receipt-view * { visibility: visible; }
           .print-receipt .receipt-view {
             position: absolute; left: 0; top: 0; width: 80mm; padding: 2mm; font-family: monospace; font-size: 9pt; display: block !important;
@@ -261,11 +269,39 @@ export function InvoiceForm({ userId }: { userId: string }) {
             <div className="grid md:grid-cols-2 gap-8 mb-4 print:mb-1">
               <div className="space-y-1">
                 <Label className="font-headline text-sm print:text-[8pt]">Bill To</Label>
-                <div className="border rounded-md p-3 space-y-2 bg-muted/5 print:p-0 print:border-none print:bg-transparent">
+                <div className="border rounded-md p-3 space-y-2 bg-muted/5 print:p-0 print:border-none print:bg-transparent relative">
                   <div className="flex items-center gap-2">
                     <User className="h-4 w-4 text-primary shrink-0 opacity-70" />
-                    <Input value={invoice?.customerName || ''} onChange={(e) => handleUpdateInvoice('customerName', e.target.value)} placeholder="Customer Name" className="print-no-border font-medium text-lg print:text-[9pt] h-auto p-0 border-none focus-visible:ring-0 shadow-none bg-transparent" />
+                    <Input 
+                      value={invoice?.customerName || ''} 
+                      onFocus={() => setIsCustomerSearchActive(true)}
+                      onBlur={() => setTimeout(() => setIsCustomerSearchActive(false), 200)}
+                      onChange={(e) => handleUpdateInvoice('customerName', e.target.value)} 
+                      placeholder="Customer Name" 
+                      className="print-no-border font-medium text-lg print:text-[9pt] h-auto p-0 border-none focus-visible:ring-0 shadow-none bg-transparent" 
+                    />
                   </div>
+                  {isCustomerSearchActive && customerMatches.length > 0 && (
+                    <div className="absolute left-0 top-12 z-[100] w-full border bg-card shadow-xl rounded-md overflow-hidden print:hidden border-primary/30 animate-in fade-in zoom-in-95 duration-150">
+                      {customerMatches.map(c => (
+                        <button
+                          key={c.id}
+                          className="w-full text-left px-3 py-2 text-sm hover:bg-primary/10 hover:text-primary transition-colors border-b last:border-0"
+                          onMouseDown={(e) => {
+                            e.preventDefault();
+                            handleUpdateInvoice('customerName', c.name);
+                            if (c.phoneNumbers && c.phoneNumbers[0]) {
+                              handleUpdateInvoice('customerPhone', c.phoneNumbers[0]);
+                            }
+                            setIsCustomerSearchActive(false);
+                          }}
+                        >
+                          <div className="font-bold">{c.name}</div>
+                          <div className="text-[10px] text-muted-foreground">{c.phoneNumbers?.[0] || 'No Phone'}</div>
+                        </button>
+                      ))}
+                    </div>
+                  )}
                   <div className="flex items-center gap-2">
                     <Phone className="h-4 w-4 text-primary shrink-0 opacity-70" />
                     <Input value={invoice?.customerPhone || ''} onChange={(e) => handleUpdateInvoice('customerPhone', e.target.value)} placeholder="Customer Phone" className="print-no-border text-sm print:text-[8pt] h-auto p-0 border-none focus-visible:ring-0 shadow-none bg-transparent" />
@@ -373,7 +409,6 @@ export function InvoiceForm({ userId }: { userId: string }) {
           </CardContent>
         </Card>
 
-        {/* 80mm Thermal Receipt View */}
         <div className="receipt-view hidden">
           <div className="text-center space-y-1 mb-2">
             <div className="flex justify-center mb-1">
