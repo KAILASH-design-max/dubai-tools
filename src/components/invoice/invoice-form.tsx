@@ -105,7 +105,7 @@ export function InvoiceForm({ userId }: { userId: string }) {
     updateDocumentNonBlocking(invoiceRef, { [field]: value });
   }
 
-  const handleSaveInvoice = async () => {
+  const handleSaveInvoice = async (targetPrintMode?: 'a4' | 'receipt') => {
     if (!firestore || !userId || !invoice || !lineItems || !invoiceRef || !lineItemsCollectionRef) {
       toast({ variant: "destructive", title: "Error", description: "Invoice data not ready." });
       return;
@@ -116,6 +116,17 @@ export function InvoiceForm({ userId }: { userId: string }) {
     }
 
     setIsSaving(true);
+
+    // If printing is requested, set mode and trigger print
+    // window.print() blocks JS in most browsers, so the reset logic 
+    // will wait until the user handles the print dialog.
+    if (targetPrintMode) {
+      setPrintMode(targetPrintMode);
+      // Brief delay to allow CSS/DOM layout shift for print mode
+      await new Promise(resolve => setTimeout(resolve, 300));
+      window.print();
+    }
+
     const invoicesCollection = collection(firestore, `users/${userId}/invoices`);
     const invoiceDataToSave = { ...invoice, status: 'Sent' as const, updatedAt: new Date().toISOString() };
     const { id: dummyId, ...finalData } = invoiceDataToSave;
@@ -186,16 +197,6 @@ export function InvoiceForm({ userId }: { userId: string }) {
   
   const formatCurrency = (amount: number) => new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR' }).format(amount).replace('₹', 'Rs ');
 
-  const handlePrintA4 = () => {
-    setPrintMode('a4');
-    setTimeout(() => window.print(), 100);
-  };
-
-  const handlePrintReceipt = () => {
-    setPrintMode('receipt');
-    setTimeout(() => window.print(), 100);
-  };
-
   if (isInvoiceLoading || areLineItemsLoading || isCompanyProfileLoading) {
     return (
       <Card className="max-w-4xl mx-auto">
@@ -251,7 +252,12 @@ export function InvoiceForm({ userId }: { userId: string }) {
                 invoiceDate={invoice?.invoiceDate || ''}
                 onInvoiceDateChange={(val) => handleUpdateInvoice('invoiceDate', val)}
               />
-              <InvoiceActions onSave={handleSaveInvoice} onPrintA4={handlePrintA4} onPrintReceipt={handlePrintReceipt} isSaving={isSaving} />
+              <InvoiceActions 
+                onSave={() => handleSaveInvoice()} 
+                onPrintA4={() => handleSaveInvoice('a4')} 
+                onPrintReceipt={() => handleSaveInvoice('receipt')} 
+                isSaving={isSaving} 
+              />
             </div>
 
             <Separator className="my-4 print:my-1" />
@@ -292,7 +298,6 @@ export function InvoiceForm({ userId }: { userId: string }) {
                     const amount = item.description === 'Labor cost' ? item.rate : qty * item.rate;
                     const total = amount * (1 + item.tax / 100);
 
-                    // Autocomplete matches
                     const matches = (inventoryItems || []).filter(inv => 
                       item.description.trim().length >= 3 && 
                       inv.name.toLowerCase().includes(item.description.toLowerCase())
