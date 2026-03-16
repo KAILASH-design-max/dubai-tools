@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useEffect, useMemo } from 'react';
@@ -16,7 +15,7 @@ import {
   Users, 
   ShoppingCart,
   ArrowUpRight,
-  ArrowDownRight
+  Wallet
 } from 'lucide-react';
 import { 
   BarChart, 
@@ -25,8 +24,7 @@ import {
   YAxis, 
   CartesianGrid, 
   Tooltip, 
-  ResponsiveContainer,
-  Cell
+  ResponsiveContainer
 } from 'recharts';
 
 export default function DashboardPage() {
@@ -60,9 +58,12 @@ export default function DashboardPage() {
 
   // Stats calculation
   const stats = useMemo(() => {
-    if (!invoices || !items) return null;
+    if (!invoices || !items || !laborRecords) return null;
 
     const totalSales = invoices.reduce((sum, inv) => sum + (inv.grandTotalAmount || 0), 0);
+    const totalWages = laborRecords.reduce((sum, rec) => sum + (rec.amount || 0), 0);
+    const netProfit = totalSales - totalWages;
+
     const pendingPayments = invoices
       .filter(inv => inv.status !== 'Paid' && inv.status !== 'Cancelled')
       .reduce((sum, inv) => sum + (inv.grandTotalAmount || 0), 0);
@@ -86,8 +87,8 @@ export default function DashboardPage() {
       return { name: month, total: monthlyTotal };
     });
 
-    return { totalSales, pendingPayments, lowStockCount, chartData };
-  }, [invoices, items]);
+    return { totalSales, totalWages, netProfit, pendingPayments, lowStockCount, chartData };
+  }, [invoices, items, laborRecords]);
 
   if (isUserLoading || !user) return null;
 
@@ -100,9 +101,19 @@ export default function DashboardPage() {
       <MainHeader />
       <main className="container mx-auto p-4 md:p-6 lg:p-8">
         <div className="max-w-6xl mx-auto space-y-8">
-          <div>
-            <h2 className="text-3xl font-bold font-headline">Business Overview</h2>
-            <p className="text-muted-foreground mt-1">Real-time performance of Dubai Tools.</p>
+          <div className="flex items-center justify-between">
+            <div>
+              <h2 className="text-3xl font-bold font-headline">Business Overview</h2>
+              <p className="text-muted-foreground mt-1">Real-time performance of Dubai Tools.</p>
+            </div>
+            <div className="hidden md:block">
+              <Card className="bg-primary text-primary-foreground border-none shadow-lg">
+                <CardContent className="pt-4 pb-4 px-6">
+                  <p className="text-xs uppercase tracking-wider font-bold opacity-80">Net Earnings</p>
+                  <div className="text-2xl font-bold">{invLoading || laborLoading ? "..." : formatCurrency(stats?.netProfit || 0)}</div>
+                </CardContent>
+              </Card>
+            </div>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -116,7 +127,7 @@ export default function DashboardPage() {
                   <div className="text-2xl font-bold">{formatCurrency(stats?.totalSales || 0)}</div>
                 )}
                 <p className="text-xs text-muted-foreground mt-1 flex items-center">
-                  <ArrowUpRight className="h-3 w-3 mr-1 text-green-500" /> All time revenue
+                  <ArrowUpRight className="h-3 w-3 mr-1 text-green-500" /> Gross revenue
                 </p>
               </CardContent>
             </Card>
@@ -150,13 +161,13 @@ export default function DashboardPage() {
             <Card className="border-l-4 border-l-blue-500">
               <CardContent className="pt-6">
                 <div className="flex items-center justify-between space-y-0 pb-2">
-                  <p className="text-sm font-medium">Active Laborers</p>
-                  <Users className="h-4 w-4 text-blue-500" />
+                  <p className="text-sm font-medium">Total Labor Wages</p>
+                  <Wallet className="h-4 w-4 text-blue-500" />
                 </div>
-                {laborLoading ? <Skeleton className="h-8 w-12" /> : (
-                  <div className="text-2xl font-bold">{laborRecords?.length || 0}</div>
+                {laborLoading ? <Skeleton className="h-8 w-24" /> : (
+                  <div className="text-2xl font-bold">{formatCurrency(stats?.totalWages || 0)}</div>
                 )}
-                <p className="text-xs text-muted-foreground mt-1">Daily records this period</p>
+                <p className="text-xs text-muted-foreground mt-1">Cumulative worker payments</p>
               </CardContent>
             </Card>
           </div>

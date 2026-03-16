@@ -132,9 +132,27 @@ export function InvoiceForm({ userId }: { userId: string }) {
     try {
         const newDoc = await addDoc(invoicesCollection, finalData);
         const newLineItemsCol = collection(newDoc, 'lineItems');
+        
+        // Save line items and deduct stock
         for (const item of lineItems) {
             const { id: itemId, ...itemData } = item;
             await addDoc(newLineItemsCol, itemData);
+
+            // Deduct from inventory if matching item found
+            const matchingInvItem = inventoryItems?.find(inv => 
+              inv.name.toLowerCase() === item.description.toLowerCase()
+            );
+
+            if (matchingInvItem) {
+              const qtyToDeduct = parseFloat(String(item.quantity).match(/^[0-9.]+/)?.[0] || '0');
+              if (qtyToDeduct > 0) {
+                const invItemRef = doc(firestore, `users/${userId}/inventory/${matchingInvItem.id}`);
+                updateDocumentNonBlocking(invItemRef, {
+                  quantity: Math.max(0, matchingInvItem.quantity - qtyToDeduct),
+                  updatedAt: new Date().toISOString()
+                });
+              }
+            }
         }
 
         const match = invoice.invoiceNumber.match(/\d+$/);
@@ -163,7 +181,7 @@ export function InvoiceForm({ userId }: { userId: string }) {
             await deleteDoc(doc(lineItemsCollectionRef, item.id));
         }
 
-        toast({ title: "Success", description: `Invoice saved and sent to print.` });
+        toast({ title: "Success", description: `Invoice saved and stock adjusted.` });
     } catch (error: any) {
         errorEmitter.emit('permission-error', new FirestorePermissionError({ path: invoicesCollection.path, operation: 'create', requestResourceData: finalData }));
         toast({ variant: "destructive", title: "Save Failed", description: "Could not record the invoice." });
