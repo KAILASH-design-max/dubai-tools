@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useEffect, useState } from 'react';
@@ -84,7 +83,7 @@ export function LaborerDialog({ isOpen, onOpenChange, laborer, userId }: Laborer
             <Label htmlFor="name">Full Name</Label>
             <Input 
               id="name" 
-              value={formData.name} 
+              value={formData.name || ''} 
               onChange={(e) => setFormData({ ...formData, name: e.target.value })} 
               placeholder="e.g. Rajesh Kumar"
             />
@@ -93,7 +92,7 @@ export function LaborerDialog({ isOpen, onOpenChange, laborer, userId }: Laborer
             <Label htmlFor="phone">Phone Number</Label>
             <Input 
               id="phone" 
-              value={formData.phone} 
+              value={formData.phone || ''} 
               onChange={(e) => setFormData({ ...formData, phone: e.target.value })} 
               placeholder="e.g. 9876543210"
             />
@@ -103,7 +102,7 @@ export function LaborerDialog({ isOpen, onOpenChange, laborer, userId }: Laborer
             <Input 
               id="joiningDate" 
               type="date"
-              value={formData.joiningDate} 
+              value={formData.joiningDate || ''} 
               onChange={(e) => setFormData({ ...formData, joiningDate: e.target.value })} 
             />
           </div>
@@ -112,7 +111,7 @@ export function LaborerDialog({ isOpen, onOpenChange, laborer, userId }: Laborer
             <Input 
               id="dailyRate" 
               type="number"
-              value={formData.dailyRate} 
+              value={formData.dailyRate ?? 0} 
               onChange={(e) => setFormData({ ...formData, dailyRate: Number(e.target.value) })} 
             />
           </div>

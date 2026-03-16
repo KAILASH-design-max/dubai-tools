@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useEffect, useState } from 'react';
@@ -87,7 +86,7 @@ export function InventoryDialog({ isOpen, onOpenChange, item, userId }: Inventor
             <Input 
               id="name" 
               className="col-span-3" 
-              value={formData.name} 
+              value={formData.name || ''} 
               onChange={(e) => setFormData({ ...formData, name: e.target.value })} 
               placeholder="e.g. Copper Wire 1.5mm"
             />
@@ -97,7 +96,7 @@ export function InventoryDialog({ isOpen, onOpenChange, item, userId }: Inventor
             <Input 
               id="sku" 
               className="col-span-3" 
-              value={formData.sku} 
+              value={formData.sku || ''} 
               onChange={(e) => setFormData({ ...formData, sku: e.target.value })} 
               placeholder="Internal product code"
             />
@@ -109,14 +108,14 @@ export function InventoryDialog({ isOpen, onOpenChange, item, userId }: Inventor
                 id="quantity" 
                 type="number"
                 className="col-span-3" 
-                value={formData.quantity} 
+                value={formData.quantity ?? 0} 
                 onChange={(e) => setFormData({ ...formData, quantity: Number(e.target.value) })} 
               />
             </div>
             <div className="grid grid-cols-4 items-center gap-4">
               <Label className="text-right">Unit</Label>
               <Select 
-                value={formData.unit} 
+                value={formData.unit || 'pcs'} 
                 onValueChange={(val: any) => setFormData({ ...formData, unit: val })}
               >
                 <SelectTrigger className="col-span-3">
@@ -139,7 +138,7 @@ export function InventoryDialog({ isOpen, onOpenChange, item, userId }: Inventor
                 id="purchasePrice" 
                 type="number"
                 className="col-span-3" 
-                value={formData.purchasePrice} 
+                value={formData.purchasePrice ?? 0} 
                 onChange={(e) => setFormData({ ...formData, purchasePrice: Number(e.target.value) })} 
               />
             </div>
@@ -149,7 +148,7 @@ export function InventoryDialog({ isOpen, onOpenChange, item, userId }: Inventor
                 id="sellingPrice" 
                 type="number"
                 className="col-span-3" 
-                value={formData.sellingPrice} 
+                value={formData.sellingPrice ?? 0} 
                 onChange={(e) => setFormData({ ...formData, sellingPrice: Number(e.target.value) })} 
               />
             </div>
@@ -160,7 +159,7 @@ export function InventoryDialog({ isOpen, onOpenChange, item, userId }: Inventor
               id="minStock" 
               type="number"
               className="col-span-3" 
-              value={formData.minStockLevel} 
+              value={formData.minStockLevel ?? 0} 
               onChange={(e) => setFormData({ ...formData, minStockLevel: Number(e.target.value) })} 
               placeholder="Alert level"
             />

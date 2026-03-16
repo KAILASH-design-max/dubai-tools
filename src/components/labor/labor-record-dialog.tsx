@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useEffect, useState } from 'react';
@@ -100,7 +99,7 @@ export function LaborRecordDialog({ isOpen, onOpenChange, record, laborers, user
           <div className="grid gap-2">
             <Label>Select Laborer</Label>
             <Select 
-              value={formData.laborerId} 
+              value={formData.laborerId || ''} 
               onValueChange={handleLaborerChange}
             >
               <SelectTrigger>
@@ -119,14 +118,14 @@ export function LaborRecordDialog({ isOpen, onOpenChange, record, laborers, user
               <Input 
                 id="date" 
                 type="date"
-                value={formData.date} 
+                value={formData.date || ''} 
                 onChange={(e) => setFormData({ ...formData, date: e.target.value })} 
               />
             </div>
             <div className="grid gap-2">
               <Label htmlFor="status">Payment Status</Label>
               <Select 
-                value={formData.status} 
+                value={formData.status || 'Pending'} 
                 onValueChange={(val: any) => setFormData({ ...formData, status: val })}
               >
                 <SelectTrigger>
@@ -144,7 +143,7 @@ export function LaborRecordDialog({ isOpen, onOpenChange, record, laborers, user
             <Input 
               id="amount" 
               type="number"
-              value={formData.amount} 
+              value={formData.amount ?? 0} 
               onChange={(e) => setFormData({ ...formData, amount: Number(e.target.value) })} 
             />
           </div>
@@ -152,7 +151,7 @@ export function LaborRecordDialog({ isOpen, onOpenChange, record, laborers, user
             <Label htmlFor="workDescription">Work Description (Optional)</Label>
             <Textarea 
               id="workDescription" 
-              value={formData.workDescription} 
+              value={formData.workDescription || ''} 
               onChange={(e) => setFormData({ ...formData, workDescription: e.target.value })} 
               placeholder="e.g. Wiring for 3rd floor apartment"
             />
