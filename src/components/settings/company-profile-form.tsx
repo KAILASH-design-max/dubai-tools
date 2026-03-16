@@ -1,10 +1,10 @@
-
 "use client";
 
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
 import { useFirestore, useMemoFirebase, setDocumentNonBlocking, useCompanyProfile } from '@/firebase';
 import { doc } from 'firebase/firestore';
 import type { CompanyProfile } from '@/lib/types';
@@ -35,6 +35,7 @@ export function CompanyProfileForm({ userId }: { userId: string }) {
         phoneNumbers: ['9268863031', '7280944150'],
         email: 'dubaitools2026@gmail.com',
         gstRegistrationNumber: 'Qw1234766666s',
+        defaultInvoiceNotes: '1. All payments should be made to Dubai Tools.\n2. Goods once sold will not be taken back or exchanged.\n3. Warranty claims are subject to manufacturer policy.',
       });
     }
   }, [companyProfile, isLoading]);
@@ -81,13 +82,25 @@ export function CompanyProfileForm({ userId }: { userId: string }) {
         <Label htmlFor="name">Company Name</Label>
         <Input id="name" value={formData.name || ''} onChange={handleInputChange} />
       </div>
-      <div className="space-y-2">
-        <Label htmlFor="addressLine1">Address</Label>
-        <Input id="addressLine1" value={formData.addressLine1 || ''} onChange={handleInputChange} />
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="space-y-2">
+          <Label htmlFor="addressLine1">Address Line 1</Label>
+          <Input id="addressLine1" value={formData.addressLine1 || ''} onChange={handleInputChange} />
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="addressLine2">Address Line 2 (Optional)</Label>
+          <Input id="addressLine2" value={formData.addressLine2 || ''} onChange={handleInputChange} />
+        </div>
       </div>
-      <div className="space-y-2">
-        <Label htmlFor="email">Email</Label>
-        <Input id="email" type="email" value={formData.email || ''} onChange={handleInputChange} />
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="space-y-2">
+          <Label htmlFor="email">Email</Label>
+          <Input id="email" type="email" value={formData.email || ''} onChange={handleInputChange} />
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="gstRegistrationNumber">GST / Reg. No.</Label>
+          <Input id="gstRegistrationNumber" value={formData.gstRegistrationNumber || ''} onChange={handleInputChange} />
+        </div>
       </div>
       <div className="space-y-2">
         <Label htmlFor="phoneNumbers">Phone Numbers</Label>
@@ -95,8 +108,15 @@ export function CompanyProfileForm({ userId }: { userId: string }) {
         <p className="text-xs text-muted-foreground">Enter multiple phone numbers separated by commas.</p>
       </div>
       <div className="space-y-2">
-        <Label htmlFor="gstRegistrationNumber">GST / Reg. No.</Label>
-        <Input id="gstRegistrationNumber" value={formData.gstRegistrationNumber || ''} onChange={handleInputChange} />
+        <Label htmlFor="defaultInvoiceNotes">Default Invoice Terms / Notes</Label>
+        <Textarea 
+          id="defaultInvoiceNotes" 
+          value={formData.defaultInvoiceNotes || ''} 
+          onChange={handleInputChange} 
+          placeholder="Enter terms, bank details, or payment instructions that will appear on every new invoice."
+          className="min-h-[120px]"
+        />
+        <p className="text-xs text-muted-foreground">These notes will automatically load for every new invoice created.</p>
       </div>
 
       <Button onClick={handleSaveChanges} className="w-full sm:w-auto">Save Changes</Button>

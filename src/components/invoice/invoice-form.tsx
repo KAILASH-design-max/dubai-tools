@@ -8,6 +8,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Separator } from '@/components/ui/separator';
 import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
 import { Trash2, Plus, User, Phone, Package, Search } from 'lucide-react';
 import { InvoiceHeader } from './invoice-header';
 import { InvoiceActions } from './invoice-actions';
@@ -62,7 +63,7 @@ export function InvoiceForm({ userId }: { userId: string }) {
   const { data: customers } = useCollection<Customer>(customersRef);
 
   useEffect(() => {
-    if (!isInvoiceLoading && !invoice && !!invoiceRef) {
+    if (!isInvoiceLoading && !invoice && !!invoiceRef && !isCompanyProfileLoading) {
       const defaultInvoice: Omit<Invoice, 'id'> = {
         invoiceNumber: 'INV-001',
         invoiceDate: new Date().toISOString().split('T')[0],
@@ -74,12 +75,13 @@ export function InvoiceForm({ userId }: { userId: string }) {
         totalTaxAmount: 0,
         grandTotalAmount: 0,
         status: 'Draft',
+        notes: companyProfile?.defaultInvoiceNotes || '',
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
       };
       setDocumentNonBlocking(invoiceRef!, defaultInvoice, { merge: false });
     }
-  }, [isInvoiceLoading, !!invoice, !!invoiceRef]);
+  }, [isInvoiceLoading, !!invoice, !!invoiceRef, isCompanyProfileLoading, companyProfile?.defaultInvoiceNotes]);
   
   const handleAddLineItem = () => {
     if (!lineItemsCollectionRef) return;
@@ -166,6 +168,7 @@ export function InvoiceForm({ userId }: { userId: string }) {
 
         setTimeout(() => window.print(), 300);
 
+        // Reset the main invoice for next use, including loading fresh default notes
         updateDocumentNonBlocking(invoiceRef, {
             invoiceNumber: nextNo,
             invoiceDate: new Date().toISOString().split('T')[0],
@@ -174,6 +177,7 @@ export function InvoiceForm({ userId }: { userId: string }) {
             subtotalAmount: 0,
             totalTaxAmount: 0,
             grandTotalAmount: 0,
+            notes: companyProfile?.defaultInvoiceNotes || '',
             updatedAt: new Date().toISOString(),
         });
 
@@ -261,6 +265,7 @@ export function InvoiceForm({ userId }: { userId: string }) {
           .print-no-border { border: none !important; background: transparent !important; box-shadow: none !important; padding: 0 !important; font-size: inherit !important; height: auto !important; }
           .invoice-table td, .invoice-table th { padding: 1px 2px !important; border-bottom: 0.5px solid #eee !important; font-size: 7.5pt !important; }
           .signature-area { page-break-inside: avoid; margin-top: 2mm; }
+          .notes-area-print { visibility: visible !important; white-space: pre-wrap !important; }
         }
       `}</style>
 
@@ -409,20 +414,31 @@ export function InvoiceForm({ userId }: { userId: string }) {
 
             <Button onClick={handleAddLineItem} variant="outline" className="mt-2 print:hidden"><Plus className="mr-2 h-4 w-4" /> Add Item</Button>
 
-            <div className="flex justify-between items-end gap-8 mt-4 print:mt-2">
-              <div className="signature-area flex flex-col items-start gap-1">
-                <div className="relative h-12 w-24">
-                  <Image src="/signature.jpeg" alt="Signature" width={100} height={50} className="object-contain" />
-                </div>
-                <div className="w-40 border-t border-dashed pt-1">
-                  <p className="text-[10px] text-muted-foreground">Authorized Signature</p>
-                </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mt-6 print:mt-2">
+              <div className="space-y-2">
+                <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground print:text-[8pt]">Terms & Conditions</Label>
+                <Textarea 
+                  value={invoice?.notes || ''} 
+                  onChange={(e) => handleUpdateInvoice('notes', e.target.value)}
+                  placeholder="Additional notes or terms..."
+                  className="print-no-border text-xs min-h-[80px] bg-muted/5 notes-area-print"
+                />
               </div>
-              <div className="w-full md:w-1/3 space-y-1 text-sm print:text-[8pt]">
-                <div className="flex justify-between"><span>Subtotal:</span><span>{formatCurrency(subtotal)}</span></div>
-                <div className="flex justify-between"><span>Tax:</span><span>{formatCurrency(taxTotal)}</span></div>
-                <Separator />
-                <div className="flex justify-between font-bold text-lg print:text-[9pt] font-headline"><span>Total:</span><span>{formatCurrency(grandTotal)}</span></div>
+              <div className="space-y-4">
+                <div className="space-y-1 text-sm print:text-[8pt]">
+                  <div className="flex justify-between"><span>Subtotal:</span><span>{formatCurrency(subtotal)}</span></div>
+                  <div className="flex justify-between"><span>Tax:</span><span>{formatCurrency(taxTotal)}</span></div>
+                  <Separator />
+                  <div className="flex justify-between font-bold text-lg print:text-[9pt] font-headline text-primary"><span>Total:</span><span>{formatCurrency(grandTotal)}</span></div>
+                </div>
+                <div className="signature-area flex flex-col items-end gap-1">
+                  <div className="relative h-12 w-24">
+                    <Image src="/signature.jpeg" alt="Signature" width={100} height={50} className="object-contain" />
+                  </div>
+                  <div className="w-40 border-t border-dashed pt-1 text-right">
+                    <p className="text-[10px] text-muted-foreground">Authorized Signature</p>
+                  </div>
+                </div>
               </div>
             </div>
           </CardContent>
@@ -435,6 +451,7 @@ export function InvoiceForm({ userId }: { userId: string }) {
             </div>
             <h2 className="font-bold text-lg uppercase">{activeProfile.name}</h2>
             <p className="text-[8pt]">{activeProfile.addressLine1}</p>
+            {activeProfile.addressLine2 && <p className="text-[8pt]">{activeProfile.addressLine2}</p>}
             <p className="text-[8pt]">Ph: {activeProfile.phoneNumbers.join(', ')}</p>
             {activeProfile.gstRegistrationNumber && <p className="text-[8pt]">GST: {activeProfile.gstRegistrationNumber}</p>}
           </div>
@@ -480,6 +497,12 @@ export function InvoiceForm({ userId }: { userId: string }) {
               <span>GRAND TOTAL:</span><span>{formatCurrency(grandTotal)}</span>
             </div>
           </div>
+          {invoice?.notes && (
+            <>
+              <Separator className="border-dashed my-2" />
+              <p className="text-[7pt] italic whitespace-pre-wrap">{invoice.notes}</p>
+            </>
+          )}
           <div className="mt-4 text-center text-[7pt] italic">Thank you for Shopping!</div>
         </div>
       </div>

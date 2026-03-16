@@ -4,7 +4,7 @@ import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { MainHeader } from "@/components/main-header";
 import { Button } from "@/components/ui/button";
-import { User, Building2, Users, LogOut } from "lucide-react";
+import { User, Building2, Users, LogOut, Settings2 } from "lucide-react";
 import { useUser, useAuth } from "@/firebase";
 import { Skeleton } from "@/components/ui/skeleton";
 import { CompanyProfileForm } from "@/components/settings/company-profile-form";
@@ -65,18 +65,18 @@ export default function SettingsPage() {
             <h1 className="text-3xl font-bold font-headline">Settings</h1>
             
             <Tabs defaultValue="company" className="w-full">
-              <TabsList className="grid w-full grid-cols-3">
+              <TabsList className="grid w-full grid-cols-3 md:grid-cols-3">
                 <TabsTrigger value="company" className="flex items-center gap-2">
                   <Building2 className="h-4 w-4" />
-                  Business
+                  <span className="hidden sm:inline">Business</span>
                 </TabsTrigger>
                 <TabsTrigger value="profile" className="flex items-center gap-2">
                   <User className="h-4 w-4" />
-                  Account
+                  <span className="hidden sm:inline">Account</span>
                 </TabsTrigger>
                 <TabsTrigger value="customers" className="flex items-center gap-2">
                   <Users className="h-4 w-4" />
-                  Customers
+                  <span className="hidden sm:inline">Customers</span>
                 </TabsTrigger>
               </TabsList>
 
@@ -84,7 +84,7 @@ export default function SettingsPage() {
                 <Card>
                     <CardHeader>
                         <CardTitle>Company Profile</CardTitle>
-                        <CardDescription>Update your company's information. This will be reflected on your invoices.</CardDescription>
+                        <CardDescription>Update your company's information and default invoice terms.</CardDescription>
                     </CardHeader>
                     <CardContent>
                         <CompanyProfileForm userId={user.uid} />
