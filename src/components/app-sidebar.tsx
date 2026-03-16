@@ -1,3 +1,4 @@
+
 'use client';
 
 import * as React from 'react';
@@ -11,7 +12,8 @@ import {
   Users,
   Settings,
   LogOut,
-  Home,
+  LayoutDashboard,
+  PlusCircle,
 } from 'lucide-react';
 import {
   Sidebar,
@@ -67,21 +69,21 @@ export function AppSidebar() {
     {
       label: "Overview",
       items: [
-        { title: "Home", icon: Home, url: "/" },
+        { title: "Dashboard", icon: LayoutDashboard, url: "/dashboard" },
       ]
     },
     {
       label: "Invoicing",
       items: [
-        { title: "New Invoice", icon: FileText, url: "/" },
-        { title: "History", icon: ReceiptText, url: "/invoices" },
+        { title: "New Invoice", icon: PlusCircle, url: "/" },
+        { title: "Invoice History", icon: ReceiptText, url: "/invoices" },
       ]
     },
     {
       label: "Management",
       items: [
         { title: "Inventory", icon: Package, url: "/inventory" },
-        { title: "Labor", icon: Users, url: "/labor" },
+        { title: "Labor Management", icon: Users, url: "/labor" },
       ]
     },
     {
