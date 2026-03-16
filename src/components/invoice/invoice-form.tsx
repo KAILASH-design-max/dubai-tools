@@ -105,28 +105,21 @@ export function InvoiceForm({ userId }: { userId: string }) {
     updateDocumentNonBlocking(invoiceRef, { [field]: value });
   }
 
-  const handleSaveInvoice = async (targetPrintMode?: 'a4' | 'receipt') => {
+  const handleSaveInvoice = async (targetPrintMode: 'a4' | 'receipt') => {
     if (!firestore || !userId || !invoice || !lineItems || !invoiceRef || !lineItemsCollectionRef) {
       toast({ variant: "destructive", title: "Error", description: "Invoice data not ready." });
       return;
     }
     if (!invoice.customerName) {
-        toast({ variant: "destructive", title: "Customer Required", description: "Please provide a customer name." });
+        toast({ variant: "destructive", title: "Customer Required", description: "Please provide a customer name before printing/saving." });
         return;
     }
 
     setIsSaving(true);
+    setPrintMode(targetPrintMode);
 
-    // If printing is requested, set mode and trigger print
-    // window.print() blocks JS in most browsers, so the reset logic 
-    // will wait until the user handles the print dialog.
-    if (targetPrintMode) {
-      setPrintMode(targetPrintMode);
-      // Brief delay to allow CSS/DOM layout shift for print mode
-      await new Promise(resolve => setTimeout(resolve, 300));
-      window.print();
-    }
-
+    // Brief delay to allow CSS/DOM layout shift for print mode
+    // We initiate save first, then trigger print
     const invoicesCollection = collection(firestore, `users/${userId}/invoices`);
     const invoiceDataToSave = { ...invoice, status: 'Sent' as const, updatedAt: new Date().toISOString() };
     const { id: dummyId, ...finalData } = invoiceDataToSave;
@@ -148,6 +141,10 @@ export function InvoiceForm({ userId }: { userId: string }) {
             nextNo += "-1";
         }
 
+        // Trigger the browser print dialog
+        setTimeout(() => window.print(), 300);
+
+        // Reset the form
         updateDocumentNonBlocking(invoiceRef, {
             invoiceNumber: nextNo,
             invoiceDate: new Date().toISOString().split('T')[0],
@@ -163,10 +160,10 @@ export function InvoiceForm({ userId }: { userId: string }) {
             await deleteDoc(doc(lineItemsCollectionRef, item.id));
         }
 
-        toast({ title: "Invoice Saved", description: `Invoice ${invoice.invoiceNumber} recorded.` });
+        toast({ title: "Success", description: `Invoice saved and sent to print.` });
     } catch (error: any) {
         errorEmitter.emit('permission-error', new FirestorePermissionError({ path: invoicesCollection.path, operation: 'create', requestResourceData: finalData }));
-        toast({ variant: "destructive", title: "Save Failed", description: "Could not save invoice." });
+        toast({ variant: "destructive", title: "Save Failed", description: "Could not record the invoice." });
     } finally {
         setIsSaving(false);
     }
@@ -176,7 +173,7 @@ export function InvoiceForm({ userId }: { userId: string }) {
     return (lineItems || []).reduce((acc, item) => {
       const qtyText = String(item.quantity).match(/^[0-9.]+/)?.[0] || '1';
       const qty = parseFloat(qtyText) || 1;
-      const amount = item.description === 'Labor cost' ? item.rate : qty * item.rate;
+      const amount = item.description.toLowerCase().includes('labor') ? item.rate : qty * item.rate;
       const tax = amount * (item.tax / 100);
       acc.subtotal += amount;
       acc.taxTotal += tax;
@@ -253,7 +250,6 @@ export function InvoiceForm({ userId }: { userId: string }) {
                 onInvoiceDateChange={(val) => handleUpdateInvoice('invoiceDate', val)}
               />
               <InvoiceActions 
-                onSave={() => handleSaveInvoice()} 
                 onPrintA4={() => handleSaveInvoice('a4')} 
                 onPrintReceipt={() => handleSaveInvoice('receipt')} 
                 isSaving={isSaving} 
@@ -295,7 +291,8 @@ export function InvoiceForm({ userId }: { userId: string }) {
                   {lineItems?.map((item, index) => {
                     const qtyText = String(item.quantity).match(/^[0-9.]+/)?.[0] || '1';
                     const qty = parseFloat(qtyText) || 1;
-                    const amount = item.description === 'Labor cost' ? item.rate : qty * item.rate;
+                    const isLabor = item.description.toLowerCase().includes('labor');
+                    const amount = isLabor ? item.rate : qty * item.rate;
                     const total = amount * (1 + item.tax / 100);
 
                     const matches = (inventoryItems || []).filter(inv => 
@@ -406,7 +403,8 @@ export function InvoiceForm({ userId }: { userId: string }) {
               {lineItems?.map((item, idx) => {
                 const qtyText = String(item.quantity).match(/^[0-9.]+/)?.[0] || '1';
                 const qty = parseFloat(qtyText) || 1;
-                const total = (item.description === 'Labor cost' ? item.rate : qty * item.rate) * (1 + item.tax / 100);
+                const isLabor = item.description.toLowerCase().includes('labor');
+                const total = (isLabor ? item.rate : qty * item.rate) * (1 + item.tax / 100);
                 return (
                   <tr key={item.id} className="border-b border-dashed border-gray-50">
                     <td className="py-1">{idx + 1}. {item.description}</td>
