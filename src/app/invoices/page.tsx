@@ -7,7 +7,7 @@ import { collection, query, where, doc, addDoc, updateDoc, getDocs, deleteDoc } 
 import { Invoice, InvoiceLineItem, InventoryItem } from '@/lib/types';
 import { MainHeader } from '@/components/main-header';
 import { Button } from '@/components/ui/button';
-import { Search, Trash2, MoreHorizontal, Printer, Receipt, Eye, Plus } from 'lucide-react';
+import { Search, Trash2, MoreHorizontal, Printer, ReceiptText, Eye, Plus } from 'lucide-react';
 import { Card, CardHeader, CardContent } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
@@ -527,7 +527,7 @@ function InvoiceDetailModal({ invoiceId, userId, isOpen, onOpenChange, initialPr
               <Printer className="mr-2 h-4 w-4" /> A4 Print
             </Button>
             <Button variant="outline" className="w-full sm:w-auto" onClick={() => handlePrint('receipt')}>
-              <Receipt className="mr-2 h-4 w-4" /> Receipt (80mm)
+              <ReceiptText className="mr-2 h-4 w-4" /> Receipt (80mm)
             </Button>
             <Button className="w-full sm:w-auto" onClick={() => onOpenChange(false)}>Close</Button>
           </DialogFooter>
@@ -635,7 +635,7 @@ export default function InvoicesPage() {
                             <DropdownMenuContent align="end">
                               <DropdownMenuItem onClick={() => { setViewInvoiceId(invoice.id); setInitialPrintMode(undefined); }}><Eye className="mr-2 h-4 w-4" />View</DropdownMenuItem>
                               <DropdownMenuItem onClick={() => handlePrintRequest(invoice.id, 'a4')}><Printer className="mr-2 h-4 w-4" />Print A4</DropdownMenuItem>
-                              <DropdownMenuItem onClick={() => handlePrintRequest(invoice.id, 'receipt')}><Receipt className="mr-2 h-4 w-4" />Print Receipt</DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => handlePrintRequest(invoice.id, 'receipt')}><ReceiptText className="mr-2 h-4 w-4" />Print Receipt</DropdownMenuItem>
                               <DropdownMenuSeparator />
                               <DropdownMenuItem className="text-destructive" onClick={() => deleteDocumentNonBlocking(doc(firestore!, `users/${user!.uid}/invoices/${invoice.id}`))}><Trash2 className="mr-2 h-4 w-4" />Delete</DropdownMenuItem>
                             </DropdownMenuContent>

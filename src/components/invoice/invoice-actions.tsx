@@ -1,7 +1,7 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
-import { Printer, Receipt } from "lucide-react";
+import { Printer, ReceiptText } from "lucide-react";
 
 interface InvoiceActionsProps {
   onPrintA4: () => void;
@@ -29,7 +29,7 @@ export const InvoiceActions = ({ onPrintA4, onPrintReceipt, isSaving }: InvoiceA
         disabled={isSaving}
         className="h-9"
       >
-        <Receipt className="mr-2 h-4 w-4 text-primary" />
+        <ReceiptText className="mr-2 h-4 w-4 text-primary" />
         <span className="hidden md:inline">Receipt (80mm)</span>
       </Button>
     </div>
