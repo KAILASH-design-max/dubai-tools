@@ -166,30 +166,33 @@ export function InvoiceForm({ userId }: { userId: string }) {
             nextNo += "-1";
         }
 
-        setTimeout(() => window.print(), 300);
+        // Trigger print
+        setTimeout(() => window.print(), 500);
 
-        // Reset the main invoice for next use, including loading fresh default notes
-        updateDocumentNonBlocking(invoiceRef, {
-            invoiceNumber: nextNo,
-            invoiceDate: new Date().toISOString().split('T')[0],
-            customerName: '',
-            customerPhone: '',
-            subtotalAmount: 0,
-            totalTaxAmount: 0,
-            grandTotalAmount: 0,
-            notes: companyProfile?.defaultInvoiceNotes || '',
-            updatedAt: new Date().toISOString(),
-        });
+        // Reset the main invoice AFTER a delay to ensure print has captured items
+        setTimeout(async () => {
+          updateDocumentNonBlocking(invoiceRef, {
+              invoiceNumber: nextNo,
+              invoiceDate: new Date().toISOString().split('T')[0],
+              customerName: '',
+              customerPhone: '',
+              subtotalAmount: 0,
+              totalTaxAmount: 0,
+              grandTotalAmount: 0,
+              notes: companyProfile?.defaultInvoiceNotes || '',
+              updatedAt: new Date().toISOString(),
+          });
 
-        for (const item of lineItems) {
-            await deleteDoc(doc(lineItemsCollectionRef, item.id));
-        }
+          for (const item of lineItems) {
+              await deleteDoc(doc(lineItemsCollectionRef, item.id));
+          }
+          setIsSaving(false);
+          toast({ title: "Success", description: `Invoice saved and stock adjusted.` });
+        }, 2000);
 
-        toast({ title: "Success", description: `Invoice saved and stock adjusted.` });
     } catch (error: any) {
         errorEmitter.emit('permission-error', new FirestorePermissionError({ path: invoicesCollection.path, operation: 'create', requestResourceData: finalData }));
         toast({ variant: "destructive", title: "Save Failed", description: "Could not record the invoice." });
-    } finally {
         setIsSaving(false);
     }
   };
@@ -250,22 +253,26 @@ export function InvoiceForm({ userId }: { userId: string }) {
           body { -webkit-print-color-adjust: exact; print-color-adjust: exact; background: white !important; }
           body * { visibility: hidden; }
           
-          .print-a4 .invoice-a4-area, .print-a4 .invoice-a4-area * { visibility: visible; }
+          .print-a4 .invoice-a4-area, .print-a4 .invoice-a4-area * { visibility: visible !important; }
           .print-a4 .invoice-a4-area { 
             position: absolute; left: 0; top: 0; width: 100%; border: none !important; box-shadow: none !important; padding: 0 !important; font-size: 8pt; 
           }
           .print-a4 .receipt-view { display: none !important; }
           
-          .print-receipt .receipt-view, .print-receipt .receipt-view * { visibility: visible; }
+          .print-receipt .receipt-view, .print-receipt .receipt-view * { visibility: visible !important; }
           .print-receipt .receipt-view {
             position: absolute; left: 0; top: 0; width: 80mm; padding: 2mm; font-family: monospace; font-size: 9pt; display: block !important;
           }
           .print-receipt .invoice-a4-area { display: none !important; }
 
           .print-no-border { border: none !important; background: transparent !important; box-shadow: none !important; padding: 0 !important; font-size: inherit !important; height: auto !important; }
-          .invoice-table td, .invoice-table th { padding: 1px 2px !important; border-bottom: 0.5px solid #eee !important; font-size: 7.5pt !important; }
+          .invoice-table { width: 100% !important; overflow: visible !important; }
+          .invoice-table td, .invoice-table th { padding: 1px 2px !important; border-bottom: 0.5px solid #eee !important; font-size: 7.5pt !important; visibility: visible !important; }
           .signature-area { page-break-inside: avoid; margin-top: 2mm; }
           .notes-area-print { visibility: visible !important; white-space: pre-wrap !important; }
+          
+          /* Ensure specific table parts are visible */
+          .invoice-table thead, .invoice-table tbody, .invoice-table tr { visibility: visible !important; }
         }
       `}</style>
 
@@ -417,12 +424,17 @@ export function InvoiceForm({ userId }: { userId: string }) {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mt-6 print:mt-2">
               <div className="space-y-2">
                 <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground print:text-[8pt]">Terms & Conditions</Label>
-                <Textarea 
-                  value={invoice?.notes || ''} 
-                  onChange={(e) => handleUpdateInvoice('notes', e.target.value)}
-                  placeholder="Additional notes or terms..."
-                  className="print-no-border text-xs min-h-[80px] bg-muted/5 notes-area-print"
-                />
+                <div className="print:hidden">
+                  <Textarea 
+                    value={invoice?.notes || ''} 
+                    onChange={(e) => handleUpdateInvoice('notes', e.target.value)}
+                    placeholder="Additional notes or terms..."
+                    className="min-h-[80px] bg-muted/5"
+                  />
+                </div>
+                <div className="hidden print:block text-[7pt] italic whitespace-pre-wrap">
+                  {invoice?.notes}
+                </div>
               </div>
               <div className="space-y-4">
                 <div className="space-y-1 text-sm print:text-[8pt]">

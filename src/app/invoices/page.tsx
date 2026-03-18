@@ -333,6 +333,14 @@ function InvoiceDetailModal({ invoiceId, userId, isOpen, onOpenChange, initialPr
               .dropdown-trigger-print { display: none !important; }
               
               * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+              
+              /* Force table contents to stay visible */
+              .invoice-detail-print table, 
+              .invoice-detail-print tr, 
+              .invoice-detail-print td, 
+              .invoice-detail-print th { 
+                visibility: visible !important; 
+              }
             }
           `}</style>
           
