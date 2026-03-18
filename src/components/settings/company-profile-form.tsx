@@ -11,6 +11,12 @@ import type { CompanyProfile } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import { Skeleton } from '../ui/skeleton';
 
+const DEFAULT_TERMS = `1. All payments should be made in favor of DUBAI TOOLS.
+2. Goods once sold will not be taken back or exchanged under any circumstances.
+3. Any warranty claims must be directed to the respective manufacturer.
+4. 18% p.a. interest will be charged if the bill is not paid within the due date.
+5. All disputes are subject to local jurisdiction only.`;
+
 export function CompanyProfileForm({ userId }: { userId: string }) {
   const firestore = useFirestore();
   const { toast } = useToast();
@@ -35,7 +41,7 @@ export function CompanyProfileForm({ userId }: { userId: string }) {
         phoneNumbers: ['9268863031', '7280944150'],
         email: 'dubaitools2026@gmail.com',
         gstRegistrationNumber: 'Qw1234766666s',
-        defaultInvoiceNotes: '1. All payments should be made in favor of DUBAI TOOLS.\n2. Goods once sold will not be taken back or exchanged under any circumstances.\n3. Any warranty claims must be directed to the respective manufacturer.\n4. 18% p.a. interest will be charged if the bill is not paid within the due date.\n5. All disputes are subject to local jurisdiction only.',
+        defaultInvoiceNotes: DEFAULT_TERMS,
       });
     }
   }, [companyProfile, isLoading]);

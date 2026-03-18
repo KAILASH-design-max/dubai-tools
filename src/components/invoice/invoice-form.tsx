@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useEffect, useState, useMemo } from 'react';
@@ -144,7 +143,7 @@ export function InvoiceForm({ userId }: { userId: string }) {
     const { id: dummyId, ...finalData } = invoiceDataToSave;
 
     try {
-        // Create persistent record
+        // Create permanent record
         const newDoc = await addDoc(invoicesCollection, finalData);
         const newLineItemsCol = collection(newDoc, 'lineItems');
         
@@ -624,4 +623,3 @@ export function InvoiceForm({ userId }: { userId: string }) {
     </>
   );
 }
-
