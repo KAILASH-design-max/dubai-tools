@@ -10,13 +10,13 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Separator } from '@/components/ui/separator';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Trash2, Plus, User, Phone, Package, Search, CheckCircle2, AlertCircle } from 'lucide-react';
+import { Trash2, Plus, User, Phone, Package, Search, CheckCircle2, AlertCircle, Users } from 'lucide-react';
 import { InvoiceHeader } from './invoice-header';
 import { InvoiceActions } from './invoice-actions';
 import { useFirestore, useDoc, useCollection, useMemoFirebase, useCompanyProfile } from '@/firebase';
 import { doc, collection, addDoc, deleteDoc, query, orderBy, writeBatch } from 'firebase/firestore';
 import { addDocumentNonBlocking, deleteDocumentNonBlocking, setDocumentNonBlocking, updateDocumentNonBlocking } from '@/firebase/non-blocking-updates';
-import type { Invoice, InvoiceLineItem, InventoryItem, Customer } from '@/lib/types';
+import type { Invoice, InvoiceLineItem, InventoryItem, Customer, Laborer } from '@/lib/types';
 import { Skeleton } from '../ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { errorEmitter } from '@/firebase/error-emitter';
@@ -59,10 +59,16 @@ export function InvoiceForm({ userId }: { userId: string }) {
     [firestore, userId]
   );
 
+  const laborersRef = useMemoFirebase(
+    () => (firestore ? collection(firestore, `users/${userId}/laborers`) : null),
+    [firestore, userId]
+  );
+
   const { data: invoice, isLoading: isInvoiceLoading } = useDoc<Invoice>(invoiceRef);
   const { data: lineItems, isLoading: areLineItemsLoading } = useCollection<InvoiceLineItem>(lineItemsQuery);
   const { data: inventoryItems } = useCollection<InventoryItem>(inventoryRef);
   const { data: customers } = useCollection<Customer>(customersRef);
+  const { data: laborers } = useCollection<Laborer>(laborersRef);
 
   useEffect(() => {
     if (!isInvoiceLoading && !invoice && !!invoiceRef && !isCompanyProfileLoading) {
@@ -400,10 +406,16 @@ export function InvoiceForm({ userId }: { userId: string }) {
                     const amount = isLabor ? item.rate : qty * item.rate;
                     const total = amount * (1 + item.tax / 100);
 
-                    const matches = (inventoryItems || []).filter(inv => 
+                    // Combined search for Inventory and Laborers
+                    const inventoryMatches = (inventoryItems || []).filter(inv => 
                       item.description.trim().length >= 2 && 
                       inv.name.toLowerCase().includes(item.description.toLowerCase())
                     ).slice(0, 5);
+
+                    const laborerMatches = (laborers || []).filter(l => 
+                      item.description.trim().length >= 2 && 
+                      l.name.toLowerCase().includes(item.description.toLowerCase())
+                    ).slice(0, 3);
 
                     return (
                       <TableRow key={item.id} className="relative overflow-visible group">
@@ -415,11 +427,12 @@ export function InvoiceForm({ userId }: { userId: string }) {
                             onBlur={() => setTimeout(() => setActiveItemId(null), 250)}
                             onChange={(e) => handleUpdateLineItem(item.id, 'description', e.target.value)} 
                             className="w-full print-no-border font-medium focus-visible:ring-primary/30" 
-                            placeholder="Type to search stock..."
+                            placeholder="Search stock or labor..."
                           />
-                          {activeItemId === item.id && matches.length > 0 && (
+                          {activeItemId === item.id && (inventoryMatches.length > 0 || laborerMatches.length > 0) && (
                             <div className="absolute left-0 top-full z-[999] w-full min-w-[320px] border bg-card shadow-2xl rounded-lg mt-1 overflow-hidden print:hidden border-primary/20 ring-4 ring-primary/5 animate-in fade-in slide-in-from-top-1 duration-150">
-                              {matches.map(match => (
+                              {/* Inventory Section */}
+                              {inventoryMatches.map(match => (
                                 <button
                                   key={match.id}
                                   className="w-full text-left px-4 py-3 text-sm hover:bg-primary/5 hover:text-primary transition-colors border-b last:border-0 flex items-center justify-between group/item"
@@ -431,19 +444,47 @@ export function InvoiceForm({ userId }: { userId: string }) {
                                   }}
                                 >
                                   <div className="flex flex-col gap-0.5">
-                                    <span className="font-bold text-foreground group-hover/item:text-primary">{match.name}</span>
+                                    <div className="flex items-center gap-2">
+                                      <Package className="h-3 w-3 text-primary opacity-70" />
+                                      <span className="font-bold text-foreground group-hover/item:text-primary">{match.name}</span>
+                                    </div>
                                     <div className="flex items-center gap-2 text-[10px] text-muted-foreground">
                                       <span className={cn(
                                         "flex items-center gap-1 px-1.5 rounded-full",
                                         match.quantity <= (match.minStockLevel || 0) ? "bg-red-100 text-red-600 font-bold" : "bg-green-100 text-green-600"
                                       )}>
-                                        <Package className="h-2.5 w-2.5" /> {match.quantity} {match.unit}
+                                        {match.quantity} {match.unit}
                                       </span>
                                       <span className="opacity-50">SKU: {match.sku || 'N/A'}</span>
                                     </div>
                                   </div>
                                   <div className="text-right">
                                     <span className="font-bold text-primary block">Rs {match.sellingPrice}</span>
+                                  </div>
+                                </button>
+                              ))}
+
+                              {/* Laborers Section */}
+                              {laborerMatches.map(l => (
+                                <button
+                                  key={l.id}
+                                  className="w-full text-left px-4 py-3 text-sm hover:bg-accent/10 hover:text-accent transition-colors border-b last:border-0 flex items-center justify-between group/item"
+                                  onMouseDown={(e) => {
+                                    e.preventDefault();
+                                    handleUpdateLineItem(item.id, 'description', `Labor: ${l.name}`);
+                                    handleUpdateLineItem(item.id, 'rate', l.dailyRate);
+                                    setActiveItemId(null);
+                                  }}
+                                >
+                                  <div className="flex flex-col gap-0.5">
+                                    <div className="flex items-center gap-2">
+                                      <Users className="h-3 w-3 text-accent opacity-70" />
+                                      <span className="font-bold text-foreground group-hover/item:text-accent">{l.name}</span>
+                                    </div>
+                                    <span className="text-[10px] text-muted-foreground">Daily Wage Worker</span>
+                                  </div>
+                                  <div className="text-right">
+                                    <span className="font-bold text-accent block">Rs {l.dailyRate}</span>
                                   </div>
                                 </button>
                               ))}
@@ -583,3 +624,4 @@ export function InvoiceForm({ userId }: { userId: string }) {
     </>
   );
 }
+
