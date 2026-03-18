@@ -4,7 +4,7 @@ import * as React from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import { useUser, useAuth, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { signOut } from 'firebase/auth';
-import { collection, query, where } from 'firebase/firestore';
+import { collection, query, where, orderBy, limit } from 'firebase/firestore';
 import { Invoice, InventoryItem, LaborRecord } from '@/lib/types';
 import {
   ReceiptText,
@@ -14,6 +14,8 @@ import {
   LogOut,
   LayoutDashboard,
   PlusCircle,
+  History,
+  Clock,
   ChevronRight,
   User as UserIcon,
 } from 'lucide-react';
@@ -45,13 +47,19 @@ export function AppSidebar() {
   const { toast } = useToast();
   const { setOpenMobile, state } = useSidebar();
 
-  // Data fetching for badges
+  // Data fetching for badges and recent activity
   const invoicesRef = useMemoFirebase(
     () => (firestore && user ? collection(firestore, `users/${user.uid}/invoices`) : null),
     [firestore, user]
   );
+  
   const pendingInvoicesQuery = useMemoFirebase(
     () => (invoicesRef ? query(invoicesRef, where('status', 'in', ['Sent', 'Overdue'])) : null),
+    [invoicesRef]
+  );
+
+  const recentInvoicesQuery = useMemoFirebase(
+    () => (invoicesRef ? query(invoicesRef, orderBy('createdAt', 'desc'), limit(3)) : null),
     [invoicesRef]
   );
 
@@ -70,6 +78,7 @@ export function AppSidebar() {
   );
 
   const { data: pendingInvoices } = useCollection<Invoice>(pendingInvoicesQuery);
+  const { data: recentInvoices } = useCollection<Invoice>(recentInvoicesQuery);
   const { data: inventoryItems } = useCollection<InventoryItem>(inventoryRef);
   const { data: pendingLabor } = useCollection<LaborRecord>(pendingLaborQuery);
 
@@ -115,7 +124,7 @@ export function AppSidebar() {
         { title: "New Invoice", icon: PlusCircle, url: "/" },
         { 
           title: "Invoice History", 
-          icon: ReceiptText, 
+          icon: History, 
           url: "/invoices",
           badge: pendingInvoiceCount > 0 ? pendingInvoiceCount : null,
           badgeVariant: 'default'
@@ -201,6 +210,36 @@ export function AppSidebar() {
             </SidebarGroupContent>
           </SidebarGroup>
         ))}
+
+        {/* Recent Activity Section */}
+        {recentInvoices && recentInvoices.length > 0 && state !== 'collapsed' && (
+          <SidebarGroup>
+            <SidebarGroupLabel className="px-4 font-headline uppercase tracking-wider text-[10px] opacity-70 flex items-center gap-2">
+              <Clock className="h-3 w-3" />
+              Recent Invoices
+            </SidebarGroupLabel>
+            <SidebarGroupContent>
+              <SidebarMenu>
+                {recentInvoices.map((inv) => (
+                  <SidebarMenuItem key={inv.id}>
+                    <SidebarMenuButton 
+                      asChild 
+                      className="h-10 px-4 group"
+                      tooltip={inv.customerName}
+                    >
+                      <button onClick={() => handleNavigation('/invoices')}>
+                        <div className="flex flex-col items-start min-w-0">
+                          <span className="text-xs font-bold truncate w-full">{inv.customerName}</span>
+                          <span className="text-[10px] text-muted-foreground">{inv.invoiceNumber}</span>
+                        </div>
+                      </button>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                ))}
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
+        )}
       </SidebarContent>
 
       <SidebarFooter className="p-2 border-t space-y-2">
