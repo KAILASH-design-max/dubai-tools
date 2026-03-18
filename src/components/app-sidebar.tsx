@@ -1,4 +1,3 @@
-
 'use client';
 
 import * as React from 'react';
@@ -6,7 +5,6 @@ import { usePathname, useRouter } from 'next/navigation';
 import { useUser, useAuth } from '@/firebase';
 import { signOut } from 'firebase/auth';
 import {
-  FileText,
   ReceiptText,
   Package,
   Users,
@@ -14,6 +12,8 @@ import {
   LogOut,
   LayoutDashboard,
   PlusCircle,
+  ChevronRight,
+  User as UserIcon,
 } from 'lucide-react';
 import {
   Sidebar,
@@ -31,6 +31,7 @@ import {
 import { Logo } from '@/components/logo';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 
 export function AppSidebar() {
   const { user, isUserLoading } = useUser();
@@ -38,7 +39,7 @@ export function AppSidebar() {
   const router = useRouter();
   const pathname = usePathname();
   const { toast } = useToast();
-  const { setOpenMobile } = useSidebar();
+  const { setOpenMobile, state } = useSidebar();
 
   // Don't show sidebar on auth pages or if not logged in
   if (isUserLoading || !user || user.isAnonymous || pathname === '/login' || pathname === '/signup') {
@@ -94,6 +95,10 @@ export function AppSidebar() {
     }
   ];
 
+  const userInitials = user?.displayName
+    ? user.displayName.split(' ').map(n => n[0]).join('').toUpperCase().substring(0, 2)
+    : user?.email?.substring(0, 2).toUpperCase() || 'U';
+
   return (
     <Sidebar collapsible="icon" className="border-r bg-card print:hidden">
       <SidebarHeader className="p-4 border-b">
@@ -117,7 +122,7 @@ export function AppSidebar() {
                       className="h-11 px-4"
                     >
                       <button onClick={() => handleNavigation(item.url)}>
-                        <item.icon className="mr-3 h-5 w-5 text-primary" />
+                        <item.icon className={`mr-3 h-5 w-5 ${pathname === item.url ? 'text-primary' : 'text-muted-foreground'}`} />
                         <span className="font-medium">{item.title}</span>
                       </button>
                     </SidebarMenuButton>
@@ -129,14 +134,30 @@ export function AppSidebar() {
         ))}
       </SidebarContent>
 
-      <SidebarFooter className="p-4 border-t">
+      <SidebarFooter className="p-2 border-t space-y-2">
+        {/* User Profile Summary */}
+        <div className={`flex items-center gap-3 px-2 py-3 rounded-lg bg-muted/30 transition-all ${state === 'collapsed' ? 'justify-center p-1' : ''}`}>
+          <Avatar className="h-8 w-8 border border-primary/20">
+            <AvatarImage src={user?.photoURL || ''} />
+            <AvatarFallback className="bg-primary/10 text-primary text-[10px] font-bold">
+              {userInitials}
+            </AvatarFallback>
+          </Avatar>
+          {state !== 'collapsed' && (
+            <div className="flex flex-col min-w-0">
+              <span className="text-xs font-bold truncate">{user?.displayName || 'Business User'}</span>
+              <span className="text-[10px] text-muted-foreground truncate">{user?.email}</span>
+            </div>
+          )}
+        </div>
+
         <Button 
-          variant="destructive" 
-          className="w-full justify-start h-10 px-2 group-data-[collapsible=icon]:justify-center" 
+          variant="ghost" 
+          className="w-full justify-start h-10 px-3 hover:bg-destructive/10 hover:text-destructive group-data-[collapsible=icon]:justify-center" 
           onClick={handleSignOut}
         >
           <LogOut className="mr-3 h-4 w-4 shrink-0" />
-          <span className="text-sm group-data-[collapsible=icon]:hidden">Sign Out</span>
+          <span className="text-xs font-medium group-data-[collapsible=icon]:hidden">Sign Out</span>
         </Button>
       </SidebarFooter>
     </Sidebar>
