@@ -2,8 +2,10 @@
 
 import * as React from 'react';
 import { usePathname, useRouter } from 'next/navigation';
-import { useUser, useAuth } from '@/firebase';
+import { useUser, useAuth, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { signOut } from 'firebase/auth';
+import { collection, query, where } from 'firebase/firestore';
+import { Invoice, InventoryItem, LaborRecord } from '@/lib/types';
 import {
   ReceiptText,
   Package,
@@ -26,6 +28,7 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
+  SidebarMenuBadge,
   useSidebar,
 } from '@/components/ui/sidebar';
 import { Logo } from '@/components/logo';
@@ -36,10 +39,49 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 export function AppSidebar() {
   const { user, isUserLoading } = useUser();
   const auth = useAuth();
+  const firestore = useFirestore();
   const router = useRouter();
   const pathname = usePathname();
   const { toast } = useToast();
   const { setOpenMobile, state } = useSidebar();
+
+  // Data fetching for badges
+  const invoicesRef = useMemoFirebase(
+    () => (firestore && user ? collection(firestore, `users/${user.uid}/invoices`) : null),
+    [firestore, user]
+  );
+  const pendingInvoicesQuery = useMemoFirebase(
+    () => (invoicesRef ? query(invoicesRef, where('status', 'in', ['Sent', 'Overdue'])) : null),
+    [invoicesRef]
+  );
+
+  const inventoryRef = useMemoFirebase(
+    () => (firestore && user ? collection(firestore, `users/${user.uid}/inventory`) : null),
+    [firestore, user]
+  );
+
+  const laborRecordsRef = useMemoFirebase(
+    () => (firestore && user ? collection(firestore, `users/${user.uid}/laborRecords`) : null),
+    [firestore, user]
+  );
+  const pendingLaborQuery = useMemoFirebase(
+    () => (laborRecordsRef ? query(laborRecordsRef, where('status', '==', 'Pending')) : null),
+    [laborRecordsRef]
+  );
+
+  const { data: pendingInvoices } = useCollection<Invoice>(pendingInvoicesQuery);
+  const { data: inventoryItems } = useCollection<InventoryItem>(inventoryRef);
+  const { data: pendingLabor } = useCollection<LaborRecord>(pendingLaborQuery);
+
+  const lowStockCount = React.useMemo(() => {
+    if (!inventoryItems) return 0;
+    return inventoryItems.filter(item => 
+      item.minStockLevel !== undefined && item.quantity <= item.minStockLevel
+    ).length;
+  }, [inventoryItems]);
+
+  const pendingInvoiceCount = pendingInvoices?.length || 0;
+  const pendingLaborCount = pendingLabor?.length || 0;
 
   // Don't show sidebar on auth pages or if not logged in
   if (isUserLoading || !user || user.isAnonymous || pathname === '/login' || pathname === '/signup') {
@@ -71,14 +113,32 @@ export function AppSidebar() {
       label: "Invoicing",
       items: [
         { title: "New Invoice", icon: PlusCircle, url: "/" },
-        { title: "Invoice History", icon: ReceiptText, url: "/invoices" },
+        { 
+          title: "Invoice History", 
+          icon: ReceiptText, 
+          url: "/invoices",
+          badge: pendingInvoiceCount > 0 ? pendingInvoiceCount : null,
+          badgeVariant: 'default'
+        },
       ]
     },
     {
       label: "Management",
       items: [
-        { title: "Inventory", icon: Package, url: "/inventory" },
-        { title: "Labor Management", icon: Users, url: "/labor" },
+        { 
+          title: "Inventory", 
+          icon: Package, 
+          url: "/inventory",
+          badge: lowStockCount > 0 ? lowStockCount : null,
+          badgeVariant: 'destructive'
+        },
+        { 
+          title: "Labor Management", 
+          icon: Users, 
+          url: "/labor",
+          badge: pendingLaborCount > 0 ? pendingLaborCount : null,
+          badgeVariant: 'outline'
+        },
       ]
     },
     {
@@ -126,6 +186,15 @@ export function AppSidebar() {
                         <span className="font-medium">{item.title}</span>
                       </button>
                     </SidebarMenuButton>
+                    {item.badge && state !== 'collapsed' && (
+                      <SidebarMenuBadge className={
+                        item.badgeVariant === 'destructive' ? 'bg-destructive text-destructive-foreground' : 
+                        item.badgeVariant === 'outline' ? 'border-primary text-primary border' : 
+                        'bg-primary text-primary-foreground'
+                      }>
+                        {item.badge}
+                      </SidebarMenuBadge>
+                    )}
                   </SidebarMenuItem>
                 ))}
               </SidebarMenu>
@@ -135,7 +204,6 @@ export function AppSidebar() {
       </SidebarContent>
 
       <SidebarFooter className="p-2 border-t space-y-2">
-        {/* User Profile Summary */}
         <div className={`flex items-center gap-3 px-2 py-3 rounded-lg bg-muted/30 transition-all ${state === 'collapsed' ? 'justify-center p-1' : ''}`}>
           <Avatar className="h-8 w-8 border border-primary/20">
             <AvatarImage src={user?.photoURL || ''} />
