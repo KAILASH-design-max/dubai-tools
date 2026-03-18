@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useEffect, useState, useMemo } from 'react';
@@ -9,17 +10,18 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Separator } from '@/components/ui/separator';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Trash2, Plus, User, Phone, Package, Search } from 'lucide-react';
+import { Trash2, Plus, User, Phone, Package, Search, CheckCircle2, AlertCircle } from 'lucide-react';
 import { InvoiceHeader } from './invoice-header';
 import { InvoiceActions } from './invoice-actions';
 import { useFirestore, useDoc, useCollection, useMemoFirebase, useCompanyProfile } from '@/firebase';
-import { doc, collection, addDoc, deleteDoc, query, orderBy } from 'firebase/firestore';
+import { doc, collection, addDoc, deleteDoc, query, orderBy, writeBatch } from 'firebase/firestore';
 import { addDocumentNonBlocking, deleteDocumentNonBlocking, setDocumentNonBlocking, updateDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 import type { Invoice, InvoiceLineItem, InventoryItem, Customer } from '@/lib/types';
 import { Skeleton } from '../ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
+import { cn } from '@/lib/utils';
 
 export function InvoiceForm({ userId }: { userId: string }) {
   const firestore = useFirestore();
@@ -128,21 +130,26 @@ export function InvoiceForm({ userId }: { userId: string }) {
     setPrintMode(targetPrintMode);
 
     const invoicesCollection = collection(firestore, `users/${userId}/invoices`);
-    const invoiceDataToSave = { ...invoice, status: 'Sent' as const, updatedAt: new Date().toISOString() };
+    const invoiceDataToSave = { 
+      ...invoice, 
+      status: 'Sent' as const, 
+      updatedAt: new Date().toISOString() 
+    };
     const { id: dummyId, ...finalData } = invoiceDataToSave;
 
     try {
+        // Create persistent record
         const newDoc = await addDoc(invoicesCollection, finalData);
         const newLineItemsCol = collection(newDoc, 'lineItems');
         
-        // Save line items and deduct stock
+        // Save line items and perform stock deduction
         for (const item of lineItems) {
             const { id: itemId, ...itemData } = item;
             await addDoc(newLineItemsCol, itemData);
 
-            // Deduct from inventory if matching item found
+            // Find matching inventory item for automatic stock adjustment
             const matchingInvItem = inventoryItems?.find(inv => 
-              inv.name.toLowerCase() === item.description.toLowerCase()
+              inv.name.toLowerCase().trim() === item.description.toLowerCase().trim()
             );
 
             if (matchingInvItem) {
@@ -157,6 +164,7 @@ export function InvoiceForm({ userId }: { userId: string }) {
             }
         }
 
+        // Calculate next invoice number
         const match = invoice.invoiceNumber.match(/\d+$/);
         let nextNo = invoice.invoiceNumber;
         if (match) {
@@ -166,10 +174,10 @@ export function InvoiceForm({ userId }: { userId: string }) {
             nextNo += "-1";
         }
 
-        // Trigger print
+        // Trigger browser print
         setTimeout(() => window.print(), 500);
 
-        // Reset the main invoice AFTER a delay to ensure print has captured items
+        // Reset the "main" (current draft) invoice after a delay to ensure the print capture worked
         setTimeout(async () => {
           updateDocumentNonBlocking(invoiceRef, {
               invoiceNumber: nextNo,
@@ -183,12 +191,13 @@ export function InvoiceForm({ userId }: { userId: string }) {
               updatedAt: new Date().toISOString(),
           });
 
+          // Delete all current draft line items
           for (const item of lineItems) {
               await deleteDoc(doc(lineItemsCollectionRef, item.id));
           }
           setIsSaving(false);
-          toast({ title: "Success", description: `Invoice saved and stock adjusted.` });
-        }, 2000);
+          toast({ title: "Success", description: `Invoice recorded and stock adjusted.` });
+        }, 3000);
 
     } catch (error: any) {
         errorEmitter.emit('permission-error', new FirestorePermissionError({ path: invoicesCollection.path, operation: 'create', requestResourceData: finalData }));
@@ -201,7 +210,8 @@ export function InvoiceForm({ userId }: { userId: string }) {
     return (lineItems || []).reduce((acc, item) => {
       const qtyText = String(item.quantity).match(/^[0-9.]+/)?.[0] || '1';
       const qty = parseFloat(qtyText) || 1;
-      const amount = item.description.toLowerCase().includes('labor') ? item.rate : qty * item.rate;
+      const isLabor = item.description.toLowerCase().includes('labor');
+      const amount = isLabor ? item.rate : qty * item.rate;
       const tax = amount * (item.tax / 100);
       acc.subtotal += amount;
       acc.taxTotal += tax;
@@ -212,16 +222,27 @@ export function InvoiceForm({ userId }: { userId: string }) {
 
   const { subtotal, taxTotal, grandTotal } = totals;
 
+  // Auto-update totals on the invoice document
   useEffect(() => {
     if (!invoiceRef || !invoice) return;
-    const hasChanged = Math.abs(invoice.subtotalAmount - subtotal) > 0.01 || Math.abs(invoice.totalTaxAmount - taxTotal) > 0.01 || Math.abs(invoice.grandTotalAmount - grandTotal) > 0.01;
+    const hasChanged = 
+      Math.abs(invoice.subtotalAmount - subtotal) > 0.01 || 
+      Math.abs(invoice.totalTaxAmount - taxTotal) > 0.01 || 
+      Math.abs(invoice.grandTotalAmount - grandTotal) > 0.01;
+    
     if (hasChanged) {
-      updateDocumentNonBlocking(invoiceRef, { subtotalAmount: subtotal, totalTaxAmount: taxTotal, grandTotalAmount: grandTotal, updatedAt: new Date().toISOString() });
+      updateDocumentNonBlocking(invoiceRef, { 
+        subtotalAmount: subtotal, 
+        totalTaxAmount: taxTotal, 
+        grandTotalAmount: grandTotal, 
+        updatedAt: new Date().toISOString() 
+      });
     }
   }, [subtotal, taxTotal, grandTotal, invoice?.id, invoiceRef]);
   
   const formatCurrency = (amount: number) => new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR' }).format(amount).replace('₹', 'Rs ');
 
+  // Customer search suggestions
   const customerMatches = useMemo(() => {
     if (!invoice?.customerName || invoice.customerName.length < 2 || !customers) return [];
     return customers.filter(c => 
@@ -232,17 +253,26 @@ export function InvoiceForm({ userId }: { userId: string }) {
   if (isInvoiceLoading || areLineItemsLoading || isCompanyProfileLoading) {
     return (
       <Card className="max-w-4xl mx-auto">
-        <CardContent className="p-6 space-y-8"><Skeleton className="h-32 w-full" /><Skeleton className="h-64 w-full" /></CardContent>
+        <CardContent className="p-6 space-y-8">
+          <Skeleton className="h-32 w-full" />
+          <Skeleton className="h-64 w-full" />
+        </CardContent>
       </Card>
     );
   }
 
-  const activeProfile = companyProfile || { name: 'DUBAI TOOLS', addressLine1: 'Shivdhara', phoneNumbers: ['9268863031', '7280944150'], email: 'dubaitools2026@gmail.com', gstRegistrationNumber: 'Qw1234766666s' };
+  const activeProfile = companyProfile || { 
+    name: 'DUBAI TOOLS', 
+    addressLine1: 'Shivdhara', 
+    phoneNumbers: ['9268863031', '7280944150'], 
+    email: 'dubaitools2026@gmail.com', 
+    gstRegistrationNumber: 'Qw1234766666s' 
+  };
 
   return (
     <>
       <style>{`
-        @page { size: A4; margin: 5mm; }
+        @page { size: A4; margin: 10mm; }
         input[type="date"]::-webkit-calendar-picker-indicator { display: none !important; }
         
         @media screen {
@@ -255,31 +285,30 @@ export function InvoiceForm({ userId }: { userId: string }) {
           
           .print-a4 .invoice-a4-area, .print-a4 .invoice-a4-area * { visibility: visible !important; }
           .print-a4 .invoice-a4-area { 
-            position: absolute; left: 0; top: 0; width: 100%; border: none !important; box-shadow: none !important; padding: 0 !important; font-size: 8pt; 
+            position: absolute; left: 0; top: 0; width: 100%; border: none !important; box-shadow: none !important; padding: 0 !important; font-size: 9pt; 
           }
           .print-a4 .receipt-view { display: none !important; }
           
           .print-receipt .receipt-view, .print-receipt .receipt-view * { visibility: visible !important; }
           .print-receipt .receipt-view {
-            position: absolute; left: 0; top: 0; width: 80mm; padding: 2mm; font-family: monospace; font-size: 9pt; display: block !important;
+            position: absolute; left: 0; top: 0; width: 80mm; padding: 5mm; font-family: 'Courier New', monospace; font-size: 10pt; display: block !important;
           }
           .print-receipt .invoice-a4-area { display: none !important; }
 
           .print-no-border { border: none !important; background: transparent !important; box-shadow: none !important; padding: 0 !important; font-size: inherit !important; height: auto !important; }
-          .invoice-table { width: 100% !important; overflow: visible !important; }
-          .invoice-table td, .invoice-table th { padding: 1px 2px !important; border-bottom: 0.5px solid #eee !important; font-size: 7.5pt !important; visibility: visible !important; }
-          .signature-area { page-break-inside: avoid; margin-top: 2mm; }
+          .invoice-table { width: 100% !important; overflow: visible !important; border-collapse: collapse !important; }
+          .invoice-table td, .invoice-table th { padding: 4px 6px !important; border-bottom: 0.5px solid #eee !important; visibility: visible !important; }
+          .signature-area { page-break-inside: avoid; margin-top: 5mm; }
           .notes-area-print { visibility: visible !important; white-space: pre-wrap !important; }
           
-          /* Ensure specific table parts are visible */
           .invoice-table thead, .invoice-table tbody, .invoice-table tr { visibility: visible !important; }
         }
       `}</style>
 
-      <div className={printMode === 'a4' ? 'print-a4' : 'print-receipt'}>
-        <Card className="max-w-4xl mx-auto invoice-a4-area p-2 sm:p-4 md:p-6 mb-8">
+      <div className={cn(printMode === 'a4' ? 'print-a4' : 'print-receipt')}>
+        <Card className="max-w-4xl mx-auto invoice-a4-area p-4 sm:p-6 md:p-8 mb-8 border-none shadow-xl ring-1 ring-border">
           <CardContent className="p-0">
-            <div className="flex flex-col-reverse sm:flex-row justify-between items-start gap-4 mb-4 print:mb-1">
+            <div className="flex flex-col-reverse sm:flex-row justify-between items-start gap-4 mb-6 print:mb-2">
               <InvoiceHeader 
                 companyProfile={companyProfile}
                 invoiceNumber={invoice?.invoiceNumber || ''}
@@ -294,63 +323,73 @@ export function InvoiceForm({ userId }: { userId: string }) {
               />
             </div>
 
-            <Separator className="my-4 print:my-1" />
+            <Separator className="my-6 print:my-2" />
 
-            <div className="grid md:grid-cols-2 gap-8 mb-4 print:mb-1">
-              <div className="space-y-1">
-                <Label className="font-headline text-sm print:text-[8pt]">Bill To</Label>
-                <div className="border rounded-md p-3 space-y-2 bg-muted/5 print:p-0 print:border-none print:bg-transparent relative">
-                  <div className="flex items-center gap-2">
+            <div className="grid md:grid-cols-2 gap-8 mb-6 print:mb-2">
+              <div className="space-y-2">
+                <Label className="font-headline text-sm font-bold uppercase tracking-wider text-primary opacity-80 print:text-[9pt]">Bill To</Label>
+                <div className="border rounded-lg p-4 space-y-3 bg-muted/10 print:p-0 print:border-none print:bg-transparent relative transition-all focus-within:ring-2 focus-within:ring-primary/20">
+                  <div className="flex items-center gap-3">
                     <User className="h-4 w-4 text-primary shrink-0 opacity-70" />
-                    <Input 
-                      value={invoice?.customerName || ''} 
-                      onFocus={() => setIsCustomerSearchActive(true)}
-                      onBlur={() => setTimeout(() => setIsCustomerSearchActive(false), 200)}
-                      onChange={(e) => handleUpdateInvoice('customerName', e.target.value)} 
-                      placeholder="Customer Name" 
-                      className="print-no-border font-medium text-lg print:text-[9pt] h-auto p-0 border-none focus-visible:ring-0 shadow-none bg-transparent" 
-                    />
-                  </div>
-                  {isCustomerSearchActive && customerMatches.length > 0 && (
-                    <div className="absolute left-0 top-12 z-[100] w-full border bg-card shadow-xl rounded-md overflow-hidden print:hidden border-primary/30 animate-in fade-in zoom-in-95 duration-150">
-                      {customerMatches.map(c => (
-                        <button
-                          key={c.id}
-                          className="w-full text-left px-3 py-2 text-sm hover:bg-primary/10 hover:text-primary transition-colors border-b last:border-0"
-                          onMouseDown={(e) => {
-                            e.preventDefault();
-                            handleUpdateInvoice('customerName', c.name);
-                            if (c.phoneNumbers && c.phoneNumbers[0]) {
-                              handleUpdateInvoice('customerPhone', c.phoneNumbers[0]);
-                            }
-                            setIsCustomerSearchActive(false);
-                          }}
-                        >
-                          <div className="font-bold">{c.name}</div>
-                          <div className="text-[10px] text-muted-foreground">{c.phoneNumbers?.[0] || 'No Phone'}</div>
-                        </button>
-                      ))}
+                    <div className="relative w-full">
+                      <Input 
+                        value={invoice?.customerName || ''} 
+                        onFocus={() => setIsCustomerSearchActive(true)}
+                        onBlur={() => setTimeout(() => setIsCustomerSearchActive(false), 200)}
+                        onChange={(e) => handleUpdateInvoice('customerName', e.target.value)} 
+                        placeholder="Search or enter customer name" 
+                        className="print-no-border font-bold text-lg print:text-[10pt] h-auto p-0 border-none focus-visible:ring-0 shadow-none bg-transparent" 
+                      />
+                      {isCustomerSearchActive && customerMatches.length > 0 && (
+                        <div className="absolute left-0 top-10 z-[100] w-full border bg-card shadow-2xl rounded-lg overflow-hidden print:hidden border-primary/20 animate-in fade-in slide-in-from-top-2 duration-150">
+                          {customerMatches.map(c => (
+                            <button
+                              key={c.id}
+                              className="w-full text-left px-4 py-3 text-sm hover:bg-primary/5 hover:text-primary transition-colors border-b last:border-0 flex justify-between items-center group"
+                              onMouseDown={(e) => {
+                                e.preventDefault();
+                                handleUpdateInvoice('customerName', c.name);
+                                if (c.phoneNumbers && c.phoneNumbers[0]) {
+                                  handleUpdateInvoice('customerPhone', c.phoneNumbers[0]);
+                                }
+                                setIsCustomerSearchActive(false);
+                              }}
+                            >
+                              <div>
+                                <div className="font-bold">{c.name}</div>
+                                <div className="text-[11px] text-muted-foreground">{c.phoneNumbers?.[0] || 'No Phone'}</div>
+                              </div>
+                              <CheckCircle2 className="h-4 w-4 opacity-0 group-hover:opacity-100 transition-opacity" />
+                            </button>
+                          ))}
+                        </div>
+                      )}
                     </div>
-                  )}
-                  <div className="flex items-center gap-2">
+                  </div>
+                  <div className="flex items-center gap-3">
                     <Phone className="h-4 w-4 text-primary shrink-0 opacity-70" />
-                    <Input value={invoice?.customerPhone || ''} onChange={(e) => handleUpdateInvoice('customerPhone', e.target.value)} placeholder="Customer Phone" className="print-no-border text-sm print:text-[8pt] h-auto p-0 border-none focus-visible:ring-0 shadow-none bg-transparent" />
+                    <Input 
+                      value={invoice?.customerPhone || ''} 
+                      onChange={(e) => handleUpdateInvoice('customerPhone', e.target.value)} 
+                      placeholder="Customer Phone" 
+                      className="print-no-border text-sm print:text-[9pt] h-auto p-0 border-none focus-visible:ring-0 shadow-none bg-transparent" 
+                    />
                   </div>
                 </div>
               </div>
             </div>
             
-            <div className="overflow-visible">
+            <div className="overflow-visible rounded-lg border print:border-none">
               <Table className="invoice-table">
-                <TableHeader>
+                <TableHeader className="bg-muted/50 print:bg-transparent">
                   <TableRow>
-                    <TableHead className="w-[40px] print:w-[30px]">Item</TableHead>
+                    <TableHead className="w-[40px] print:w-[30px] text-center">#</TableHead>
                     <TableHead className="w-[40%]">Description</TableHead>
                     <TableHead className="text-right">Qty</TableHead>
                     <TableHead className="text-right">Rate</TableHead>
                     <TableHead className="text-right">Tax%</TableHead>
                     <TableHead className="text-right">Total</TableHead>
-                    <TableHead className="print:hidden"></TableHead>
+                    <TableHead className="print:hidden w-[50px]"></TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -361,30 +400,29 @@ export function InvoiceForm({ userId }: { userId: string }) {
                     const amount = isLabor ? item.rate : qty * item.rate;
                     const total = amount * (1 + item.tax / 100);
 
-                    // Local search for inventory items
                     const matches = (inventoryItems || []).filter(inv => 
-                      item.description.trim().length >= 3 && 
+                      item.description.trim().length >= 2 && 
                       inv.name.toLowerCase().includes(item.description.toLowerCase())
                     ).slice(0, 5);
 
                     return (
-                      <TableRow key={item.id} className="relative overflow-visible">
-                        <TableCell className="text-muted-foreground text-xs">{index + 1}</TableCell>
+                      <TableRow key={item.id} className="relative overflow-visible group">
+                        <TableCell className="text-muted-foreground text-xs text-center">{index + 1}</TableCell>
                         <TableCell className="relative overflow-visible">
                           <Input 
                             value={item.description} 
                             onFocus={() => setActiveItemId(item.id)}
                             onBlur={() => setTimeout(() => setActiveItemId(null), 250)}
                             onChange={(e) => handleUpdateLineItem(item.id, 'description', e.target.value)} 
-                            className="w-full print-no-border" 
+                            className="w-full print-no-border font-medium focus-visible:ring-primary/30" 
                             placeholder="Type to search stock..."
                           />
                           {activeItemId === item.id && matches.length > 0 && (
-                            <div className="absolute left-0 top-full z-[999] w-full min-w-[300px] border bg-card shadow-2xl rounded-md mt-1 overflow-hidden print:hidden border-primary/30 ring-1 ring-primary/20 animate-in fade-in zoom-in-95 duration-150">
+                            <div className="absolute left-0 top-full z-[999] w-full min-w-[320px] border bg-card shadow-2xl rounded-lg mt-1 overflow-hidden print:hidden border-primary/20 ring-4 ring-primary/5 animate-in fade-in slide-in-from-top-1 duration-150">
                               {matches.map(match => (
                                 <button
                                   key={match.id}
-                                  className="w-full text-left px-3 py-2.5 text-sm hover:bg-primary/10 hover:text-primary transition-colors border-b last:border-0 flex items-center justify-between"
+                                  className="w-full text-left px-4 py-3 text-sm hover:bg-primary/5 hover:text-primary transition-colors border-b last:border-0 flex items-center justify-between group/item"
                                   onMouseDown={(e) => {
                                     e.preventDefault();
                                     handleUpdateLineItem(item.id, 'description', match.name);
@@ -392,26 +430,35 @@ export function InvoiceForm({ userId }: { userId: string }) {
                                     setActiveItemId(null);
                                   }}
                                 >
-                                  <div className="flex flex-col">
-                                    <span className="font-bold">{match.name}</span>
-                                    <span className="text-[10px] text-muted-foreground flex items-center gap-1">
-                                      <Package className="h-3 w-3" /> {match.quantity} {match.unit} in stock
-                                    </span>
+                                  <div className="flex flex-col gap-0.5">
+                                    <span className="font-bold text-foreground group-hover/item:text-primary">{match.name}</span>
+                                    <div className="flex items-center gap-2 text-[10px] text-muted-foreground">
+                                      <span className={cn(
+                                        "flex items-center gap-1 px-1.5 rounded-full",
+                                        match.quantity <= (match.minStockLevel || 0) ? "bg-red-100 text-red-600 font-bold" : "bg-green-100 text-green-600"
+                                      )}>
+                                        <Package className="h-2.5 w-2.5" /> {match.quantity} {match.unit}
+                                      </span>
+                                      <span className="opacity-50">SKU: {match.sku || 'N/A'}</span>
+                                    </div>
                                   </div>
                                   <div className="text-right">
                                     <span className="font-bold text-primary block">Rs {match.sellingPrice}</span>
-                                    <span className="text-[10px] text-muted-foreground">{match.sku || 'No SKU'}</span>
                                   </div>
                                 </button>
                               ))}
                             </div>
                           )}
                         </TableCell>
-                        <TableCell><Input value={item.quantity} onChange={(e) => handleUpdateLineItem(item.id, 'quantity', e.target.value)} className="w-12 text-right print-no-border" /></TableCell>
-                        <TableCell><Input type="number" value={item.rate} onChange={(e) => handleUpdateLineItem(item.id, 'rate', e.target.value)} className="w-20 text-right print-no-border" /></TableCell>
-                        <TableCell><Input type="number" value={item.tax} onChange={(e) => handleUpdateLineItem(item.id, 'tax', e.target.value)} className="w-12 text-right print-no-border" /></TableCell>
-                        <TableCell className="text-right font-medium">{total.toFixed(2)}</TableCell>
-                        <TableCell className="print:hidden"><Button variant="ghost" size="icon" onClick={() => handleRemoveLineItem(item.id)}><Trash2 className="h-4 w-4" /></Button></TableCell>
+                        <TableCell><Input value={item.quantity} onChange={(e) => handleUpdateLineItem(item.id, 'quantity', e.target.value)} className="w-16 text-right print-no-border" /></TableCell>
+                        <TableCell><Input type="number" value={item.rate} onChange={(e) => handleUpdateLineItem(item.id, 'rate', e.target.value)} className="w-24 text-right print-no-border" /></TableCell>
+                        <TableCell><Input type="number" value={item.tax} onChange={(e) => handleUpdateLineItem(item.id, 'tax', e.target.value)} className="w-16 text-right print-no-border" /></TableCell>
+                        <TableCell className="text-right font-bold text-primary">{total.toFixed(2)}</TableCell>
+                        <TableCell className="print:hidden">
+                          <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-destructive transition-colors" onClick={() => handleRemoveLineItem(item.id)}>
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </TableCell>
                       </TableRow>
                     );
                   })}
@@ -419,36 +466,49 @@ export function InvoiceForm({ userId }: { userId: string }) {
               </Table>
             </div>
 
-            <Button onClick={handleAddLineItem} variant="outline" className="mt-2 print:hidden"><Plus className="mr-2 h-4 w-4" /> Add Item</Button>
+            <Button onClick={handleAddLineItem} variant="outline" className="mt-4 print:hidden border-dashed hover:border-primary hover:text-primary transition-all">
+              <Plus className="mr-2 h-4 w-4" /> Add Line Item
+            </Button>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mt-6 print:mt-2">
-              <div className="space-y-2">
-                <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground print:text-[8pt]">Terms & Conditions</Label>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mt-8 print:mt-4">
+              <div className="space-y-3">
+                <Label className="text-xs font-bold uppercase tracking-widest text-muted-foreground flex items-center gap-2 print:text-[8pt]">
+                  <AlertCircle className="h-3 w-3" /> Terms & Conditions
+                </Label>
                 <div className="print:hidden">
                   <Textarea 
                     value={invoice?.notes || ''} 
                     onChange={(e) => handleUpdateInvoice('notes', e.target.value)}
-                    placeholder="Additional notes or terms..."
-                    className="min-h-[80px] bg-muted/5"
+                    placeholder="Enter special instructions or payment terms..."
+                    className="min-h-[120px] bg-muted/5 focus-visible:ring-primary/30"
                   />
                 </div>
-                <div className="hidden print:block text-[7pt] italic whitespace-pre-wrap">
+                <div className="hidden print:block text-[8pt] italic text-muted-foreground whitespace-pre-wrap leading-relaxed border-l-2 border-muted pl-4">
                   {invoice?.notes}
                 </div>
               </div>
-              <div className="space-y-4">
-                <div className="space-y-1 text-sm print:text-[8pt]">
-                  <div className="flex justify-between"><span>Subtotal:</span><span>{formatCurrency(subtotal)}</span></div>
-                  <div className="flex justify-between"><span>Tax:</span><span>{formatCurrency(taxTotal)}</span></div>
-                  <Separator />
-                  <div className="flex justify-between font-bold text-lg print:text-[9pt] font-headline text-primary"><span>Total:</span><span>{formatCurrency(grandTotal)}</span></div>
-                </div>
-                <div className="signature-area flex flex-col items-end gap-1">
-                  <div className="relative h-12 w-24">
-                    <Image src="/signature.jpeg" alt="Signature" width={100} height={50} className="object-contain" />
+              <div className="space-y-6">
+                <div className="space-y-2 text-sm print:text-[10pt] bg-muted/5 p-4 rounded-xl ring-1 ring-border">
+                  <div className="flex justify-between items-center px-2">
+                    <span className="text-muted-foreground">Subtotal:</span>
+                    <span className="font-medium">{formatCurrency(subtotal)}</span>
                   </div>
-                  <div className="w-40 border-t border-dashed pt-1 text-right">
-                    <p className="text-[10px] text-muted-foreground">Authorized Signature</p>
+                  <div className="flex justify-between items-center px-2">
+                    <span className="text-muted-foreground">Tax Total:</span>
+                    <span className="font-medium">{formatCurrency(taxTotal)}</span>
+                  </div>
+                  <Separator />
+                  <div className="flex justify-between items-center font-bold text-xl print:text-[12pt] font-headline text-primary px-2 py-1">
+                    <span>Grand Total:</span>
+                    <span>{formatCurrency(grandTotal)}</span>
+                  </div>
+                </div>
+                <div className="signature-area flex flex-col items-end gap-2 pr-4">
+                  <div className="relative h-14 w-28 opacity-80">
+                    <Image src="/signature.jpeg" alt="Signature" width={112} height={56} className="object-contain" />
+                  </div>
+                  <div className="w-48 border-t border-dashed border-primary/30 pt-1 text-right">
+                    <p className="text-[10px] font-bold text-primary/70 uppercase tracking-widest">Authorized Signature</p>
                   </div>
                 </div>
               </div>
@@ -456,30 +516,30 @@ export function InvoiceForm({ userId }: { userId: string }) {
           </CardContent>
         </Card>
 
+        {/* Thermal Receipt View (80mm) */}
         <div className="receipt-view hidden">
-          <div className="text-center space-y-1 mb-2">
-            <div className="flex justify-center mb-1">
-              <Image src="/dubaitools.png" alt="Logo" width={40} height={40} className="object-contain" />
+          <div className="text-center space-y-1 mb-4">
+            <div className="flex justify-center mb-2">
+              <Image src="/dubaitools.png" alt="Logo" width={50} height={50} className="object-contain" />
             </div>
-            <h2 className="font-bold text-lg uppercase">{activeProfile.name}</h2>
-            <p className="text-[8pt]">{activeProfile.addressLine1}</p>
-            {activeProfile.addressLine2 && <p className="text-[8pt]">{activeProfile.addressLine2}</p>}
-            <p className="text-[8pt]">Ph: {activeProfile.phoneNumbers.join(', ')}</p>
-            {activeProfile.gstRegistrationNumber && <p className="text-[8pt]">GST: {activeProfile.gstRegistrationNumber}</p>}
+            <h2 className="font-bold text-xl uppercase tracking-tighter">{activeProfile.name}</h2>
+            <p className="text-[9pt] leading-tight">{activeProfile.addressLine1}</p>
+            {activeProfile.phoneNumbers && <p className="text-[9pt]">PH: {activeProfile.phoneNumbers.join(', ')}</p>}
+            {activeProfile.gstRegistrationNumber && <p className="text-[9pt]">GST: {activeProfile.gstRegistrationNumber}</p>}
           </div>
-          <Separator className="border-dashed my-2" />
-          <div className="text-[8pt] space-y-1 mb-2">
-            <div className="flex justify-between"><span>Inv: {invoice?.invoiceNumber}</span><span>{invoice?.invoiceDate}</span></div>
-            <div className="font-bold">Bill To: {invoice?.customerName}</div>
-            {invoice?.customerPhone && <div>Ph: {invoice?.customerPhone}</div>}
+          <Separator className="border-dashed my-3" />
+          <div className="text-[9pt] space-y-1 mb-3">
+            <div className="flex justify-between"><span>INV: {invoice?.invoiceNumber}</span><span>{invoice?.invoiceDate}</span></div>
+            <div className="font-bold uppercase">CLIENT: {invoice?.customerName}</div>
+            {invoice?.customerPhone && <div>PH: {invoice?.customerPhone}</div>}
           </div>
-          <Separator className="border-dashed my-2" />
-          <table className="w-full text-[8pt]">
+          <Separator className="border-dashed my-3" />
+          <table className="w-full text-[9pt]">
             <thead>
               <tr className="border-b border-dashed">
-                <th className="text-left py-1">Item</th>
-                <th className="text-right py-1">Qty</th>
-                <th className="text-right py-1">Total</th>
+                <th className="text-left py-2">ITEM</th>
+                <th className="text-right py-2">QTY</th>
+                <th className="text-right py-2">TOTAL</th>
               </tr>
             </thead>
             <tbody>
@@ -489,33 +549,35 @@ export function InvoiceForm({ userId }: { userId: string }) {
                 const isLabor = item.description.toLowerCase().includes('labor');
                 const total = (isLabor ? item.rate : qty * item.rate) * (1 + item.tax / 100);
                 return (
-                  <tr key={item.id} className="border-b border-dashed border-gray-50">
-                    <td className="py-1">{idx + 1}. {item.description}</td>
-                    <td className="text-right py-1">{item.quantity}</td>
-                    <td className="text-right py-1">{total.toFixed(2)}</td>
+                  <tr key={item.id} className="border-b border-dashed border-gray-100">
+                    <td className="py-2 pr-2">{idx + 1}. {item.description}</td>
+                    <td className="text-right py-2">{item.quantity}</td>
+                    <td className="text-right py-2">{total.toFixed(2)}</td>
                   </tr>
                 );
               })}
             </tbody>
           </table>
-          <div className="mt-2 space-y-1 text-[8pt]">
-            <div className="flex justify-between border-t border-dashed pt-2">
-              <span>Subtotal:</span><span>{formatCurrency(subtotal)}</span>
+          <div className="mt-4 space-y-2 text-[9pt]">
+            <div className="flex justify-between border-t border-dashed pt-3">
+              <span>SUBTOTAL:</span><span>{formatCurrency(subtotal)}</span>
             </div>
             <div className="flex justify-between">
-              <span>Tax:</span><span>{formatCurrency(taxTotal)}</span>
+              <span>TAX:</span><span>{formatCurrency(taxTotal)}</span>
             </div>
-            <div className="flex justify-between font-bold text-[9pt] pt-1">
+            <div className="flex justify-between font-bold text-[11pt] pt-2 border-t border-dashed">
               <span>GRAND TOTAL:</span><span>{formatCurrency(grandTotal)}</span>
             </div>
           </div>
           {invoice?.notes && (
             <>
-              <Separator className="border-dashed my-2" />
-              <p className="text-[7pt] italic whitespace-pre-wrap">{invoice.notes}</p>
+              <Separator className="border-dashed my-4" />
+              <p className="text-[8pt] italic whitespace-pre-wrap leading-tight text-center">{invoice.notes}</p>
             </>
           )}
-          <div className="mt-4 text-center text-[7pt] italic">Thank you for Shopping!</div>
+          <div className="mt-6 text-center text-[8pt] font-bold border-t border-b border-dashed py-2 uppercase tracking-widest">
+            Thank you for your business!
+          </div>
         </div>
       </div>
     </>
