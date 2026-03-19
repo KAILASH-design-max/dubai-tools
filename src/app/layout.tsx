@@ -8,6 +8,10 @@ import { AppSidebar } from '@/components/app-sidebar';
 export const metadata: Metadata = {
   title: 'DUBAI TOOLS',
   description: 'Professional Electrical Invoicing & Inventory Management',
+  icons: {
+    icon: '/dubaitools.png',
+    apple: '/dubaitools.png',
+  },
 };
 
 export default function RootLayout({
