@@ -38,12 +38,8 @@ import { Logo } from '@/components/logo';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
-import { Separator } from '@/components/ui/separator';
-
-const MONTHLY_GOAL = 500000; // Target: Rs 5,00,000
 
 export function AppSidebar() {
   const { user, isUserLoading } = useUser();
@@ -70,18 +66,6 @@ export function AppSidebar() {
     [invoicesRef]
   );
 
-  const startOfMonth = React.useMemo(() => {
-    const d = new Date();
-    d.setDate(1);
-    d.setHours(0, 0, 0, 0);
-    return d.toISOString();
-  }, []);
-
-  const monthlyInvoicesQuery = useMemoFirebase(
-    () => (invoicesRef ? query(invoicesRef, where('createdAt', '>=', startOfMonth)) : null),
-    [invoicesRef, startOfMonth]
-  );
-
   const inventoryRef = useMemoFirebase(
     () => (firestore && user ? collection(firestore, `users/${user.uid}/inventory`) : null),
     [firestore, user]
@@ -99,7 +83,6 @@ export function AppSidebar() {
 
   const { data: pendingInvoices } = useCollection<Invoice>(pendingInvoicesQuery);
   const { data: recentInvoices } = useCollection<Invoice>(recentInvoicesQuery);
-  const { data: monthlyInvoices } = useCollection<Invoice>(monthlyInvoicesQuery);
   const { data: inventoryItems } = useCollection<InventoryItem>(inventoryRef);
   const { data: pendingLabor } = useCollection<LaborRecord>(pendingLaborQuery);
 
@@ -110,11 +93,6 @@ export function AppSidebar() {
     ).length;
   }, [inventoryItems]);
 
-  const monthlyRevenue = React.useMemo(() => {
-    if (!monthlyInvoices) return 0;
-    return monthlyInvoices.reduce((sum, inv) => sum + (inv.grandTotalAmount || 0), 0);
-  }, [monthlyInvoices]);
-
   const totalOwedByCustomers = React.useMemo(() => {
     if (!pendingInvoices) return 0;
     return pendingInvoices.reduce((sum, inv) => sum + (inv.grandTotalAmount || 0), 0);
@@ -124,8 +102,6 @@ export function AppSidebar() {
     if (!pendingLabor) return 0;
     return pendingLabor.reduce((sum, rec) => sum + (rec.amount || 0), 0);
   }, [pendingLabor]);
-
-  const progressPercentage = Math.min(100, (monthlyRevenue / MONTHLY_GOAL) * 100);
 
   if (isUserLoading || !user || user.isAnonymous || pathname === '/login' || pathname === '/signup') {
     return null;
@@ -210,28 +186,6 @@ export function AppSidebar() {
         
         {state !== 'collapsed' && (
           <div className="space-y-4">
-            {/* Sales Target Card */}
-            <div className="bg-primary/5 rounded-xl p-4 border border-primary/10 space-y-3">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <Target className="h-4 w-4 text-primary" />
-                  <span className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider">Sales Target</span>
-                </div>
-                <span className="text-[10px] font-bold text-primary">{Math.round(progressPercentage)}%</span>
-              </div>
-              
-              <div className="space-y-1">
-                <div className="text-lg font-bold text-primary tracking-tight">
-                  {formatCurrency(monthlyRevenue)}
-                </div>
-                <Progress value={progressPercentage} className="h-1.5" />
-                <div className="flex justify-between items-center text-[9px] text-muted-foreground font-medium pt-1">
-                  <span>Monthly Progress</span>
-                  <span>Goal: {formatCurrency(MONTHLY_GOAL)}</span>
-                </div>
-              </div>
-            </div>
-
             {/* Cash Flow Summary */}
             <div className="grid grid-cols-2 gap-2">
               <div className="bg-green-50/50 dark:bg-green-950/10 p-2 rounded-lg border border-green-100 dark:border-green-900/30">
