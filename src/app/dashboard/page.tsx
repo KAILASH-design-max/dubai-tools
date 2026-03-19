@@ -135,6 +135,9 @@ export default function DashboardPage() {
     };
   }, [invoices, items, laborRecords]);
 
+  // Global loading state for cards that depend on the memoized stats
+  const isGlobalStatsLoading = invLoading || stockLoading || laborLoading;
+
   if (isUserLoading || !user) return null;
 
   const formatCurrency = (amount: number) => 
@@ -173,7 +176,7 @@ export default function DashboardPage() {
                   <p className="text-sm font-bold uppercase tracking-widest opacity-60">Gross Revenue</p>
                   <TrendingUp className="h-5 w-5 text-primary" />
                 </div>
-                {invLoading ? <Skeleton className="h-8 w-24" /> : (
+                {isGlobalStatsLoading ? <Skeleton className="h-8 w-24" /> : (
                   <div className="text-3xl font-bold">{formatCurrency(stats?.totalSales || 0)}</div>
                 )}
                 <div className="mt-2 flex items-center gap-1 text-xs text-green-600 font-bold">
@@ -189,7 +192,7 @@ export default function DashboardPage() {
                   <p className="text-sm font-bold uppercase tracking-widest opacity-60 text-accent">Pending Income</p>
                   <Banknote className="h-5 w-5 text-accent" />
                 </div>
-                {invLoading ? <Skeleton className="h-8 w-24" /> : (
+                {isGlobalStatsLoading ? <Skeleton className="h-8 w-24" /> : (
                   <div className="text-3xl font-bold text-accent">{formatCurrency(stats?.pendingPayments || 0)}</div>
                 )}
                 <p className="text-xs text-muted-foreground mt-2">Unpaid customer invoices</p>
@@ -202,7 +205,7 @@ export default function DashboardPage() {
                   <p className="text-sm font-bold uppercase tracking-widest opacity-60 text-orange-600">Inventory Alert</p>
                   <AlertCircle className="h-5 w-5 text-orange-500" />
                 </div>
-                {stockLoading ? <Skeleton className="h-8 w-12" /> : (
+                {isGlobalStatsLoading ? <Skeleton className="h-8 w-12" /> : (
                   <div className="text-3xl font-bold text-orange-600">{stats?.lowStockCount || 0}</div>
                 )}
                 <p className="text-xs text-muted-foreground mt-2">Items below safety levels</p>
@@ -215,7 +218,7 @@ export default function DashboardPage() {
                   <p className="text-sm font-bold uppercase tracking-widest opacity-60 text-blue-600">Net Profit</p>
                   <LineChart className="h-5 w-5 text-blue-600" />
                 </div>
-                {invLoading || laborLoading ? <Skeleton className="h-8 w-24" /> : (
+                {isGlobalStatsLoading ? <Skeleton className="h-8 w-24" /> : (
                   <div className="text-3xl font-bold text-blue-600">{formatCurrency(stats?.netProfit || 0)}</div>
                 )}
                 <p className="text-xs text-muted-foreground mt-2">Sales minus labor costs</p>
