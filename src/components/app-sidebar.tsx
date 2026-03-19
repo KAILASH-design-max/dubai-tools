@@ -4,7 +4,7 @@ import * as React from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import { useUser, useAuth, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { signOut } from 'firebase/auth';
-import { collection, query, where, orderBy, limit, startAt } from 'firebase/firestore';
+import { collection, query, where, orderBy, limit } from 'firebase/firestore';
 import { Invoice, InventoryItem, LaborRecord } from '@/lib/types';
 import {
   ReceiptText,
@@ -17,9 +17,8 @@ import {
   History,
   Clock,
   ChevronRight,
-  User as UserIcon,
   TrendingUp,
-  IndianRupee,
+  Target,
 } from 'lucide-react';
 import {
   Sidebar,
@@ -39,7 +38,11 @@ import { Logo } from '@/components/logo';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Separator } from '@/components/ui/separator';
+import { Progress } from '@/components/ui/progress';
+import { Badge } from '@/components/ui/badge';
+import { cn } from '@/lib/utils';
+
+const MONTHLY_GOAL = 500000; // Target: Rs 5,00,000
 
 export function AppSidebar() {
   const { user, isUserLoading } = useUser();
@@ -50,7 +53,7 @@ export function AppSidebar() {
   const { toast } = useToast();
   const { setOpenMobile, state } = useSidebar();
 
-  // Data fetching for badges and recent activity
+  // Data fetching
   const invoicesRef = useMemoFirebase(
     () => (firestore && user ? collection(firestore, `users/${user.uid}/invoices`) : null),
     [firestore, user]
@@ -62,11 +65,10 @@ export function AppSidebar() {
   );
 
   const recentInvoicesQuery = useMemoFirebase(
-    () => (invoicesRef ? query(invoicesRef, orderBy('createdAt', 'desc'), limit(3)) : null),
+    () => (invoicesRef ? query(invoicesRef, orderBy('createdAt', 'desc'), limit(5)) : null),
     [invoicesRef]
   );
 
-  // Monthly Revenue Calculation
   const startOfMonth = React.useMemo(() => {
     const d = new Date();
     d.setDate(1);
@@ -112,10 +114,8 @@ export function AppSidebar() {
     return monthlyInvoices.reduce((sum, inv) => sum + (inv.grandTotalAmount || 0), 0);
   }, [monthlyInvoices]);
 
-  const pendingInvoiceCount = pendingInvoices?.length || 0;
-  const pendingLaborCount = pendingLabor?.length || 0;
+  const progressPercentage = Math.min(100, (monthlyRevenue / MONTHLY_GOAL) * 100);
 
-  // Don't show sidebar on auth pages or if not logged in
   if (isUserLoading || !user || user.isAnonymous || pathname === '/login' || pathname === '/signup') {
     return null;
   }
@@ -126,10 +126,7 @@ export function AppSidebar() {
       await signOut(auth);
       setOpenMobile(false);
       router.push('/login');
-      toast({
-        title: "Signed Out",
-        description: "You have been successfully signed out.",
-      });
+      toast({ title: "Signed Out", description: "You have been successfully signed out." });
     } catch (e) {
       toast({ variant: 'destructive', title: 'Error', description: 'Sign out failed' });
     }
@@ -140,6 +137,14 @@ export function AppSidebar() {
     setOpenMobile(false);
   };
 
+  const formatCurrency = (val: number) => 
+    new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 })
+      .format(val).replace('₹', 'Rs ');
+
+  const userInitials = user?.displayName
+    ? user.displayName.split(' ').map(n => n[0]).join('').toUpperCase().substring(0, 2)
+    : user?.email?.substring(0, 2).toUpperCase() || 'U';
+
   const menuGroups = [
     {
       label: "Invoicing",
@@ -149,7 +154,7 @@ export function AppSidebar() {
           title: "Invoice History", 
           icon: History, 
           url: "/invoices",
-          badge: pendingInvoiceCount > 0 ? pendingInvoiceCount : null,
+          badge: pendingInvoices?.length ? pendingInvoices.length : null,
           badgeVariant: 'default'
         },
       ]
@@ -168,7 +173,7 @@ export function AppSidebar() {
           title: "Labor Management", 
           icon: Users, 
           url: "/labor",
-          badge: pendingLaborCount > 0 ? pendingLaborCount : null,
+          badge: pendingLabor?.length ? pendingLabor.length : null,
           badgeVariant: 'outline'
         },
       ]
@@ -187,27 +192,30 @@ export function AppSidebar() {
     }
   ];
 
-  const userInitials = user?.displayName
-    ? user.displayName.split(' ').map(n => n[0]).join('').toUpperCase().substring(0, 2)
-    : user?.email?.substring(0, 2).toUpperCase() || 'U';
-
-  const formatCurrency = (val: number) => 
-    new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 })
-      .format(val).replace('₹', 'Rs ');
-
   return (
     <Sidebar collapsible="icon" className="border-r bg-card print:hidden">
       <SidebarHeader className="p-4 border-b space-y-4">
         <Logo className="text-lg" />
         
         {state !== 'collapsed' && (
-          <div className="bg-primary/5 rounded-lg p-3 border border-primary/10">
-            <div className="flex items-center justify-between mb-1">
-              <span className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider">This Month</span>
-              <TrendingUp className="h-3 w-3 text-primary" />
+          <div className="bg-primary/5 rounded-xl p-4 border border-primary/10 space-y-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Target className="h-4 w-4 text-primary" />
+                <span className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider">Sales Target</span>
+              </div>
+              <span className="text-[10px] font-bold text-primary">{Math.round(progressPercentage)}%</span>
             </div>
-            <div className="text-lg font-bold text-primary">
-              {formatCurrency(monthlyRevenue)}
+            
+            <div className="space-y-1">
+              <div className="text-lg font-bold text-primary tracking-tight">
+                {formatCurrency(monthlyRevenue)}
+              </div>
+              <Progress value={progressPercentage} className="h-1.5" />
+              <div className="flex justify-between items-center text-[9px] text-muted-foreground font-medium pt-1">
+                <span>Monthly Progress</span>
+                <span>Goal: {formatCurrency(MONTHLY_GOAL)}</span>
+              </div>
             </div>
           </div>
         )}
@@ -230,16 +238,20 @@ export function AppSidebar() {
                       className="h-11 px-4"
                     >
                       <button onClick={() => handleNavigation(item.url)}>
-                        <item.icon className={`mr-3 h-5 w-5 ${pathname === item.url ? 'text-primary' : 'text-muted-foreground'}`} />
+                        <item.icon className={cn(
+                          "mr-3 h-5 w-5 transition-colors",
+                          pathname === item.url ? 'text-primary' : 'text-muted-foreground'
+                        )} />
                         <span className="font-medium">{item.title}</span>
                       </button>
                     </SidebarMenuButton>
                     {item.badge && state !== 'collapsed' && (
-                      <SidebarMenuBadge className={
+                      <SidebarMenuBadge className={cn(
+                        "rounded-full px-2 h-5 min-w-[20px] font-bold text-[10px]",
                         item.badgeVariant === 'destructive' ? 'bg-destructive text-destructive-foreground' : 
-                        item.badgeVariant === 'outline' ? 'border-primary text-primary border' : 
+                        item.badgeVariant === 'outline' ? 'border-primary text-primary border bg-primary/5' : 
                         'bg-primary text-primary-foreground'
-                      }>
+                      )}>
                         {item.badge}
                       </SidebarMenuBadge>
                     )}
@@ -250,12 +262,11 @@ export function AppSidebar() {
           </SidebarGroup>
         ))}
 
-        {/* Recent Activity Section */}
         {recentInvoices && recentInvoices.length > 0 && state !== 'collapsed' && (
-          <SidebarGroup>
+          <SidebarGroup className="mt-2">
             <SidebarGroupLabel className="px-4 font-headline uppercase tracking-wider text-[10px] opacity-70 flex items-center gap-2">
               <Clock className="h-3 w-3" />
-              Recent Invoices
+              Recent Activity
             </SidebarGroupLabel>
             <SidebarGroupContent>
               <SidebarMenu>
@@ -263,13 +274,21 @@ export function AppSidebar() {
                   <SidebarMenuItem key={inv.id}>
                     <SidebarMenuButton 
                       asChild 
-                      className="h-10 px-4 group"
+                      className="h-12 px-4 group"
                       tooltip={inv.customerName}
                     >
                       <button onClick={() => handleNavigation('/invoices')}>
-                        <div className="flex flex-col items-start min-w-0">
+                        <div className="flex flex-col items-start min-w-0 flex-1">
                           <span className="text-xs font-bold truncate w-full">{inv.customerName}</span>
-                          <span className="text-[10px] text-muted-foreground">{inv.invoiceNumber}</span>
+                          <span className="text-[10px] text-muted-foreground flex items-center gap-1.5 mt-0.5">
+                            <Badge variant="outline" className={cn(
+                              "px-1.5 py-0 text-[8px] h-3.5 border-none bg-muted/50",
+                              inv.status === 'Paid' ? "text-green-600 bg-green-50" : "text-muted-foreground"
+                            )}>
+                              {inv.status}
+                            </Badge>
+                            {inv.invoiceNumber}
+                          </span>
                         </div>
                       </button>
                     </SidebarMenuButton>
@@ -282,8 +301,11 @@ export function AppSidebar() {
       </SidebarContent>
 
       <SidebarFooter className="p-2 border-t space-y-2">
-        <div className={`flex items-center gap-3 px-2 py-3 rounded-lg bg-muted/30 transition-all ${state === 'collapsed' ? 'justify-center p-1' : ''}`}>
-          <Avatar className="h-8 w-8 border border-primary/20">
+        <div className={cn(
+          "flex items-center gap-3 px-3 py-3 rounded-xl bg-muted/30 transition-all",
+          state === 'collapsed' ? 'justify-center p-1' : ''
+        )}>
+          <Avatar className="h-8 w-8 border-2 border-primary/10">
             <AvatarImage src={user?.photoURL || ''} />
             <AvatarFallback className="bg-primary/10 text-primary text-[10px] font-bold">
               {userInitials}
