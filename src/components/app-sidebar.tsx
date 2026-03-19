@@ -16,9 +16,12 @@ import {
   PlusCircle,
   History,
   Clock,
-  ChevronRight,
-  TrendingUp,
   Target,
+  ArrowDownRight,
+  ArrowUpRight,
+  Zap,
+  Hammer,
+  AlertCircle
 } from 'lucide-react';
 import {
   Sidebar,
@@ -41,6 +44,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
+import { Separator } from '@/components/ui/separator';
 
 const MONTHLY_GOAL = 500000; // Target: Rs 5,00,000
 
@@ -113,6 +117,16 @@ export function AppSidebar() {
     if (!monthlyInvoices) return 0;
     return monthlyInvoices.reduce((sum, inv) => sum + (inv.grandTotalAmount || 0), 0);
   }, [monthlyInvoices]);
+
+  const totalOwedByCustomers = React.useMemo(() => {
+    if (!pendingInvoices) return 0;
+    return pendingInvoices.reduce((sum, inv) => sum + (inv.grandTotalAmount || 0), 0);
+  }, [pendingInvoices]);
+
+  const totalOwedToLabor = React.useMemo(() => {
+    if (!pendingLabor) return 0;
+    return pendingLabor.reduce((sum, rec) => sum + (rec.amount || 0), 0);
+  }, [pendingLabor]);
 
   const progressPercentage = Math.min(100, (monthlyRevenue / MONTHLY_GOAL) * 100);
 
@@ -192,29 +206,53 @@ export function AppSidebar() {
     }
   ];
 
+  const quickActions = [
+    { title: "Add Stock", icon: Zap, url: "/inventory" },
+    { title: "Log Work", icon: Hammer, url: "/labor" },
+  ];
+
   return (
     <Sidebar collapsible="icon" className="border-r bg-card print:hidden">
       <SidebarHeader className="p-4 border-b space-y-4">
         <Logo className="text-lg" />
         
         {state !== 'collapsed' && (
-          <div className="bg-primary/5 rounded-xl p-4 border border-primary/10 space-y-3">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <Target className="h-4 w-4 text-primary" />
-                <span className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider">Sales Target</span>
+          <div className="space-y-4">
+            {/* Sales Target Card */}
+            <div className="bg-primary/5 rounded-xl p-4 border border-primary/10 space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Target className="h-4 w-4 text-primary" />
+                  <span className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider">Sales Target</span>
+                </div>
+                <span className="text-[10px] font-bold text-primary">{Math.round(progressPercentage)}%</span>
               </div>
-              <span className="text-[10px] font-bold text-primary">{Math.round(progressPercentage)}%</span>
+              
+              <div className="space-y-1">
+                <div className="text-lg font-bold text-primary tracking-tight">
+                  {formatCurrency(monthlyRevenue)}
+                </div>
+                <Progress value={progressPercentage} className="h-1.5" />
+                <div className="flex justify-between items-center text-[9px] text-muted-foreground font-medium pt-1">
+                  <span>Monthly Progress</span>
+                  <span>Goal: {formatCurrency(MONTHLY_GOAL)}</span>
+                </div>
+              </div>
             </div>
-            
-            <div className="space-y-1">
-              <div className="text-lg font-bold text-primary tracking-tight">
-                {formatCurrency(monthlyRevenue)}
+
+            {/* Cash Flow Summary */}
+            <div className="grid grid-cols-2 gap-2">
+              <div className="bg-green-50/50 dark:bg-green-950/10 p-2 rounded-lg border border-green-100 dark:border-green-900/30">
+                <div className="flex items-center gap-1 text-[9px] font-bold text-green-600 uppercase">
+                  <ArrowUpRight className="h-3 w-3" /> Receivable
+                </div>
+                <div className="text-[11px] font-bold truncate">{formatCurrency(totalOwedByCustomers)}</div>
               </div>
-              <Progress value={progressPercentage} className="h-1.5" />
-              <div className="flex justify-between items-center text-[9px] text-muted-foreground font-medium pt-1">
-                <span>Monthly Progress</span>
-                <span>Goal: {formatCurrency(MONTHLY_GOAL)}</span>
+              <div className="bg-orange-50/50 dark:bg-orange-950/10 p-2 rounded-lg border border-orange-100 dark:border-orange-900/30">
+                <div className="flex items-center gap-1 text-[9px] font-bold text-orange-600 uppercase">
+                  <ArrowDownRight className="h-3 w-3" /> Payable
+                </div>
+                <div className="text-[11px] font-bold truncate">{formatCurrency(totalOwedToLabor)}</div>
               </div>
             </div>
           </div>
@@ -222,6 +260,53 @@ export function AppSidebar() {
       </SidebarHeader>
       
       <SidebarContent>
+        {/* Critical Alerts (Only shown when issues exist) */}
+        {state !== 'collapsed' && (lowStockCount > 0 || (pendingInvoices?.length || 0) > 0) && (
+           <SidebarGroup>
+             <SidebarGroupLabel className="px-4 text-destructive font-bold flex items-center gap-2">
+               <AlertCircle className="h-3 w-3" />
+               Attention Required
+             </SidebarGroupLabel>
+             <SidebarGroupContent>
+                <SidebarMenu>
+                  {lowStockCount > 0 && (
+                    <SidebarMenuItem>
+                      <SidebarMenuButton className="text-destructive h-9" onClick={() => handleNavigation('/inventory')}>
+                        <Zap className="h-4 w-4" />
+                        <span className="text-xs font-bold">{lowStockCount} Items Low in Stock</span>
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
+                  )}
+                </SidebarMenu>
+             </SidebarGroupContent>
+           </SidebarGroup>
+        )}
+
+        {/* Quick Actions */}
+        <SidebarGroup>
+          <SidebarGroupLabel className="px-4 font-headline uppercase tracking-wider text-[10px] opacity-70">
+            Quick Actions
+          </SidebarGroupLabel>
+          <SidebarGroupContent>
+            <SidebarMenu>
+              {quickActions.map((action) => (
+                <SidebarMenuItem key={action.title}>
+                  <SidebarMenuButton 
+                    tooltip={action.title}
+                    className="h-10 px-4"
+                    onClick={() => handleNavigation(action.url)}
+                  >
+                    <action.icon className="mr-3 h-4 w-4 text-muted-foreground" />
+                    <span className="text-xs font-medium">{action.title}</span>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              ))}
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
+
+        <Separator className="mx-4 w-auto opacity-50" />
+
         {menuGroups.map((group) => (
           <SidebarGroup key={group.label}>
             <SidebarGroupLabel className="px-4 font-headline uppercase tracking-wider text-[10px] opacity-70">
@@ -248,7 +333,7 @@ export function AppSidebar() {
                     {item.badge && state !== 'collapsed' && (
                       <SidebarMenuBadge className={cn(
                         "rounded-full px-2 h-5 min-w-[20px] font-bold text-[10px]",
-                        item.badgeVariant === 'destructive' ? 'bg-destructive text-destructive-foreground' : 
+                        item.badgeVariant === 'destructive' ? 'bg-destructive text-destructive-foreground animate-pulse' : 
                         item.badgeVariant === 'outline' ? 'border-primary text-primary border bg-primary/5' : 
                         'bg-primary text-primary-foreground'
                       )}>
