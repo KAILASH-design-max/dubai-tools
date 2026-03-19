@@ -19,9 +19,6 @@ import {
   Target,
   ArrowDownRight,
   ArrowUpRight,
-  Zap,
-  Hammer,
-  AlertCircle
 } from 'lucide-react';
 import {
   Sidebar,
@@ -206,11 +203,6 @@ export function AppSidebar() {
     }
   ];
 
-  const quickActions = [
-    { title: "Add Stock", icon: Zap, url: "/inventory" },
-    { title: "Log Work", icon: Hammer, url: "/labor" },
-  ];
-
   return (
     <Sidebar collapsible="icon" className="border-r bg-card print:hidden">
       <SidebarHeader className="p-4 border-b space-y-4">
@@ -260,53 +252,6 @@ export function AppSidebar() {
       </SidebarHeader>
       
       <SidebarContent>
-        {/* Critical Alerts (Only shown when issues exist) */}
-        {state !== 'collapsed' && (lowStockCount > 0 || (pendingInvoices?.length || 0) > 0) && (
-           <SidebarGroup>
-             <SidebarGroupLabel className="px-4 text-destructive font-bold flex items-center gap-2">
-               <AlertCircle className="h-3 w-3" />
-               Attention Required
-             </SidebarGroupLabel>
-             <SidebarGroupContent>
-                <SidebarMenu>
-                  {lowStockCount > 0 && (
-                    <SidebarMenuItem>
-                      <SidebarMenuButton className="text-destructive h-9" onClick={() => handleNavigation('/inventory')}>
-                        <Zap className="h-4 w-4" />
-                        <span className="text-xs font-bold">{lowStockCount} Items Low in Stock</span>
-                      </SidebarMenuButton>
-                    </SidebarMenuItem>
-                  )}
-                </SidebarMenu>
-             </SidebarGroupContent>
-           </SidebarGroup>
-        )}
-
-        {/* Quick Actions */}
-        <SidebarGroup>
-          <SidebarGroupLabel className="px-4 font-headline uppercase tracking-wider text-[10px] opacity-70">
-            Quick Actions
-          </SidebarGroupLabel>
-          <SidebarGroupContent>
-            <SidebarMenu>
-              {quickActions.map((action) => (
-                <SidebarMenuItem key={action.title}>
-                  <SidebarMenuButton 
-                    tooltip={action.title}
-                    className="h-10 px-4"
-                    onClick={() => handleNavigation(action.url)}
-                  >
-                    <action.icon className="mr-3 h-4 w-4 text-muted-foreground" />
-                    <span className="text-xs font-medium">{action.title}</span>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              ))}
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
-
-        <Separator className="mx-4 w-auto opacity-50" />
-
         {menuGroups.map((group) => (
           <SidebarGroup key={group.label}>
             <SidebarGroupLabel className="px-4 font-headline uppercase tracking-wider text-[10px] opacity-70">
