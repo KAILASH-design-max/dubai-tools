@@ -4,7 +4,7 @@ import * as React from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import { useUser, useAuth, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { signOut } from 'firebase/auth';
-import { collection, query, where, orderBy, limit } from 'firebase/firestore';
+import { collection, query, where, orderBy, limit, startAt } from 'firebase/firestore';
 import { Invoice, InventoryItem, LaborRecord } from '@/lib/types';
 import {
   ReceiptText,
@@ -18,6 +18,8 @@ import {
   Clock,
   ChevronRight,
   User as UserIcon,
+  TrendingUp,
+  IndianRupee,
 } from 'lucide-react';
 import {
   Sidebar,
@@ -37,6 +39,7 @@ import { Logo } from '@/components/logo';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Separator } from '@/components/ui/separator';
 
 export function AppSidebar() {
   const { user, isUserLoading } = useUser();
@@ -63,6 +66,19 @@ export function AppSidebar() {
     [invoicesRef]
   );
 
+  // Monthly Revenue Calculation
+  const startOfMonth = React.useMemo(() => {
+    const d = new Date();
+    d.setDate(1);
+    d.setHours(0, 0, 0, 0);
+    return d.toISOString();
+  }, []);
+
+  const monthlyInvoicesQuery = useMemoFirebase(
+    () => (invoicesRef ? query(invoicesRef, where('createdAt', '>=', startOfMonth)) : null),
+    [invoicesRef, startOfMonth]
+  );
+
   const inventoryRef = useMemoFirebase(
     () => (firestore && user ? collection(firestore, `users/${user.uid}/inventory`) : null),
     [firestore, user]
@@ -72,6 +88,7 @@ export function AppSidebar() {
     () => (firestore && user ? collection(firestore, `users/${user.uid}/laborRecords`) : null),
     [firestore, user]
   );
+  
   const pendingLaborQuery = useMemoFirebase(
     () => (laborRecordsRef ? query(laborRecordsRef, where('status', '==', 'Pending')) : null),
     [laborRecordsRef]
@@ -79,6 +96,7 @@ export function AppSidebar() {
 
   const { data: pendingInvoices } = useCollection<Invoice>(pendingInvoicesQuery);
   const { data: recentInvoices } = useCollection<Invoice>(recentInvoicesQuery);
+  const { data: monthlyInvoices } = useCollection<Invoice>(monthlyInvoicesQuery);
   const { data: inventoryItems } = useCollection<InventoryItem>(inventoryRef);
   const { data: pendingLabor } = useCollection<LaborRecord>(pendingLaborQuery);
 
@@ -88,6 +106,11 @@ export function AppSidebar() {
       item.minStockLevel !== undefined && item.quantity <= item.minStockLevel
     ).length;
   }, [inventoryItems]);
+
+  const monthlyRevenue = React.useMemo(() => {
+    if (!monthlyInvoices) return 0;
+    return monthlyInvoices.reduce((sum, inv) => sum + (inv.grandTotalAmount || 0), 0);
+  }, [monthlyInvoices]);
 
   const pendingInvoiceCount = pendingInvoices?.length || 0;
   const pendingLaborCount = pendingLabor?.length || 0;
@@ -168,10 +191,26 @@ export function AppSidebar() {
     ? user.displayName.split(' ').map(n => n[0]).join('').toUpperCase().substring(0, 2)
     : user?.email?.substring(0, 2).toUpperCase() || 'U';
 
+  const formatCurrency = (val: number) => 
+    new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 })
+      .format(val).replace('₹', 'Rs ');
+
   return (
     <Sidebar collapsible="icon" className="border-r bg-card print:hidden">
-      <SidebarHeader className="p-4 border-b">
+      <SidebarHeader className="p-4 border-b space-y-4">
         <Logo className="text-lg" />
+        
+        {state !== 'collapsed' && (
+          <div className="bg-primary/5 rounded-lg p-3 border border-primary/10">
+            <div className="flex items-center justify-between mb-1">
+              <span className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider">This Month</span>
+              <TrendingUp className="h-3 w-3 text-primary" />
+            </div>
+            <div className="text-lg font-bold text-primary">
+              {formatCurrency(monthlyRevenue)}
+            </div>
+          </div>
+        )}
       </SidebarHeader>
       
       <SidebarContent>
