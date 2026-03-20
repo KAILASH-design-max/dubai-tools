@@ -4,7 +4,7 @@ import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { MainHeader } from "@/components/main-header";
 import { Button } from "@/components/ui/button";
-import { User, Building2, Users, LogOut, Settings2, Download, Database } from "lucide-react";
+import { User, Building2, Users, LogOut, Settings2, Download, Database, ShieldCheck } from "lucide-react";
 import { useUser, useAuth } from "@/firebase";
 import { Skeleton } from "@/components/ui/skeleton";
 import { CompanyProfileForm } from "@/components/settings/company-profile-form";
@@ -13,6 +13,7 @@ import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/com
 import { CustomerList } from "@/components/settings/customer-list";
 import { PreferencesForm } from "@/components/settings/preferences-form";
 import { DataManagement } from "@/components/settings/data-management";
+import { SecuritySettings } from "@/components/settings/security-settings";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { signOut } from "firebase/auth";
 import { useToast } from "@/hooks/use-toast";
@@ -67,7 +68,7 @@ export default function SettingsPage() {
             <h1 className="text-3xl font-bold font-headline">Settings</h1>
             
             <Tabs defaultValue="company" className="w-full">
-              <TabsList className="grid w-full grid-cols-5 md:grid-cols-5 h-auto p-1 bg-muted/50">
+              <TabsList className="grid w-full grid-cols-3 md:grid-cols-6 h-auto p-1 bg-muted/50 gap-1">
                 <TabsTrigger value="company" className="py-2 flex flex-col items-center gap-1">
                   <Building2 className="h-4 w-4" />
                   <span className="text-[10px] sm:text-xs">Business</span>
@@ -83,6 +84,10 @@ export default function SettingsPage() {
                 <TabsTrigger value="preferences" className="py-2 flex flex-col items-center gap-1">
                   <Settings2 className="h-4 w-4" />
                   <span className="text-[10px] sm:text-xs">Defaults</span>
+                </TabsTrigger>
+                <TabsTrigger value="security" className="py-2 flex flex-col items-center gap-1">
+                  <ShieldCheck className="h-4 w-4" />
+                  <span className="text-[10px] sm:text-xs">Security</span>
                 </TabsTrigger>
                 <TabsTrigger value="data" className="py-2 flex flex-col items-center gap-1">
                   <Database className="h-4 w-4" />
@@ -142,6 +147,18 @@ export default function SettingsPage() {
                     </CardHeader>
                     <CardContent>
                         <PreferencesForm userId={user.uid} />
+                    </CardContent>
+                </Card>
+              </TabsContent>
+
+              <TabsContent value="security" className="mt-6">
+                <Card>
+                    <CardHeader>
+                        <CardTitle>Security & Access</CardTitle>
+                        <CardDescription>Manage your password and account protection.</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                        <SecuritySettings />
                     </CardContent>
                 </Card>
               </TabsContent>
