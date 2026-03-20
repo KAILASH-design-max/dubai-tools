@@ -4,13 +4,15 @@ import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { MainHeader } from "@/components/main-header";
 import { Button } from "@/components/ui/button";
-import { User, Building2, Users, LogOut, Settings2 } from "lucide-react";
+import { User, Building2, Users, LogOut, Settings2, Download, Database } from "lucide-react";
 import { useUser, useAuth } from "@/firebase";
 import { Skeleton } from "@/components/ui/skeleton";
 import { CompanyProfileForm } from "@/components/settings/company-profile-form";
 import { UserProfileForm } from "@/components/settings/user-profile-form";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { CustomerList } from "@/components/settings/customer-list";
+import { PreferencesForm } from "@/components/settings/preferences-form";
+import { DataManagement } from "@/components/settings/data-management";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { signOut } from "firebase/auth";
 import { useToast } from "@/hooks/use-toast";
@@ -61,22 +63,30 @@ export default function SettingsPage() {
     <div className="min-h-screen bg-background text-foreground">
       <MainHeader />
       <main className="container mx-auto p-2 sm:p-4 md:p-6">
-        <div className="max-w-2xl mx-auto space-y-8">
+        <div className="max-w-3xl mx-auto space-y-8 pb-12">
             <h1 className="text-3xl font-bold font-headline">Settings</h1>
             
             <Tabs defaultValue="company" className="w-full">
-              <TabsList className="grid w-full grid-cols-3 md:grid-cols-3">
-                <TabsTrigger value="company" className="flex items-center gap-2">
+              <TabsList className="grid w-full grid-cols-5 md:grid-cols-5 h-auto p-1 bg-muted/50">
+                <TabsTrigger value="company" className="py-2 flex flex-col items-center gap-1">
                   <Building2 className="h-4 w-4" />
-                  <span className="hidden sm:inline">Business</span>
+                  <span className="text-[10px] sm:text-xs">Business</span>
                 </TabsTrigger>
-                <TabsTrigger value="profile" className="flex items-center gap-2">
+                <TabsTrigger value="profile" className="py-2 flex flex-col items-center gap-1">
                   <User className="h-4 w-4" />
-                  <span className="hidden sm:inline">Account</span>
+                  <span className="text-[10px] sm:text-xs">Account</span>
                 </TabsTrigger>
-                <TabsTrigger value="customers" className="flex items-center gap-2">
+                <TabsTrigger value="customers" className="py-2 flex flex-col items-center gap-1">
                   <Users className="h-4 w-4" />
-                  <span className="hidden sm:inline">Customers</span>
+                  <span className="text-[10px] sm:text-xs">Clients</span>
+                </TabsTrigger>
+                <TabsTrigger value="preferences" className="py-2 flex flex-col items-center gap-1">
+                  <Settings2 className="h-4 w-4" />
+                  <span className="text-[10px] sm:text-xs">Defaults</span>
+                </TabsTrigger>
+                <TabsTrigger value="data" className="py-2 flex flex-col items-center gap-1">
+                  <Database className="h-4 w-4" />
+                  <span className="text-[10px] sm:text-xs">Data</span>
                 </TabsTrigger>
               </TabsList>
 
@@ -120,6 +130,30 @@ export default function SettingsPage() {
                     </CardHeader>
                     <CardContent>
                         <CustomerList userId={user.uid} />
+                    </CardContent>
+                </Card>
+              </TabsContent>
+
+              <TabsContent value="preferences" className="mt-6">
+                <Card>
+                    <CardHeader>
+                        <CardTitle>App Preferences</CardTitle>
+                        <CardDescription>Configure global defaults for tax, currency, and invoicing.</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                        <PreferencesForm userId={user.uid} />
+                    </CardContent>
+                </Card>
+              </TabsContent>
+
+              <TabsContent value="data" className="mt-6">
+                <Card>
+                    <CardHeader>
+                        <CardTitle>Data Management</CardTitle>
+                        <CardDescription>Export your business records for backup or accounting.</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                        <DataManagement userId={user.uid} />
                     </CardContent>
                 </Card>
               </TabsContent>
