@@ -19,6 +19,9 @@ import {
   Target,
   ArrowDownRight,
   ArrowUpRight,
+  Search,
+  Cloud,
+  Zap
 } from 'lucide-react';
 import {
   Sidebar,
@@ -32,6 +35,7 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
   SidebarMenuBadge,
+  SidebarInput,
   useSidebar,
 } from '@/components/ui/sidebar';
 import { Logo } from '@/components/logo';
@@ -49,6 +53,7 @@ export function AppSidebar() {
   const pathname = usePathname();
   const { toast } = useToast();
   const { setOpenMobile, state } = useSidebar();
+  const [menuSearch, setMenuSearch] = React.useState('');
 
   // Data fetching
   const invoicesRef = useMemoFirebase(
@@ -179,22 +184,29 @@ export function AppSidebar() {
     }
   ];
 
+  const filteredGroups = menuGroups.map(group => ({
+    ...group,
+    items: group.items.filter(item => 
+      item.title.toLowerCase().includes(menuSearch.toLowerCase())
+    )
+  })).filter(group => group.items.length > 0);
+
   return (
     <Sidebar collapsible="icon" className="border-r bg-card print:hidden">
       <SidebarHeader className="p-4 border-b space-y-4">
         <Logo className="text-lg" />
         
         {state !== 'collapsed' && (
-          <div className="space-y-4">
+          <div className="space-y-4 animate-in fade-in slide-in-from-top-2 duration-300">
             {/* Cash Flow Summary */}
             <div className="grid grid-cols-2 gap-2">
-              <div className="bg-green-50/50 dark:bg-green-950/10 p-2 rounded-lg border border-green-100 dark:border-green-900/30">
+              <div className="bg-green-50/50 dark:bg-green-950/10 p-2 rounded-lg border border-green-100 dark:border-green-900/30 group hover:border-green-300 transition-colors">
                 <div className="flex items-center gap-1 text-[9px] font-bold text-green-600 uppercase">
                   <ArrowUpRight className="h-3 w-3" /> Receivable
                 </div>
                 <div className="text-[11px] font-bold truncate">{formatCurrency(totalOwedByCustomers)}</div>
               </div>
-              <div className="bg-orange-50/50 dark:bg-orange-950/10 p-2 rounded-lg border border-orange-100 dark:border-orange-900/30">
+              <div className="bg-orange-50/50 dark:bg-orange-950/10 p-2 rounded-lg border border-orange-100 dark:border-orange-900/30 group hover:border-orange-300 transition-colors">
                 <div className="flex items-center gap-1 text-[9px] font-bold text-orange-600 uppercase">
                   <ArrowDownRight className="h-3 w-3" /> Payable
                 </div>
@@ -206,7 +218,21 @@ export function AppSidebar() {
       </SidebarHeader>
       
       <SidebarContent>
-        {menuGroups.map((group) => (
+        {state !== 'collapsed' && (
+          <div className="px-4 py-2">
+            <div className="relative group">
+              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground group-focus-within:text-primary transition-colors" />
+              <SidebarInput 
+                placeholder="Find page..." 
+                value={menuSearch}
+                onChange={(e) => setMenuSearch(e.target.value)}
+                className="pl-8 h-8 text-xs bg-muted/30 border-none focus-visible:ring-1 focus-visible:ring-primary/30"
+              />
+            </div>
+          </div>
+        )}
+
+        {filteredGroups.map((group) => (
           <SidebarGroup key={group.label}>
             <SidebarGroupLabel className="px-4 font-headline uppercase tracking-wider text-[10px] opacity-70">
               {group.label}
@@ -219,11 +245,17 @@ export function AppSidebar() {
                       asChild 
                       isActive={pathname === item.url}
                       tooltip={item.title}
-                      className="h-11 px-4"
+                      className={cn(
+                        "h-11 px-4 relative group",
+                        pathname === item.url && "bg-primary/5 text-primary"
+                      )}
                     >
                       <button onClick={() => handleNavigation(item.url)}>
+                        {pathname === item.url && (
+                          <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-6 bg-primary rounded-r-full" />
+                        )}
                         <item.icon className={cn(
-                          "mr-3 h-5 w-5 transition-colors",
+                          "mr-3 h-5 w-5 transition-all duration-300 group-hover:scale-110",
                           pathname === item.url ? 'text-primary' : 'text-muted-foreground'
                         )} />
                         <span className="font-medium">{item.title}</span>
@@ -246,8 +278,8 @@ export function AppSidebar() {
           </SidebarGroup>
         ))}
 
-        {recentInvoices && recentInvoices.length > 0 && state !== 'collapsed' && (
-          <SidebarGroup className="mt-2">
+        {recentInvoices && recentInvoices.length > 0 && state !== 'collapsed' && !menuSearch && (
+          <SidebarGroup className="mt-2 animate-in fade-in duration-500">
             <SidebarGroupLabel className="px-4 font-headline uppercase tracking-wider text-[10px] opacity-70 flex items-center gap-2">
               <Clock className="h-3 w-3" />
               Recent Activity
@@ -258,7 +290,7 @@ export function AppSidebar() {
                   <SidebarMenuItem key={inv.id}>
                     <SidebarMenuButton 
                       asChild 
-                      className="h-12 px-4 group"
+                      className="h-12 px-4 group hover:bg-muted/50"
                       tooltip={inv.customerName}
                     >
                       <button onClick={() => handleNavigation('/invoices')}>
@@ -266,8 +298,8 @@ export function AppSidebar() {
                           <span className="text-xs font-bold truncate w-full">{inv.customerName}</span>
                           <span className="text-[10px] text-muted-foreground flex items-center gap-1.5 mt-0.5">
                             <Badge variant="outline" className={cn(
-                              "px-1.5 py-0 text-[8px] h-3.5 border-none bg-muted/50",
-                              inv.status === 'Paid' ? "text-green-600 bg-green-50" : "text-muted-foreground"
+                              "px-1.5 py-0 text-[8px] h-3.5 border-none",
+                              inv.status === 'Paid' ? "text-green-600 bg-green-50" : "bg-muted/50 text-muted-foreground"
                             )}>
                               {inv.status}
                             </Badge>
@@ -285,8 +317,18 @@ export function AppSidebar() {
       </SidebarContent>
 
       <SidebarFooter className="p-2 border-t space-y-2">
+        {state !== 'collapsed' && (
+          <div className="px-3 py-1 flex items-center justify-between text-[10px] text-muted-foreground opacity-60">
+            <div className="flex items-center gap-1.5">
+              <div className="h-1.5 w-1.5 rounded-full bg-green-500 animate-pulse shadow-[0_0_8px_rgba(34,197,94,0.5)]" />
+              <span>Cloud Sync Active</span>
+            </div>
+            <Cloud className="h-3 w-3" />
+          </div>
+        )}
+
         <div className={cn(
-          "flex items-center gap-3 px-3 py-3 rounded-xl bg-muted/30 transition-all",
+          "flex items-center gap-3 px-3 py-3 rounded-xl bg-muted/30 transition-all hover:bg-muted/50",
           state === 'collapsed' ? 'justify-center p-1' : ''
         )}>
           <Avatar className="h-8 w-8 border-2 border-primary/10">
@@ -305,7 +347,7 @@ export function AppSidebar() {
 
         <Button 
           variant="ghost" 
-          className="w-full justify-start h-10 px-3 hover:bg-destructive/10 hover:text-destructive group-data-[collapsible=icon]:justify-center" 
+          className="w-full justify-start h-10 px-3 hover:bg-destructive/10 hover:text-destructive group-data-[collapsible=icon]:justify-center transition-colors" 
           onClick={handleSignOut}
         >
           <LogOut className="mr-3 h-4 w-4 shrink-0" />
