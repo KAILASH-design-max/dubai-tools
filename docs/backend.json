@@ -218,6 +218,22 @@
       },
       "required": ["id", "laborerId", "date", "amount", "status"]
     },
+    "Service": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Service",
+      "type": "object",
+      "description": "Represents a standard service or task provided by Dubai Tools.",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "description": { "type": "string" },
+        "rate": { "type": "number" },
+        "tax": { "type": "number" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "name", "rate"]
+    },
     "Invoice": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "Invoice",
@@ -408,6 +424,16 @@
         }
       },
       {
+        "path": "/users/{userId}/services/{serviceId}",
+        "definition": {
+          "entityName": "Service",
+          "schema": {
+            "$ref": "#/backend/entities/Service"
+          },
+          "description": "Contains standard service charges for the user."
+        }
+      },
+      {
         "path": "/users/{userId}/invoices/{invoiceId}",
         "definition": {
           "entityName": "Invoice",
@@ -428,6 +454,6 @@
         }
       }
     ],
-    "reasoning": "Data is isolated under each user's UID to ensure privacy and security. Added labor management to track workers and their work records."
+    "reasoning": "Data is isolated under each user's UID to ensure privacy and security. Added services collection to manage a catalog of fixed-rate tasks."
   }
 }

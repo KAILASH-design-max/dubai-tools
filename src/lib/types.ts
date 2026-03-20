@@ -53,6 +53,16 @@ export interface Laborer {
     updatedAt: string;
 }
 
+export interface Service {
+    id: string;
+    name: string;
+    description?: string;
+    rate: number;
+    tax: number;
+    createdAt: string;
+    updatedAt: string;
+}
+
 export interface LaborRecord {
     id: string;
     laborerId: string;

@@ -1,16 +1,18 @@
+
 "use client";
 
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { MainHeader } from "@/components/main-header";
 import { Button } from "@/components/ui/button";
-import { User, Building2, Users, LogOut, Settings2, Download, Database, ShieldCheck } from "lucide-react";
+import { User, Building2, Users, LogOut, Settings2, Download, Database, ShieldCheck, Zap } from "lucide-react";
 import { useUser, useAuth } from "@/firebase";
 import { Skeleton } from "@/components/ui/skeleton";
 import { CompanyProfileForm } from "@/components/settings/company-profile-form";
 import { UserProfileForm } from "@/components/settings/user-profile-form";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { CustomerList } from "@/components/settings/customer-list";
+import { ServiceList } from "@/components/settings/service-list";
 import { PreferencesForm } from "@/components/settings/preferences-form";
 import { DataManagement } from "@/components/settings/data-management";
 import { SecuritySettings } from "@/components/settings/security-settings";
@@ -68,7 +70,7 @@ export default function SettingsPage() {
             <h1 className="text-3xl font-bold font-headline">Settings</h1>
             
             <Tabs defaultValue="company" className="w-full">
-              <TabsList className="grid w-full grid-cols-3 md:grid-cols-6 h-auto p-1 bg-muted/50 gap-1">
+              <TabsList className="grid w-full grid-cols-4 md:grid-cols-7 h-auto p-1 bg-muted/50 gap-1">
                 <TabsTrigger value="company" className="py-2 flex flex-col items-center gap-1">
                   <Building2 className="h-4 w-4" />
                   <span className="text-[10px] sm:text-xs">Business</span>
@@ -80,6 +82,10 @@ export default function SettingsPage() {
                 <TabsTrigger value="customers" className="py-2 flex flex-col items-center gap-1">
                   <Users className="h-4 w-4" />
                   <span className="text-[10px] sm:text-xs">Clients</span>
+                </TabsTrigger>
+                <TabsTrigger value="services" className="py-2 flex flex-col items-center gap-1">
+                  <Zap className="h-4 w-4" />
+                  <span className="text-[10px] sm:text-xs">Services</span>
                 </TabsTrigger>
                 <TabsTrigger value="preferences" className="py-2 flex flex-col items-center gap-1">
                   <Settings2 className="h-4 w-4" />
@@ -135,6 +141,18 @@ export default function SettingsPage() {
                     </CardHeader>
                     <CardContent>
                         <CustomerList userId={user.uid} />
+                    </CardContent>
+                </Card>
+              </TabsContent>
+
+              <TabsContent value="services" className="mt-6">
+                <Card>
+                    <CardHeader>
+                        <CardTitle>Service Catalog</CardTitle>
+                        <CardDescription>Define standard labor tasks and services with fixed rates.</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                        <ServiceList userId={user.uid} />
                     </CardContent>
                 </Card>
               </TabsContent>

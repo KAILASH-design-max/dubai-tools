@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useEffect, useState, useMemo } from 'react';
@@ -9,13 +10,13 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Separator } from '@/components/ui/separator';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Trash2, Plus, User, Phone, Package, Search, CheckCircle2, AlertCircle, Users } from 'lucide-react';
+import { Trash2, Plus, User, Phone, Package, Search, CheckCircle2, AlertCircle, Users, Zap } from 'lucide-react';
 import { InvoiceHeader } from './invoice-header';
 import { InvoiceActions } from './invoice-actions';
 import { useFirestore, useDoc, useCollection, useMemoFirebase, useCompanyProfile } from '@/firebase';
 import { doc, collection, addDoc, deleteDoc, query, orderBy, writeBatch } from 'firebase/firestore';
 import { addDocumentNonBlocking, deleteDocumentNonBlocking, setDocumentNonBlocking, updateDocumentNonBlocking } from '@/firebase/non-blocking-updates';
-import type { Invoice, InvoiceLineItem, InventoryItem, Customer, Laborer } from '@/lib/types';
+import type { Invoice, InvoiceLineItem, InventoryItem, Customer, Laborer, Service } from '@/lib/types';
 import { Skeleton } from '../ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { errorEmitter } from '@/firebase/error-emitter';
@@ -63,11 +64,17 @@ export function InvoiceForm({ userId }: { userId: string }) {
     [firestore, userId]
   );
 
+  const servicesRef = useMemoFirebase(
+    () => (firestore ? collection(firestore, `users/${userId}/services`) : null),
+    [firestore, userId]
+  );
+
   const { data: invoice, isLoading: isInvoiceLoading } = useDoc<Invoice>(invoiceRef);
   const { data: lineItems, isLoading: areLineItemsLoading } = useCollection<InvoiceLineItem>(lineItemsQuery);
   const { data: inventoryItems } = useCollection<InventoryItem>(inventoryRef);
   const { data: customers } = useCollection<Customer>(customersRef);
   const { data: laborers } = useCollection<Laborer>(laborersRef);
+  const { data: services } = useCollection<Service>(servicesRef);
 
   useEffect(() => {
     if (!isInvoiceLoading && !invoice && !!invoiceRef && !isCompanyProfileLoading) {
@@ -405,7 +412,7 @@ export function InvoiceForm({ userId }: { userId: string }) {
                     const amount = isLabor ? item.rate : qty * item.rate;
                     const total = amount * (1 + item.tax / 100);
 
-                    // Combined search for Inventory and Laborers
+                    // Combined search for Inventory, Laborers, and Services
                     const inventoryMatches = (inventoryItems || []).filter(inv => 
                       item.description.trim().length >= 2 && 
                       inv.name.toLowerCase().includes(item.description.toLowerCase())
@@ -415,6 +422,11 @@ export function InvoiceForm({ userId }: { userId: string }) {
                       item.description.trim().length >= 2 && 
                       l.name.toLowerCase().includes(item.description.toLowerCase())
                     ).slice(0, 3);
+
+                    const serviceMatches = (services || []).filter(s => 
+                      item.description.trim().length >= 2 && 
+                      s.name.toLowerCase().includes(item.description.toLowerCase())
+                    ).slice(0, 5);
 
                     return (
                       <TableRow key={item.id} className="relative overflow-visible group">
@@ -426,9 +438,9 @@ export function InvoiceForm({ userId }: { userId: string }) {
                             onBlur={() => setTimeout(() => setActiveItemId(null), 250)}
                             onChange={(e) => handleUpdateLineItem(item.id, 'description', e.target.value)} 
                             className="w-full print-no-border font-medium focus-visible:ring-primary/30" 
-                            placeholder="Search stock or labor..."
+                            placeholder="Search stock, labor, or services..."
                           />
-                          {activeItemId === item.id && (inventoryMatches.length > 0 || laborerMatches.length > 0) && (
+                          {activeItemId === item.id && (inventoryMatches.length > 0 || laborerMatches.length > 0 || serviceMatches.length > 0) && (
                             <div className="absolute left-0 top-full z-[999] w-full min-w-[320px] border bg-card shadow-2xl rounded-lg mt-1 overflow-hidden print:hidden border-primary/20 ring-4 ring-primary/5 animate-in fade-in slide-in-from-top-1 duration-150">
                               {/* Inventory Section */}
                               {inventoryMatches.map(match => (
@@ -459,6 +471,32 @@ export function InvoiceForm({ userId }: { userId: string }) {
                                   </div>
                                   <div className="text-right">
                                     <span className="font-bold text-primary block">Rs {match.sellingPrice}</span>
+                                  </div>
+                                </button>
+                              ))}
+
+                              {/* Services Section */}
+                              {serviceMatches.map(s => (
+                                <button
+                                  key={s.id}
+                                  className="w-full text-left px-4 py-3 text-sm hover:bg-blue-50/50 hover:text-blue-600 transition-colors border-b last:border-0 flex items-center justify-between group/item"
+                                  onMouseDown={(e) => {
+                                    e.preventDefault();
+                                    handleUpdateLineItem(item.id, 'description', s.name);
+                                    handleUpdateLineItem(item.id, 'rate', s.rate);
+                                    handleUpdateLineItem(item.id, 'tax', s.tax);
+                                    setActiveItemId(null);
+                                  }}
+                                >
+                                  <div className="flex flex-col gap-0.5">
+                                    <div className="flex items-center gap-2">
+                                      <Zap className="h-3 w-3 text-blue-500 opacity-70" />
+                                      <span className="font-bold text-foreground group-hover/item:text-blue-600">{s.name}</span>
+                                    </div>
+                                    <span className="text-[10px] text-muted-foreground">Standard Catalog Service</span>
+                                  </div>
+                                  <div className="text-right">
+                                    <span className="font-bold text-blue-600 block">Rs {s.rate}</span>
                                   </div>
                                 </button>
                               ))}
