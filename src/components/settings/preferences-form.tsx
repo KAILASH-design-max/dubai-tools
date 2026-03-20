@@ -4,12 +4,13 @@ import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Switch } from '@/components/ui/switch';
 import { useFirestore, useMemoFirebase, setDocumentNonBlocking, useDoc } from '@/firebase';
 import { doc } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import { Skeleton } from '../ui/skeleton';
 import { Separator } from '../ui/separator';
-import { Landmark, Hash } from 'lucide-react';
+import { Landmark, Hash, FileText, CheckCircle2 } from 'lucide-react';
 
 export function PreferencesForm({ userId }: { userId: string }) {
   const firestore = useFirestore();
@@ -30,6 +31,9 @@ export function PreferencesForm({ userId }: { userId: string }) {
     bankName: '',
     accountNumber: '',
     ifscCode: '',
+    showBankDetails: true,
+    showSignatureArea: true,
+    customThankYou: 'Thank you for your business!',
   });
 
   useEffect(() => {
@@ -43,6 +47,9 @@ export function PreferencesForm({ userId }: { userId: string }) {
         bankName: prefs.bankName ?? '',
         accountNumber: prefs.accountNumber ?? '',
         ifscCode: prefs.ifscCode ?? '',
+        showBankDetails: prefs.showBankDetails ?? true,
+        showSignatureArea: prefs.showSignatureArea ?? true,
+        customThankYou: prefs.customThankYou ?? 'Thank you for your business!',
       });
     }
   }, [prefs]);
@@ -56,7 +63,7 @@ export function PreferencesForm({ userId }: { userId: string }) {
       
       toast({
         title: "Preferences Saved",
-        description: "Your global defaults and bank details have been updated.",
+        description: "Your global defaults and document layout have been updated.",
       });
     }
   };
@@ -157,23 +164,63 @@ export function PreferencesForm({ userId }: { userId: string }) {
             />
           </div>
         </div>
-        <p className="text-[10px] text-muted-foreground italic">Note: These details will be available for inclusion in your invoice notes.</p>
       </div>
 
       <Separator />
 
-      <div className="space-y-2">
-        <Label htmlFor="authorizedSignatory">Default Authorized Signatory</Label>
-        <Input 
-          id="authorizedSignatory" 
-          value={formData.authorizedSignatory} 
-          onChange={(e) => setFormData({ ...formData, authorizedSignatory: e.target.value })} 
-          placeholder="e.g. Proprietor / Manager"
-        />
-        <p className="text-[10px] text-muted-foreground">Name that appears below the signature line on printed documents.</p>
+      <div className="space-y-4">
+        <h3 className="text-sm font-bold flex items-center gap-2">
+          <FileText className="h-4 w-4 text-primary" />
+          Document Layout Preferences
+        </h3>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="flex items-center justify-between rounded-lg border p-3">
+            <div className="space-y-0.5">
+              <Label className="text-sm">Include Bank Details</Label>
+              <p className="text-[10px] text-muted-foreground">Print bank info on invoices.</p>
+            </div>
+            <Switch 
+              checked={formData.showBankDetails} 
+              onCheckedChange={(checked) => setFormData({ ...formData, showBankDetails: checked })} 
+            />
+          </div>
+          <div className="flex items-center justify-between rounded-lg border p-3">
+            <div className="space-y-0.5">
+              <Label className="text-sm">Signature Area</Label>
+              <p className="text-[10px] text-muted-foreground">Show authorized signature block.</p>
+            </div>
+            <Switch 
+              checked={formData.showSignatureArea} 
+              onCheckedChange={(checked) => setFormData({ ...formData, showSignatureArea: checked })} 
+            />
+          </div>
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="authorizedSignatory">Authorized Signatory Title</Label>
+          <Input 
+            id="authorizedSignatory" 
+            value={formData.authorizedSignatory} 
+            onChange={(e) => setFormData({ ...formData, authorizedSignatory: e.target.value })} 
+            placeholder="e.g. Proprietor / Managing Director"
+          />
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="customThankYou">Custom Thank You Message</Label>
+          <Input 
+            id="customThankYou" 
+            value={formData.customThankYou} 
+            onChange={(e) => setFormData({ ...formData, customThankYou: e.target.value })} 
+            placeholder="Appears at the very bottom of the invoice"
+          />
+        </div>
       </div>
 
-      <Button onClick={handleSave} className="w-full sm:w-auto">Save Preferences</Button>
+      <div className="pt-4">
+        <Button onClick={handleSave} className="w-full sm:w-auto">
+          <CheckCircle2 className="mr-2 h-4 w-4" />
+          Save All Preferences
+        </Button>
+      </div>
     </div>
   );
 }

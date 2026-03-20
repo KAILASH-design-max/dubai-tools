@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useEffect, useState, useMemo } from 'react';
@@ -10,7 +9,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Separator } from '@/components/ui/separator';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Trash2, Plus, User, Phone, Package, Search, CheckCircle2, AlertCircle, Users, Zap } from 'lucide-react';
+import { Trash2, Plus, User, Phone, Package, Search, CheckCircle2, AlertCircle, Users, Zap, Landmark } from 'lucide-react';
 import { InvoiceHeader } from './invoice-header';
 import { InvoiceActions } from './invoice-actions';
 import { useFirestore, useDoc, useCollection, useMemoFirebase, useCompanyProfile } from '@/firebase';
@@ -69,17 +68,23 @@ export function InvoiceForm({ userId }: { userId: string }) {
     [firestore, userId]
   );
 
+  const prefsRef = useMemoFirebase(
+    () => (firestore ? doc(firestore, `users/${userId}/profile/preferences`) : null),
+    [firestore, userId]
+  );
+
   const { data: invoice, isLoading: isInvoiceLoading } = useDoc<Invoice>(invoiceRef);
   const { data: lineItems, isLoading: areLineItemsLoading } = useCollection<InvoiceLineItem>(lineItemsQuery);
   const { data: inventoryItems } = useCollection<InventoryItem>(inventoryRef);
   const { data: customers } = useCollection<Customer>(customersRef);
   const { data: laborers } = useCollection<Laborer>(laborersRef);
   const { data: services } = useCollection<Service>(servicesRef);
+  const { data: prefs } = useDoc(prefsRef);
 
   useEffect(() => {
     if (!isInvoiceLoading && !invoice && !!invoiceRef && !isCompanyProfileLoading) {
       const defaultInvoice: Omit<Invoice, 'id'> = {
-        invoiceNumber: 'INV-001',
+        invoiceNumber: (prefs?.invoicePrefix || 'INV-') + '001',
         invoiceDate: new Date().toISOString().split('T')[0],
         customerName: '',
         customerPhone: '',
@@ -95,7 +100,7 @@ export function InvoiceForm({ userId }: { userId: string }) {
       };
       setDocumentNonBlocking(invoiceRef!, defaultInvoice, { merge: false });
     }
-  }, [isInvoiceLoading, !!invoice, !!invoiceRef, isCompanyProfileLoading, companyProfile?.defaultInvoiceNotes]);
+  }, [isInvoiceLoading, !!invoice, !!invoiceRef, isCompanyProfileLoading, companyProfile?.defaultInvoiceNotes, prefs?.invoicePrefix]);
   
   const handleAddLineItem = () => {
     if (!lineItemsCollectionRef) return;
@@ -104,7 +109,7 @@ export function InvoiceForm({ userId }: { userId: string }) {
       description: "",
       quantity: "1",
       rate: 0,
-      tax: 0,
+      tax: prefs?.defaultTaxRate || 0,
       sortIndex: nextIndex,
     });
   };
@@ -150,16 +155,13 @@ export function InvoiceForm({ userId }: { userId: string }) {
     const { id: dummyId, ...finalData } = invoiceDataToSave;
 
     try {
-        // Create permanent record
         const newDoc = await addDoc(invoicesCollection, finalData);
         const newLineItemsCol = collection(newDoc, 'lineItems');
         
-        // Save line items and perform stock deduction
         for (const item of lineItems) {
             const { id: itemId, ...itemData } = item;
             await addDoc(newLineItemsCol, itemData);
 
-            // Find matching inventory item for automatic stock adjustment
             const matchingInvItem = inventoryItems?.find(inv => 
               inv.name.toLowerCase().trim() === item.description.toLowerCase().trim()
             );
@@ -176,7 +178,6 @@ export function InvoiceForm({ userId }: { userId: string }) {
             }
         }
 
-        // Calculate next invoice number
         const match = invoice.invoiceNumber.match(/\d+$/);
         let nextNo = invoice.invoiceNumber;
         if (match) {
@@ -186,10 +187,8 @@ export function InvoiceForm({ userId }: { userId: string }) {
             nextNo += "-1";
         }
 
-        // Trigger browser print
         setTimeout(() => window.print(), 500);
 
-        // Reset the "main" (current draft) invoice after a delay to ensure the print capture worked
         setTimeout(async () => {
           updateDocumentNonBlocking(invoiceRef, {
               invoiceNumber: nextNo,
@@ -203,7 +202,6 @@ export function InvoiceForm({ userId }: { userId: string }) {
               updatedAt: new Date().toISOString(),
           });
 
-          // Delete all current draft line items
           for (const item of lineItems) {
               await deleteDoc(doc(lineItemsCollectionRef, item.id));
           }
@@ -234,7 +232,6 @@ export function InvoiceForm({ userId }: { userId: string }) {
 
   const { subtotal, taxTotal, grandTotal } = totals;
 
-  // Auto-update totals on the invoice document
   useEffect(() => {
     if (!invoiceRef || !invoice) return;
     const hasChanged = 
@@ -252,9 +249,8 @@ export function InvoiceForm({ userId }: { userId: string }) {
     }
   }, [subtotal, taxTotal, grandTotal, invoice?.id, invoiceRef]);
   
-  const formatCurrency = (amount: number) => new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR' }).format(amount).replace('₹', 'Rs ');
+  const formatCurrency = (amount: number) => new Intl.NumberFormat('en-IN', { style: 'currency', currency: prefs?.currency || 'INR' }).format(amount).replace('₹', 'Rs ');
 
-  // Customer search suggestions
   const customerMatches = useMemo(() => {
     if (!invoice?.customerName || invoice.customerName.length < 2 || !customers) return [];
     return customers.filter(c => 
@@ -389,6 +385,19 @@ export function InvoiceForm({ userId }: { userId: string }) {
                   </div>
                 </div>
               </div>
+              {prefs?.showBankDetails && prefs?.bankName && (
+                <div className="space-y-2 text-right hidden md:block print:block">
+                  <Label className="font-headline text-sm font-bold uppercase tracking-wider text-primary opacity-80 print:text-[9pt]">Payment Info</Label>
+                  <div className="p-4 rounded-lg bg-primary/5 border border-primary/10 space-y-1 print:p-0 print:border-none print:bg-transparent">
+                    <div className="flex items-center justify-end gap-2 text-primary">
+                      <Landmark className="h-3 w-3" />
+                      <p className="text-xs font-bold">{prefs.bankName}</p>
+                    </div>
+                    <p className="text-[10px] text-muted-foreground">A/C: {prefs.accountNumber}</p>
+                    <p className="text-[10px] text-muted-foreground">IFSC: {prefs.ifscCode}</p>
+                  </div>
+                </div>
+              )}
             </div>
             
             <div className="overflow-visible rounded-lg border print:border-none">
@@ -412,7 +421,6 @@ export function InvoiceForm({ userId }: { userId: string }) {
                     const amount = isLabor ? item.rate : qty * item.rate;
                     const total = amount * (1 + item.tax / 100);
 
-                    // Combined search for Inventory, Laborers, and Services
                     const inventoryMatches = (inventoryItems || []).filter(inv => 
                       item.description.trim().length >= 2 && 
                       inv.name.toLowerCase().includes(item.description.toLowerCase())
@@ -442,7 +450,6 @@ export function InvoiceForm({ userId }: { userId: string }) {
                           />
                           {activeItemId === item.id && (inventoryMatches.length > 0 || laborerMatches.length > 0 || serviceMatches.length > 0) && (
                             <div className="absolute left-0 top-full z-[999] w-full min-w-[320px] border bg-card shadow-2xl rounded-lg mt-1 overflow-hidden print:hidden border-primary/20 ring-4 ring-primary/5 animate-in fade-in slide-in-from-top-1 duration-150">
-                              {/* Inventory Section */}
                               {inventoryMatches.map(match => (
                                 <button
                                   key={match.id}
@@ -475,7 +482,6 @@ export function InvoiceForm({ userId }: { userId: string }) {
                                 </button>
                               ))}
 
-                              {/* Services Section */}
                               {serviceMatches.map(s => (
                                 <button
                                   key={s.id}
@@ -501,7 +507,6 @@ export function InvoiceForm({ userId }: { userId: string }) {
                                 </button>
                               ))}
 
-                              {/* Laborers Section */}
                               {laborerMatches.map(l => (
                                 <button
                                   key={l.id}
@@ -581,16 +586,25 @@ export function InvoiceForm({ userId }: { userId: string }) {
                     <span>{formatCurrency(grandTotal)}</span>
                   </div>
                 </div>
-                <div className="signature-area flex flex-col items-end gap-2 pr-4">
-                  <div className="relative h-14 w-28 opacity-80">
-                    <Image src="/signature.jpeg" alt="Signature" width={112} height={56} className="object-contain" />
+                {prefs?.showSignatureArea && (
+                  <div className="signature-area flex flex-col items-end gap-2 pr-4">
+                    <div className="relative h-14 w-28 opacity-80">
+                      <Image src="/signature.jpeg" alt="Signature" width={112} height={56} className="object-contain" />
+                    </div>
+                    <div className="w-48 border-t border-dashed border-primary/30 pt-1 text-right">
+                      <p className="text-[10px] font-bold text-primary/70 uppercase tracking-widest">
+                        {prefs?.authorizedSignatory || 'Authorized Signature'}
+                      </p>
+                    </div>
                   </div>
-                  <div className="w-48 border-t border-dashed border-primary/30 pt-1 text-right">
-                    <p className="text-[10px] font-bold text-primary/70 uppercase tracking-widest">Authorized Signature</p>
-                  </div>
-                </div>
+                )}
               </div>
             </div>
+            {prefs?.customThankYou && (
+               <div className="mt-8 pt-4 border-t border-dashed border-muted text-center text-muted-foreground italic text-[9pt] hidden print:block">
+                  {prefs.customThankYou}
+               </div>
+            )}
           </CardContent>
         </Card>
 
@@ -654,7 +668,7 @@ export function InvoiceForm({ userId }: { userId: string }) {
             </>
           )}
           <div className="mt-6 text-center text-[8pt] font-bold border-t border-b border-dashed py-2 uppercase tracking-widest">
-            Thank you for your business!
+            {prefs?.customThankYou || 'Thank you for your business!'}
           </div>
         </div>
       </div>
