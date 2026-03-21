@@ -3,11 +3,27 @@
 import { useEffect, useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
-import { collection, query, orderBy, doc, updateDoc, writeBatch, getDocs, where } from 'firebase/firestore';
+import { collection, query, orderBy, doc, updateDoc, writeBatch, getDocs, where, addDoc } from 'firebase/firestore';
 import { Laborer, LaborRecord } from '@/lib/types';
 import { MainHeader } from '@/components/main-header';
 import { Button } from '@/components/ui/button';
-import { Plus, Users, Search, Calendar, Trash2, Edit, CheckCircle, Wallet, Clock, Filter, CreditCard, ArrowRightCircle } from 'lucide-react';
+import { 
+  Plus, 
+  Users, 
+  Search, 
+  Calendar, 
+  Trash2, 
+  Edit, 
+  CheckCircle, 
+  Wallet, 
+  Clock, 
+  Filter, 
+  CreditCard, 
+  ArrowRightCircle,
+  UserCheck,
+  CheckSquare,
+  History
+} from 'lucide-react';
 import { Card, CardHeader, CardContent, CardTitle, CardDescription } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -15,7 +31,8 @@ import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { LaborerDialog } from '@/components/labor/laborer-dialog';
 import { LaborRecordDialog } from '@/components/labor/labor-record-dialog';
-import { format } from 'date-fns';
+import { QuickAttendanceDialog } from '@/components/labor/quick-attendance-dialog';
+import { format, startOfWeek, startOfMonth, isWithinInterval, endOfDay } from 'date-fns';
 import { deleteDocumentNonBlocking } from '@/firebase';
 import { useToast } from '@/hooks/use-toast';
 import {
@@ -33,8 +50,10 @@ export default function LaborManagementPage() {
   const { toast } = useToast();
   const [searchTerm, setSearchTerm] = useState('');
   const [filterLaborerId, setFilterLaborerId] = useState('all');
+  const [dateFilter, setDateFilter] = useState('all');
   const [isLaborerDialogOpen, setIsLaborerDialogOpen] = useState(false);
   const [isRecordDialogOpen, setIsRecordDialogOpen] = useState(false);
+  const [isAttendanceDialogOpen, setIsAttendanceDialogOpen] = useState(false);
   const [editingLaborer, setEditingLaborer] = useState<Laborer | null>(null);
   const [editingRecord, setEditingRecord] = useState<LaborRecord | null>(null);
   const [isSettling, setIsSettling] = useState<string | null>(null);
@@ -86,6 +105,15 @@ export default function LaborManagementPage() {
     return balances;
   }, [records, laborers]);
 
+  const laborerWorkDays = useMemo(() => {
+    if (!records) return {};
+    const counts: Record<string, number> = {};
+    records.forEach(rec => {
+      counts[rec.laborerId] = (counts[rec.laborerId] || 0) + 1;
+    });
+    return counts;
+  }, [records]);
+
   const filteredLaborers = laborers?.filter(l => 
     l.name.toLowerCase().includes(searchTerm.toLowerCase())
   ) || [];
@@ -94,7 +122,21 @@ export default function LaborManagementPage() {
     const matchesSearch = r.laborerName.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          r.workDescription?.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesLaborer = filterLaborerId === 'all' || r.laborerId === filterLaborerId;
-    return matchesSearch && matchesLaborer;
+    
+    let matchesDate = true;
+    if (dateFilter !== 'all') {
+      const recordDate = new Date(`${r.date}T00:00:00`);
+      const now = new Date();
+      if (dateFilter === 'today') {
+        matchesDate = r.date === format(now, 'yyyy-MM-dd');
+      } else if (dateFilter === 'week') {
+        matchesDate = isWithinInterval(recordDate, { start: startOfWeek(now), end: endOfDay(now) });
+      } else if (dateFilter === 'month') {
+        matchesDate = isWithinInterval(recordDate, { start: startOfMonth(now), end: endOfDay(now) });
+      }
+    }
+
+    return matchesSearch && matchesLaborer && matchesDate;
   }) || [];
 
   const handleAddLaborer = () => {
@@ -189,7 +231,11 @@ export default function LaborManagementPage() {
               </h2>
               <p className="text-muted-foreground mt-1">Manage your workers and their daily wage records.</p>
             </div>
-            <div className="flex gap-2">
+            <div className="flex flex-wrap gap-2">
+              <Button variant="outline" onClick={() => setIsAttendanceDialogOpen(true)} className="h-10 border-primary text-primary hover:bg-primary/5">
+                <CheckSquare className="mr-2 h-4 w-4" />
+                Quick Attendance
+              </Button>
               <Button variant="outline" onClick={handleAddLaborer} className="h-10">
                 <Plus className="mr-2 h-4 w-4" />
                 Add Laborer
@@ -202,36 +248,42 @@ export default function LaborManagementPage() {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <Card className="border-l-4 border-l-primary shadow-sm">
+            <Card className="border-l-4 border-l-primary shadow-sm hover:shadow-md transition-shadow">
               <CardContent className="pt-6">
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-sm font-medium text-muted-foreground">Total Paid</p>
                     <p className="text-2xl font-bold text-primary">{formatCurrency(stats.paid)}</p>
                   </div>
-                  <Wallet className="h-8 w-8 text-primary/20" />
+                  <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
+                    <Wallet className="h-5 w-5 text-primary" />
+                  </div>
                 </div>
               </CardContent>
             </Card>
-            <Card className="border-l-4 border-l-orange-500 shadow-sm">
+            <Card className="border-l-4 border-l-orange-500 shadow-sm hover:shadow-md transition-shadow">
               <CardContent className="pt-6">
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-sm font-medium text-muted-foreground">Total Outstanding</p>
                     <p className="text-2xl font-bold text-orange-500">{formatCurrency(stats.pending)}</p>
                   </div>
-                  <Clock className="h-8 w-8 text-orange-500/20" />
+                  <div className="h-10 w-10 rounded-full bg-orange-100 flex items-center justify-center">
+                    <Clock className="h-5 w-5 text-orange-600" />
+                  </div>
                 </div>
               </CardContent>
             </Card>
-            <Card className="border-l-4 border-l-blue-500 shadow-sm">
+            <Card className="border-l-4 border-l-blue-500 shadow-sm hover:shadow-md transition-shadow">
               <CardContent className="pt-6">
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-sm font-medium text-muted-foreground">Active Workers</p>
                     <p className="text-2xl font-bold text-blue-500">{laborers?.length || 0}</p>
                   </div>
-                  <Users className="h-8 w-8 text-blue-500/20" />
+                  <div className="h-10 w-10 rounded-full bg-blue-100 flex items-center justify-center">
+                    <Users className="h-5 w-5 text-blue-600" />
+                  </div>
                 </div>
               </CardContent>
             </Card>
@@ -260,22 +312,41 @@ export default function LaborManagementPage() {
               <Card className="border-none shadow-sm ring-1 ring-border">
                 <CardHeader className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4">
                   <div>
-                    <CardTitle>Daily Work History</CardTitle>
-                    <CardDescription>Detailed log of daily tasks and payment status.</CardDescription>
+                    <CardTitle className="flex items-center gap-2">
+                      <History className="h-5 w-5 text-primary" />
+                      Work History
+                    </CardTitle>
+                    <CardDescription>Detailed log of daily tasks and payments.</CardDescription>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <Filter className="h-4 w-4 text-muted-foreground" />
-                    <Select value={filterLaborerId} onValueChange={setFilterLaborerId}>
-                      <SelectTrigger className="w-[180px] h-9">
-                        <SelectValue placeholder="All Workers" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="all">All Workers</SelectItem>
-                        {laborers?.map(l => (
-                          <SelectItem key={l.id} value={l.id}>{l.name}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <div className="flex items-center gap-2 bg-muted/50 px-2 py-1 rounded-md">
+                      <Calendar className="h-4 w-4 text-muted-foreground" />
+                      <Select value={dateFilter} onValueChange={setDateFilter}>
+                        <SelectTrigger className="w-[120px] h-8 border-none bg-transparent shadow-none focus:ring-0">
+                          <SelectValue placeholder="Period" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="all">All Time</SelectItem>
+                          <SelectItem value="today">Today</SelectItem>
+                          <SelectItem value="week">This Week</SelectItem>
+                          <SelectItem value="month">This Month</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="flex items-center gap-2 bg-muted/50 px-2 py-1 rounded-md">
+                      <Filter className="h-4 w-4 text-muted-foreground" />
+                      <Select value={filterLaborerId} onValueChange={setFilterLaborerId}>
+                        <SelectTrigger className="w-[140px] h-8 border-none bg-transparent shadow-none focus:ring-0">
+                          <SelectValue placeholder="Worker" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="all">All Workers</SelectItem>
+                          {laborers?.map(l => (
+                            <SelectItem key={l.id} value={l.id}>{l.name}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
                   </div>
                 </CardHeader>
                 <CardContent className="p-0 sm:p-6 sm:pt-0">
@@ -284,7 +355,7 @@ export default function LaborManagementPage() {
                       <TableRow>
                         <TableHead>Date</TableHead>
                         <TableHead>Laborer</TableHead>
-                        <TableHead className="hidden md:table-cell">Work Description</TableHead>
+                        <TableHead className="hidden md:table-cell">Description</TableHead>
                         <TableHead className="text-right">Amount</TableHead>
                         <TableHead className="text-center">Status</TableHead>
                         <TableHead className="text-right">Actions</TableHead>
@@ -353,8 +424,11 @@ export default function LaborManagementPage() {
             <TabsContent value="laborers">
               <Card className="border-none shadow-sm ring-1 ring-border">
                 <CardHeader>
-                  <CardTitle>Laborer Profiles</CardTitle>
-                  <CardDescription>Manage your team and track outstanding dues per worker.</CardDescription>
+                  <CardTitle className="flex items-center gap-2">
+                    <UserCheck className="h-5 w-5 text-primary" />
+                    Team Roster
+                  </CardTitle>
+                  <CardDescription>Manage profiles and track outstanding dues.</CardDescription>
                 </CardHeader>
                 <CardContent className="p-0 sm:p-6 sm:pt-0">
                   <Table>
@@ -363,6 +437,7 @@ export default function LaborManagementPage() {
                         <TableHead>Name</TableHead>
                         <TableHead className="hidden sm:table-cell">Phone</TableHead>
                         <TableHead className="text-right">Daily Rate</TableHead>
+                        <TableHead className="text-center">Work Days</TableHead>
                         <TableHead className="text-right">Pending Balance</TableHead>
                         <TableHead className="text-right">Quick Actions</TableHead>
                         <TableHead className="text-right">Profile</TableHead>
@@ -371,11 +446,17 @@ export default function LaborManagementPage() {
                     <TableBody>
                       {filteredLaborers.map((laborer) => {
                         const balance = laborerBalances[laborer.id] || 0;
+                        const daysWorked = laborerWorkDays[laborer.id] || 0;
                         return (
                           <TableRow key={laborer.id}>
                             <TableCell className="font-bold">{laborer.name}</TableCell>
                             <TableCell className="hidden sm:table-cell text-muted-foreground">{laborer.phone || '-'}</TableCell>
                             <TableCell className="text-right">{formatCurrency(laborer.dailyRate)}</TableCell>
+                            <TableCell className="text-center">
+                              <Badge variant="secondary" className="font-mono">
+                                {daysWorked}
+                              </Badge>
+                            </TableCell>
                             <TableCell className="text-right">
                               <span className={balance > 0 ? "font-bold text-orange-600 bg-orange-50 px-2 py-1 rounded" : "text-muted-foreground"}>
                                 {formatCurrency(balance)}
@@ -407,8 +488,7 @@ export default function LaborManagementPage() {
                                   className="h-8 w-8 text-primary" 
                                   onClick={() => {
                                     setFilterLaborerId(laborer.id);
-                                    // Switch to records tab via state or ref if needed, 
-                                    // but usually we just filter here
+                                    // Normally we would switch tabs here, but the state persists
                                   }}
                                   title="View Records"
                                 >
@@ -425,16 +505,6 @@ export default function LaborManagementPage() {
                           </TableRow>
                         );
                       })}
-                      {filteredLaborers.length === 0 && !isLoadingLaborers && (
-                        <TableRow>
-                          <TableCell colSpan={6} className="text-center py-16 text-muted-foreground">
-                            <div className="flex flex-col items-center gap-2">
-                              <Users className="h-8 w-8 opacity-20" />
-                              <p>No laborer profiles found.</p>
-                            </div>
-                          </TableCell>
-                        </TableRow>
-                      )}
                     </TableBody>
                   </Table>
                 </CardContent>
@@ -458,9 +528,16 @@ export default function LaborManagementPage() {
         laborers={laborers || []}
         userId={user.uid}
       />
+
+      <QuickAttendanceDialog
+        isOpen={isAttendanceDialogOpen}
+        onOpenChange={setIsAttendanceDialogOpen}
+        laborers={laborers || []}
+        userId={user.uid}
+      />
       
       <footer className="container mx-auto py-6 px-4 text-center text-sm text-muted-foreground md:px-6">
-        <p>&copy; {new Date().getFullYear()} Dubai Tools. Labor Force Performance Tracking.</p>
+        <p>&copy; {new Date().getFullYear()} Dubai Tools. Performance Tracker.</p>
       </footer>
     </div>
   );
