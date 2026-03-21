@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState } from 'react';
@@ -5,12 +6,13 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogD
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
+import { Input } from '@/components/ui/input';
 import { Laborer } from '@/lib/types';
 import { useFirestore } from '@/firebase';
 import { collection, addDoc } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
-import { Loader2, CheckSquare, Users } from 'lucide-react';
+import { Loader2, CheckSquare, Users, MapPin } from 'lucide-react';
 
 interface QuickAttendanceDialogProps {
   isOpen: boolean;
@@ -23,6 +25,7 @@ export function QuickAttendanceDialog({ isOpen, onOpenChange, laborers, userId }
   const firestore = useFirestore();
   const { toast } = useToast();
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [siteName, setSiteName] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const today = format(new Date(), 'yyyy-MM-dd');
 
@@ -56,9 +59,11 @@ export function QuickAttendanceDialog({ isOpen, onOpenChange, laborers, userId }
           laborerId: laborer.id,
           laborerName: laborer.name,
           date: today,
-          workDescription: 'Quick Attendance Log',
+          siteName: siteName || 'General Site',
+          workDescription: 'Daily Attendance',
           amount: laborer.dailyRate,
           status: 'Pending',
+          category: 'Full Day',
           createdAt: now,
           updatedAt: now,
         });
@@ -67,6 +72,7 @@ export function QuickAttendanceDialog({ isOpen, onOpenChange, laborers, userId }
       await Promise.all(promises);
       toast({ title: "Attendance Logged", description: `Successfully logged work for ${selectedIds.length} workers.` });
       setSelectedIds([]);
+      setSiteName('');
       onOpenChange(false);
     } catch (e) {
       toast({ variant: "destructive", title: "Error", description: "Failed to log attendance." });
@@ -84,49 +90,65 @@ export function QuickAttendanceDialog({ isOpen, onOpenChange, laborers, userId }
             Quick Attendance
           </DialogTitle>
           <DialogDescription>
-            Select workers present today ({format(new Date(), 'PP')}). This will log a pending wage for each.
+            Select workers present today ({format(new Date(), 'PP')}).
           </DialogDescription>
         </DialogHeader>
         
-        <div className="py-4">
-          <div className="flex items-center justify-between mb-4 pb-2 border-b">
-            <Label className="text-sm font-bold text-muted-foreground uppercase tracking-widest">
-              Worker Roster ({selectedIds.length}/{laborers.length})
+        <div className="py-4 space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="quick-site" className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-muted-foreground">
+              <MapPin className="h-3 w-3" />
+              Current Site / Project
             </Label>
-            <Button variant="ghost" size="sm" onClick={handleSelectAll} className="h-7 text-xs">
-              {selectedIds.length === laborers.length ? 'Deselect All' : 'Select All'}
-            </Button>
+            <Input 
+              id="quick-site"
+              placeholder="Where are they working today?"
+              value={siteName}
+              onChange={(e) => setSiteName(e.target.value)}
+              className="h-9"
+            />
           </div>
-          
-          <div className="max-h-[300px] overflow-y-auto space-y-1 px-1">
-            {laborers.length === 0 ? (
-              <div className="text-center py-8 text-muted-foreground">
-                <Users className="h-8 w-8 mx-auto opacity-20 mb-2" />
-                <p>No laborers found. Add them first.</p>
-              </div>
-            ) : laborers.map((laborer) => (
-              <div 
-                key={laborer.id} 
-                className="flex items-center space-x-3 p-3 rounded-lg hover:bg-muted/50 transition-colors cursor-pointer"
-                onClick={() => toggleLaborer(laborer.id)}
-              >
-                <Checkbox 
-                  id={`laborer-${laborer.id}`} 
-                  checked={selectedIds.includes(laborer.id)}
-                  onCheckedChange={() => toggleLaborer(laborer.id)}
-                  onClick={(e) => e.stopPropagation()}
-                />
-                <div className="flex-1 min-w-0">
-                  <Label 
-                    htmlFor={`laborer-${laborer.id}`} 
-                    className="font-bold block cursor-pointer"
-                  >
-                    {laborer.name}
-                  </Label>
-                  <span className="text-xs text-muted-foreground">Daily Rate: Rs {laborer.dailyRate}</span>
+
+          <div>
+            <div className="flex items-center justify-between mb-2 pb-2 border-b">
+              <Label className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">
+                Worker Roster ({selectedIds.length}/{laborers.length})
+              </Label>
+              <Button variant="ghost" size="sm" onClick={handleSelectAll} className="h-7 text-xs px-2">
+                {selectedIds.length === laborers.length ? 'Deselect All' : 'Select All'}
+              </Button>
+            </div>
+            
+            <div className="max-h-[250px] overflow-y-auto space-y-1 px-1">
+              {laborers.length === 0 ? (
+                <div className="text-center py-8 text-muted-foreground">
+                  <Users className="h-8 w-8 mx-auto opacity-20 mb-2" />
+                  <p>No laborers found. Add them first.</p>
                 </div>
-              </div>
-            ))}
+              ) : laborers.map((laborer) => (
+                <div 
+                  key={laborer.id} 
+                  className="flex items-center space-x-3 p-2 rounded-lg hover:bg-muted/50 transition-colors cursor-pointer"
+                  onClick={() => toggleLaborer(laborer.id)}
+                >
+                  <Checkbox 
+                    id={`laborer-${laborer.id}`} 
+                    checked={selectedIds.includes(laborer.id)}
+                    onCheckedChange={() => toggleLaborer(laborer.id)}
+                    onClick={(e) => e.stopPropagation()}
+                  />
+                  <div className="flex-1 min-w-0">
+                    <Label 
+                      htmlFor={`laborer-${laborer.id}`} 
+                      className="font-bold text-sm block cursor-pointer"
+                    >
+                      {laborer.name}
+                    </Label>
+                    <span className="text-[10px] text-muted-foreground">Daily Rate: Rs {laborer.dailyRate}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
         </div>
 

@@ -70,6 +70,7 @@ export interface LaborRecord {
     date: string;
     category: 'Full Day' | 'Half Day' | 'Overtime' | 'Advance';
     workDescription?: string;
+    siteName?: string;
     amount: number;
     status: 'Paid' | 'Pending';
     createdAt: string;

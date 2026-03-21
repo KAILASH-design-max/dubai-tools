@@ -26,7 +26,9 @@ import {
   History,
   FileText,
   Printer,
-  ChevronRight
+  ChevronRight,
+  MapPin,
+  CircleDashed
 } from 'lucide-react';
 import { Card, CardHeader, CardContent, CardTitle, CardDescription } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -164,7 +166,7 @@ function LaborerStatementModal({
               <TableHeader className="bg-muted/50">
                 <TableRow>
                   <TableHead className="w-[100px]">Date</TableHead>
-                  <TableHead>Description</TableHead>
+                  <TableHead>Site / Description</TableHead>
                   <TableHead>Category</TableHead>
                   <TableHead className="text-right">Amount</TableHead>
                   <TableHead className="text-center">Status</TableHead>
@@ -174,7 +176,10 @@ function LaborerStatementModal({
                 {activeRecords.map((r) => (
                   <TableRow key={r.id}>
                     <TableCell className="text-xs">{format(new Date(`${r.date}T00:00:00`), 'dd MMM yyyy')}</TableCell>
-                    <TableCell className="text-xs italic">{r.workDescription || '-'}</TableCell>
+                    <TableCell className="text-xs">
+                      <div className="font-bold">{r.siteName || 'General Site'}</div>
+                      <div className="italic text-muted-foreground text-[10px]">{r.workDescription || '-'}</div>
+                    </TableCell>
                     <TableCell>
                       <Badge variant="outline" className="text-[9px] h-5">
                         {r.category || 'Full Day'}
@@ -248,6 +253,7 @@ export default function LaborManagementPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [filterLaborerId, setFilterLaborerId] = useState('all');
   const [dateFilter, setDateFilter] = useState('all');
+  const [statusFilter, setStatusFilter] = useState('all');
   const [isLaborerDialogOpen, setIsLaborerDialogOpen] = useState(false);
   const [isRecordDialogOpen, setIsRecordDialogOpen] = useState(false);
   const [isAttendanceDialogOpen, setIsAttendanceDialogOpen] = useState(false);
@@ -321,8 +327,10 @@ export default function LaborManagementPage() {
 
   const filteredRecords = records?.filter(r => {
     const matchesSearch = r.laborerName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         r.workDescription?.toLowerCase().includes(searchTerm.toLowerCase());
+                         r.workDescription?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         r.siteName?.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesLaborer = filterLaborerId === 'all' || r.laborerId === filterLaborerId;
+    const matchesStatus = statusFilter === 'all' || r.status === statusFilter;
     
     let matchesDate = true;
     if (dateFilter !== 'all') {
@@ -337,7 +345,7 @@ export default function LaborManagementPage() {
       }
     }
 
-    return matchesSearch && matchesLaborer && matchesDate;
+    return matchesSearch && matchesLaborer && matchesDate && matchesStatus;
   }) || [];
 
   const handleAddLaborer = () => {
@@ -505,7 +513,7 @@ export default function LaborManagementPage() {
                 <div className="relative flex-1 md:max-w-xs">
                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                   <Input 
-                    placeholder="Search..." 
+                    placeholder="Search site, worker, or task..." 
                     className="pl-9 h-9 bg-background" 
                     value={searchTerm} 
                     onChange={(e) => setSearchTerm(e.target.value)} 
@@ -528,7 +536,7 @@ export default function LaborManagementPage() {
                     <div className="flex items-center gap-2 bg-muted/50 px-2 py-1 rounded-md">
                       <Calendar className="h-4 w-4 text-muted-foreground" />
                       <Select value={dateFilter} onValueChange={setDateFilter}>
-                        <SelectTrigger className="w-[120px] h-8 border-none bg-transparent shadow-none focus:ring-0">
+                        <SelectTrigger className="w-[110px] h-8 border-none bg-transparent shadow-none focus:ring-0 text-xs">
                           <SelectValue placeholder="Period" />
                         </SelectTrigger>
                         <SelectContent>
@@ -540,9 +548,22 @@ export default function LaborManagementPage() {
                       </Select>
                     </div>
                     <div className="flex items-center gap-2 bg-muted/50 px-2 py-1 rounded-md">
+                      <CircleDashed className="h-4 w-4 text-muted-foreground" />
+                      <Select value={statusFilter} onValueChange={setStatusFilter}>
+                        <SelectTrigger className="w-[100px] h-8 border-none bg-transparent shadow-none focus:ring-0 text-xs">
+                          <SelectValue placeholder="Status" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="all">Any Status</SelectItem>
+                          <SelectItem value="Paid">Paid Only</SelectItem>
+                          <SelectItem value="Pending">Pending Only</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="flex items-center gap-2 bg-muted/50 px-2 py-1 rounded-md">
                       <Filter className="h-4 w-4 text-muted-foreground" />
                       <Select value={filterLaborerId} onValueChange={setFilterLaborerId}>
-                        <SelectTrigger className="w-[140px] h-8 border-none bg-transparent shadow-none focus:ring-0">
+                        <SelectTrigger className="w-[120px] h-8 border-none bg-transparent shadow-none focus:ring-0 text-xs">
                           <SelectValue placeholder="Worker" />
                         </SelectTrigger>
                         <SelectContent>
@@ -561,8 +582,8 @@ export default function LaborManagementPage() {
                       <TableRow>
                         <TableHead>Date</TableHead>
                         <TableHead>Laborer</TableHead>
+                        <TableHead>Site / Task</TableHead>
                         <TableHead>Category</TableHead>
-                        <TableHead className="hidden md:table-cell">Description</TableHead>
                         <TableHead className="text-right">Amount</TableHead>
                         <TableHead className="text-center">Status</TableHead>
                         <TableHead className="text-right">Actions</TableHead>
@@ -579,6 +600,17 @@ export default function LaborManagementPage() {
                           </TableCell>
                           <TableCell className="font-bold">{record.laborerName}</TableCell>
                           <TableCell>
+                            <div className="flex flex-col">
+                              <div className="flex items-center gap-1.5 font-medium text-xs">
+                                <MapPin className="h-3 w-3 text-primary opacity-60" />
+                                {record.siteName || 'General Site'}
+                              </div>
+                              <div className="text-[10px] text-muted-foreground truncate max-w-[150px] italic">
+                                {record.workDescription || '-'}
+                              </div>
+                            </div>
+                          </TableCell>
+                          <TableCell>
                             <Badge variant="outline" className={
                               record.category === 'Full Day' ? 'text-blue-600 border-blue-200' :
                               record.category === 'Half Day' ? 'text-cyan-600 border-cyan-200' :
@@ -587,9 +619,6 @@ export default function LaborManagementPage() {
                             }>
                               {record.category || 'Full Day'}
                             </Badge>
-                          </TableCell>
-                          <TableCell className="hidden md:table-cell max-w-[200px] truncate italic text-muted-foreground text-xs">
-                            {record.workDescription || '-'}
                           </TableCell>
                           <TableCell className={`text-right font-bold ${record.category === 'Advance' ? 'text-orange-600' : 'text-primary'}`}>
                             {record.category === 'Advance' ? `-${formatCurrency(record.amount)}` : formatCurrency(record.amount)}
@@ -716,7 +745,7 @@ export default function LaborManagementPage() {
                                   className="h-8 w-8 text-primary" 
                                   onClick={() => {
                                     setFilterLaborerId(laborer.id);
-                                    // Normally we would switch tabs here, but the state persists
+                                    // Switch tabs if possible or just rely on state
                                   }}
                                   title="View Records"
                                 >

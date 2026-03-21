@@ -13,6 +13,7 @@ import { useFirestore } from '@/firebase';
 import { collection, doc } from 'firebase/firestore';
 import { addDocumentNonBlocking, updateDocumentNonBlocking } from '@/firebase';
 import { useToast } from '@/hooks/use-toast';
+import { MapPin, Briefcase } from 'lucide-react';
 
 interface LaborRecordDialogProps {
   isOpen: boolean;
@@ -28,6 +29,7 @@ const initialFormData: Partial<LaborRecord> = {
   date: new Date().toISOString().split('T')[0],
   category: 'Full Day',
   workDescription: '',
+  siteName: '',
   amount: 0,
   status: 'Pending',
 };
@@ -157,6 +159,19 @@ export function LaborRecordDialog({ isOpen, onOpenChange, record, laborers, user
             </div>
           </div>
 
+          <div className="grid gap-2">
+            <Label htmlFor="siteName" className="flex items-center gap-2">
+              <MapPin className="h-3 w-3 text-primary" />
+              Site / Project Name
+            </Label>
+            <Input 
+              id="siteName" 
+              value={formData.siteName || ''} 
+              onChange={(e) => setFormData({ ...formData, siteName: e.target.value })} 
+              placeholder="e.g. Skyline Heights, Sector 45"
+            />
+          </div>
+
           <div className="grid grid-cols-2 gap-4">
             <div className="grid gap-2">
               <Label htmlFor="amount">Amount (Rs)</Label>
@@ -185,12 +200,16 @@ export function LaborRecordDialog({ isOpen, onOpenChange, record, laborers, user
           </div>
 
           <div className="grid gap-2">
-            <Label htmlFor="workDescription">Description (Optional)</Label>
+            <Label htmlFor="workDescription" className="flex items-center gap-2">
+              <Briefcase className="h-3 w-3 text-primary" />
+              Task Description (Optional)
+            </Label>
             <Textarea 
               id="workDescription" 
               value={formData.workDescription || ''} 
               onChange={(e) => setFormData({ ...formData, workDescription: e.target.value })} 
-              placeholder="e.g. Wiring for 3rd floor apartment"
+              placeholder="e.g. Main DB Dressing & Testing"
+              className="min-h-[80px]"
             />
           </div>
         </div>
