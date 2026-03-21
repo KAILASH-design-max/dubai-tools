@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useEffect, useState } from 'react';
@@ -25,6 +26,7 @@ const initialFormData: Partial<LaborRecord> = {
   laborerId: '',
   laborerName: '',
   date: new Date().toISOString().split('T')[0],
+  category: 'Full Day',
   workDescription: '',
   amount: 0,
   status: 'Pending',
@@ -53,13 +55,26 @@ export function LaborRecordDialog({ isOpen, onOpenChange, record, laborers, user
         ...formData,
         laborerId: id,
         laborerName: laborer.name,
-        amount: laborer.dailyRate // Default to their standard rate
+        amount: laborer.dailyRate // Default to their standard rate for Full Day
       });
     }
   };
 
+  const handleCategoryChange = (category: LaborRecord['category']) => {
+    const laborer = laborers.find(l => l.id === formData.laborerId);
+    let amount = formData.amount || 0;
+
+    if (laborer) {
+      if (category === 'Full Day') amount = laborer.dailyRate;
+      else if (category === 'Half Day') amount = laborer.dailyRate / 2;
+      else if (category === 'Advance') amount = 0; // Usually manual
+    }
+
+    setFormData({ ...formData, category, amount });
+  };
+
   const handleSave = () => {
-    if (!firestore || !formData.laborerId || !formData.date || !formData.amount) {
+    if (!firestore || !formData.laborerId || !formData.date || !formData.category) {
       toast({ variant: "destructive", title: "Error", description: "Please fill in all required fields." });
       return;
     }
@@ -92,7 +107,7 @@ export function LaborRecordDialog({ isOpen, onOpenChange, record, laborers, user
         <DialogHeader>
           <DialogTitle>{record ? 'Edit Work Record' : 'Record Daily Work'}</DialogTitle>
           <DialogDescription>
-            Log daily tasks and earnings for your workers.
+            Log daily tasks, overtime, or advance payments for your workers.
           </DialogDescription>
         </DialogHeader>
         <div className="grid gap-4 py-4">
@@ -112,6 +127,7 @@ export function LaborRecordDialog({ isOpen, onOpenChange, record, laborers, user
               </SelectContent>
             </Select>
           </div>
+          
           <div className="grid grid-cols-2 gap-4">
             <div className="grid gap-2">
               <Label htmlFor="date">Date</Label>
@@ -123,7 +139,36 @@ export function LaborRecordDialog({ isOpen, onOpenChange, record, laborers, user
               />
             </div>
             <div className="grid gap-2">
-              <Label htmlFor="status">Payment Status</Label>
+              <Label>Category</Label>
+              <Select 
+                value={formData.category || 'Full Day'} 
+                onValueChange={(val: any) => handleCategoryChange(val)}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Full Day">Full Day</SelectItem>
+                  <SelectItem value="Half Day">Half Day</SelectItem>
+                  <SelectItem value="Overtime">Overtime</SelectItem>
+                  <SelectItem value="Advance">Advance Paid</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div className="grid gap-2">
+              <Label htmlFor="amount">Amount (Rs)</Label>
+              <Input 
+                id="amount" 
+                type="number"
+                value={formData.amount ?? 0} 
+                onChange={(e) => setFormData({ ...formData, amount: Number(e.target.value) })} 
+              />
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="status">Status</Label>
               <Select 
                 value={formData.status || 'Pending'} 
                 onValueChange={(val: any) => setFormData({ ...formData, status: val })}
@@ -138,17 +183,9 @@ export function LaborRecordDialog({ isOpen, onOpenChange, record, laborers, user
               </Select>
             </div>
           </div>
+
           <div className="grid gap-2">
-            <Label htmlFor="amount">Wage Amount (Rs)</Label>
-            <Input 
-              id="amount" 
-              type="number"
-              value={formData.amount ?? 0} 
-              onChange={(e) => setFormData({ ...formData, amount: Number(e.target.value) })} 
-            />
-          </div>
-          <div className="grid gap-2">
-            <Label htmlFor="workDescription">Work Description (Optional)</Label>
+            <Label htmlFor="workDescription">Description (Optional)</Label>
             <Textarea 
               id="workDescription" 
               value={formData.workDescription || ''} 

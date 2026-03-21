@@ -68,6 +68,7 @@ export interface LaborRecord {
     laborerId: string;
     laborerName: string;
     date: string;
+    category: 'Full Day' | 'Half Day' | 'Overtime' | 'Advance';
     workDescription?: string;
     amount: number;
     status: 'Paid' | 'Pending';

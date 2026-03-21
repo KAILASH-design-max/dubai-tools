@@ -1,8 +1,9 @@
+
 'use client';
 
 import { useEffect, useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
-import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
+import { useUser, useFirestore, useCollection, useMemoFirebase, useCompanyProfile } from '@/firebase';
 import { collection, query, orderBy, doc, updateDoc, writeBatch, getDocs, where, addDoc } from 'firebase/firestore';
 import { Laborer, LaborRecord } from '@/lib/types';
 import { MainHeader } from '@/components/main-header';
@@ -22,7 +23,10 @@ import {
   ArrowRightCircle,
   UserCheck,
   CheckSquare,
-  History
+  History,
+  FileText,
+  Printer,
+  ChevronRight
 } from 'lucide-react';
 import { Card, CardHeader, CardContent, CardTitle, CardDescription } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -42,6 +46,199 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import { Separator } from '@/components/ui/separator';
+import Image from 'next/image';
+
+function LaborerStatementModal({ 
+  isOpen, 
+  onOpenChange, 
+  laborer, 
+  records, 
+  userId 
+}: { 
+  isOpen: boolean, 
+  onOpenChange: (open: boolean) => void, 
+  laborer: Laborer | null, 
+  records: LaborRecord[],
+  userId: string
+}) {
+  const { data: companyProfile } = useCompanyProfile(userId);
+  
+  const formatCurrency = (val: number) => `Rs ${val.toLocaleString()}`;
+
+  const activeRecords = useMemo(() => {
+    if (!laborer) return [];
+    return records.filter(r => r.laborerId === laborer.id).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+  }, [laborer, records]);
+
+  const summary = useMemo(() => {
+    return activeRecords.reduce((acc, r) => {
+      if (r.category === 'Advance') {
+        acc.advances += r.amount;
+      } else {
+        acc.earned += r.amount;
+      }
+      if (r.status === 'Paid') {
+        acc.paid += r.amount;
+      } else {
+        acc.pending += r.amount;
+      }
+      return acc;
+    }, { earned: 0, advances: 0, paid: 0, pending: 0 });
+  }, [activeRecords]);
+
+  const handlePrint = () => {
+    window.print();
+  };
+
+  const activeProfile = companyProfile || { 
+    name: 'DUBAI TOOLS', 
+    addressLine1: 'Shivdhara', 
+    phoneNumbers: ['9268863031', '7280944150']
+  };
+
+  if (!laborer) return null;
+
+  return (
+    <Dialog open={isOpen} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+        <style>{`
+          @media print {
+            body * { visibility: hidden; }
+            [role="dialog"], [role="dialog"] * { visibility: visible !important; }
+            [role="dialog"] { position: absolute; left: 0; top: 0; width: 100%; border: none !important; box-shadow: none !important; }
+            .print-hidden { display: none !important; }
+            [aria-label="Close"] { display: none !important; }
+          }
+        `}</style>
+        
+        <DialogHeader className="print-hidden border-b pb-4">
+          <DialogTitle className="flex items-center gap-2">
+            <FileText className="h-5 w-5 text-primary" />
+            Laborer Statement
+          </DialogTitle>
+        </DialogHeader>
+
+        <div className="py-6 space-y-6">
+          {/* Header */}
+          <div className="flex justify-between items-start">
+            <div className="flex items-center gap-3">
+              <Image src="/dubaitools.png" alt="Logo" width={48} height={48} className="object-contain" />
+              <div>
+                <h2 className="font-headline font-bold text-xl uppercase text-primary">{activeProfile.name}</h2>
+                <p className="text-xs text-muted-foreground">{activeProfile.addressLine1}</p>
+              </div>
+            </div>
+            <div className="text-right">
+              <h3 className="text-lg font-bold">Statement of Account</h3>
+              <p className="text-sm text-muted-foreground">Date: {format(new Date(), 'PP')}</p>
+            </div>
+          </div>
+
+          <Separator />
+
+          {/* Laborer Info */}
+          <div className="grid grid-cols-2 gap-8">
+            <div className="space-y-1">
+              <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Worker Information</p>
+              <p className="text-lg font-bold">{laborer.name}</p>
+              <p className="text-sm text-muted-foreground">{laborer.phone || 'No phone provided'}</p>
+              <p className="text-xs text-muted-foreground italic">Joined: {format(new Date(`${laborer.joiningDate}T00:00:00`), 'PP')}</p>
+            </div>
+            <div className="bg-muted/30 p-4 rounded-lg flex flex-col justify-center text-right border">
+              <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground mb-1">Standard Daily Rate</p>
+              <p className="text-2xl font-bold text-primary">{formatCurrency(laborer.dailyRate)}</p>
+            </div>
+          </div>
+
+          {/* Records Table */}
+          <div className="border rounded-md overflow-hidden">
+            <Table>
+              <TableHeader className="bg-muted/50">
+                <TableRow>
+                  <TableHead className="w-[100px]">Date</TableHead>
+                  <TableHead>Description</TableHead>
+                  <TableHead>Category</TableHead>
+                  <TableHead className="text-right">Amount</TableHead>
+                  <TableHead className="text-center">Status</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {activeRecords.map((r) => (
+                  <TableRow key={r.id}>
+                    <TableCell className="text-xs">{format(new Date(`${r.date}T00:00:00`), 'dd MMM yyyy')}</TableCell>
+                    <TableCell className="text-xs italic">{r.workDescription || '-'}</TableCell>
+                    <TableCell>
+                      <Badge variant="outline" className="text-[9px] h-5">
+                        {r.category || 'Full Day'}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className={`text-right font-bold ${r.category === 'Advance' ? 'text-orange-600' : 'text-foreground'}`}>
+                      {r.category === 'Advance' ? `-${formatCurrency(r.amount)}` : formatCurrency(r.amount)}
+                    </TableCell>
+                    <TableCell className="text-center">
+                      <Badge variant={r.status === 'Paid' ? 'default' : 'outline'} className="text-[9px] h-5">
+                        {r.status}
+                      </Badge>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+
+          {/* Summary Footer */}
+          <div className="flex justify-end pt-4">
+            <div className="w-full sm:w-1/2 space-y-2">
+              <div className="flex justify-between text-sm">
+                <span className="text-muted-foreground">Gross Earnings:</span>
+                <span>{formatCurrency(summary.earned)}</span>
+              </div>
+              <div className="flex justify-between text-sm">
+                <span className="text-muted-foreground">Advances Taken:</span>
+                <span className="text-orange-600">-{formatCurrency(summary.advances)}</span>
+              </div>
+              <div className="flex justify-between text-sm">
+                <span className="text-muted-foreground">Net Paid to Date:</span>
+                <span>{formatCurrency(summary.paid)}</span>
+              </div>
+              <Separator />
+              <div className="flex justify-between items-center bg-primary/5 p-3 rounded-lg border border-primary/20">
+                <span className="font-bold">Total Outstanding:</span>
+                <span className="text-xl font-bold text-primary">{formatCurrency(summary.pending)}</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Signature */}
+          <div className="flex justify-between items-end pt-12">
+            <div className="text-center w-40">
+              <div className="border-t border-dashed pt-2 text-[10px] text-muted-foreground">Laborer Signature</div>
+            </div>
+            <div className="text-center w-40">
+              <div className="border-t border-dashed pt-2 text-[10px] text-muted-foreground">Authorized Seal</div>
+            </div>
+          </div>
+        </div>
+
+        <DialogFooter className="print-hidden border-t pt-4">
+          <Button variant="outline" onClick={() => onOpenChange(false)}>Close</Button>
+          <Button onClick={handlePrint}>
+            <Printer className="mr-2 h-4 w-4" />
+            Print Statement
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
 
 export default function LaborManagementPage() {
   const { user, isUserLoading } = useUser();
@@ -54,8 +251,10 @@ export default function LaborManagementPage() {
   const [isLaborerDialogOpen, setIsLaborerDialogOpen] = useState(false);
   const [isRecordDialogOpen, setIsRecordDialogOpen] = useState(false);
   const [isAttendanceDialogOpen, setIsAttendanceDialogOpen] = useState(false);
+  const [isStatementDialogOpen, setIsStatementDialogOpen] = useState(false);
   const [editingLaborer, setEditingLaborer] = useState<Laborer | null>(null);
   const [editingRecord, setEditingRecord] = useState<LaborRecord | null>(null);
+  const [selectedStatementLaborer, setSelectedStatementLaborer] = useState<Laborer | null>(null);
   const [isSettling, setIsSettling] = useState<string | null>(null);
 
   useEffect(() => {
@@ -109,7 +308,9 @@ export default function LaborManagementPage() {
     if (!records) return {};
     const counts: Record<string, number> = {};
     records.forEach(rec => {
-      counts[rec.laborerId] = (counts[rec.laborerId] || 0) + 1;
+      if (rec.category !== 'Advance') {
+        counts[rec.laborerId] = (counts[rec.laborerId] || 0) + 1;
+      }
     });
     return counts;
   }, [records]);
@@ -157,6 +358,11 @@ export default function LaborManagementPage() {
   const handleEditRecord = (record: LaborRecord) => {
     setEditingRecord(record);
     setIsRecordDialogOpen(true);
+  };
+
+  const handleOpenStatement = (laborer: Laborer) => {
+    setSelectedStatementLaborer(laborer);
+    setIsStatementDialogOpen(true);
   };
 
   const handleMarkAsPaid = async (recordId: string) => {
@@ -355,6 +561,7 @@ export default function LaborManagementPage() {
                       <TableRow>
                         <TableHead>Date</TableHead>
                         <TableHead>Laborer</TableHead>
+                        <TableHead>Category</TableHead>
                         <TableHead className="hidden md:table-cell">Description</TableHead>
                         <TableHead className="text-right">Amount</TableHead>
                         <TableHead className="text-center">Status</TableHead>
@@ -371,11 +578,21 @@ export default function LaborManagementPage() {
                             </div>
                           </TableCell>
                           <TableCell className="font-bold">{record.laborerName}</TableCell>
-                          <TableCell className="hidden md:table-cell max-w-[200px] truncate italic text-muted-foreground">
+                          <TableCell>
+                            <Badge variant="outline" className={
+                              record.category === 'Full Day' ? 'text-blue-600 border-blue-200' :
+                              record.category === 'Half Day' ? 'text-cyan-600 border-cyan-200' :
+                              record.category === 'Advance' ? 'text-orange-600 border-orange-200' :
+                              'text-purple-600 border-purple-200'
+                            }>
+                              {record.category || 'Full Day'}
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="hidden md:table-cell max-w-[200px] truncate italic text-muted-foreground text-xs">
                             {record.workDescription || '-'}
                           </TableCell>
-                          <TableCell className="text-right font-bold text-primary">
-                            {formatCurrency(record.amount)}
+                          <TableCell className={`text-right font-bold ${record.category === 'Advance' ? 'text-orange-600' : 'text-primary'}`}>
+                            {record.category === 'Advance' ? `-${formatCurrency(record.amount)}` : formatCurrency(record.amount)}
                           </TableCell>
                           <TableCell className="text-center">
                             <Badge variant={record.status === 'Paid' ? 'default' : 'outline'} className={record.status === 'Paid' ? 'bg-green-600' : 'text-orange-600 border-orange-200'}>
@@ -407,7 +624,7 @@ export default function LaborManagementPage() {
                       ))}
                       {filteredRecords.length === 0 && !isLoadingRecords && (
                         <TableRow>
-                          <TableCell colSpan={6} className="text-center py-16">
+                          <TableCell colSpan={7} className="text-center py-16">
                             <div className="flex flex-col items-center gap-2 text-muted-foreground">
                               <Calendar className="h-8 w-8 opacity-20" />
                               <p>No records found for the selected filters.</p>
@@ -428,7 +645,7 @@ export default function LaborManagementPage() {
                     <UserCheck className="h-5 w-5 text-primary" />
                     Team Roster
                   </CardTitle>
-                  <CardDescription>Manage profiles and track outstanding dues.</CardDescription>
+                  <CardDescription>Manage profiles and generate work statements.</CardDescription>
                 </CardHeader>
                 <CardContent className="p-0 sm:p-6 sm:pt-0">
                   <Table>
@@ -440,7 +657,7 @@ export default function LaborManagementPage() {
                         <TableHead className="text-center">Work Days</TableHead>
                         <TableHead className="text-right">Pending Balance</TableHead>
                         <TableHead className="text-right">Quick Actions</TableHead>
-                        <TableHead className="text-right">Profile</TableHead>
+                        <TableHead className="text-right">History</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -463,22 +680,33 @@ export default function LaborManagementPage() {
                               </span>
                             </TableCell>
                             <TableCell className="text-right">
-                              {balance > 0 && (
+                              <div className="flex justify-end gap-2">
                                 <Button 
                                   variant="outline" 
                                   size="sm" 
-                                  className="h-8 text-xs border-green-600 text-green-600 hover:bg-green-600 hover:text-white transition-all"
-                                  onClick={() => handleSettleAllDues(laborer.id, laborer.name)}
-                                  disabled={isSettling === laborer.id}
+                                  className="h-8 text-xs border-primary text-primary hover:bg-primary/5"
+                                  onClick={() => handleOpenStatement(laborer)}
                                 >
-                                  {isSettling === laborer.id ? "Settling..." : (
-                                    <>
-                                      <CreditCard className="mr-1 h-3 w-3" />
-                                      Settle All
-                                    </>
-                                  )}
+                                  <FileText className="mr-1 h-3 w-3" />
+                                  Statement
                                 </Button>
-                              )}
+                                {balance > 0 && (
+                                  <Button 
+                                    variant="outline" 
+                                    size="sm" 
+                                    className="h-8 text-xs border-green-600 text-green-600 hover:bg-green-600 hover:text-white transition-all"
+                                    onClick={() => handleSettleAllDues(laborer.id, laborer.name)}
+                                    disabled={isSettling === laborer.id}
+                                  >
+                                    {isSettling === laborer.id ? "..." : (
+                                      <>
+                                        <CreditCard className="mr-1 h-3 w-3" />
+                                        Settle All
+                                      </>
+                                    )}
+                                  </Button>
+                                )}
+                              </div>
                             </TableCell>
                             <TableCell className="text-right">
                               <div className="flex justify-end gap-1">
@@ -492,7 +720,7 @@ export default function LaborManagementPage() {
                                   }}
                                   title="View Records"
                                 >
-                                  <ArrowRightCircle className="h-4 w-4" />
+                                  <ChevronRight className="h-4 w-4" />
                                 </Button>
                                 <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleEditLaborer(laborer)} title="Edit">
                                   <Edit className="h-4 w-4" />
@@ -535,8 +763,16 @@ export default function LaborManagementPage() {
         laborers={laborers || []}
         userId={user.uid}
       />
+
+      <LaborerStatementModal
+        isOpen={isStatementDialogOpen}
+        onOpenChange={setIsStatementDialogOpen}
+        laborer={selectedStatementLaborer}
+        records={records || []}
+        userId={user.uid}
+      />
       
-      <footer className="container mx-auto py-6 px-4 text-center text-sm text-muted-foreground md:px-6">
+      <footer className="container mx-auto py-6 px-4 text-center text-sm text-muted-foreground md:px-6 print:hidden">
         <p>&copy; {new Date().getFullYear()} Dubai Tools. Performance Tracker.</p>
       </footer>
     </div>
