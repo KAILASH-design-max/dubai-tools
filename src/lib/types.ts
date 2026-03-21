@@ -34,6 +34,7 @@ export interface InventoryItem {
     name: string;
     brand?: string;
     location?: string;
+    supplier?: string;
     description?: string;
     sku?: string;
     category?: string;

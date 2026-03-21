@@ -12,7 +12,7 @@ import { useFirestore } from '@/firebase';
 import { collection, doc } from 'firebase/firestore';
 import { addDocumentNonBlocking, updateDocumentNonBlocking } from '@/firebase';
 import { useToast } from '@/hooks/use-toast';
-import { Landmark, Package, Tag, MapPin, ShieldCheck } from 'lucide-react';
+import { Landmark, Package, Tag, MapPin, ShieldCheck, Truck } from 'lucide-react';
 
 interface InventoryDialogProps {
   isOpen: boolean;
@@ -25,6 +25,7 @@ const initialFormData: Partial<InventoryItem> = {
   name: '',
   brand: '',
   location: '',
+  supplier: '',
   description: '',
   sku: '',
   category: '',
@@ -127,15 +128,15 @@ export function InventoryDialog({ isOpen, onOpenChange, item, userId }: Inventor
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="location" className="flex items-center gap-2">
-                <MapPin className="h-3 w-3 text-primary" />
-                Storage Location
+              <Label htmlFor="supplier" className="flex items-center gap-2">
+                <Truck className="h-3 w-3 text-primary" />
+                Primary Supplier
               </Label>
               <Input 
-                id="location" 
-                value={formData.location || ''} 
-                onChange={(e) => setFormData({ ...formData, location: e.target.value })} 
-                placeholder="e.g. Rack A, Shelf 2"
+                id="supplier" 
+                value={formData.supplier || ''} 
+                onChange={(e) => setFormData({ ...formData, supplier: e.target.value })} 
+                placeholder="Vendor or Distributor name"
               />
             </div>
           </div>
@@ -154,6 +155,21 @@ export function InventoryDialog({ isOpen, onOpenChange, item, userId }: Inventor
               />
             </div>
             <div className="space-y-2">
+              <Label htmlFor="location" className="flex items-center gap-2">
+                <MapPin className="h-3 w-3 text-primary" />
+                Storage Location
+              </Label>
+              <Input 
+                id="location" 
+                value={formData.location || ''} 
+                onChange={(e) => setFormData({ ...formData, location: e.target.value })} 
+                placeholder="e.g. Rack A, Shelf 2"
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-2">
               <Label className="flex items-center gap-2">Measurement Unit</Label>
               <Select 
                 value={formData.unit || 'pcs'} 
@@ -171,20 +187,8 @@ export function InventoryDialog({ isOpen, onOpenChange, item, userId }: Inventor
                 </SelectContent>
               </Select>
             </div>
-          </div>
-
-          <div className="grid grid-cols-3 gap-4 bg-muted/30 p-4 rounded-lg border border-dashed">
             <div className="space-y-2">
-              <Label htmlFor="quantity">Current Stock</Label>
-              <Input 
-                id="quantity" 
-                type="number"
-                value={formData.quantity ?? 0} 
-                onChange={(e) => setFormData({ ...formData, quantity: Number(e.target.value) })} 
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="minStock">Min Level</Label>
+              <Label htmlFor="minStock">Min Safety Level</Label>
               <Input 
                 id="minStock" 
                 type="number"
@@ -193,13 +197,9 @@ export function InventoryDialog({ isOpen, onOpenChange, item, userId }: Inventor
                 onChange={(e) => setFormData({ ...formData, minStockLevel: Number(e.target.value) })} 
               />
             </div>
-            <div className="space-y-2">
-              <Label className="opacity-0">Placeholder</Label>
-              <p className="text-[10px] text-muted-foreground leading-tight">Alerts when stock hits this level.</p>
-            </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-muted/30 p-4 rounded-lg border border-dashed">
             <div className="space-y-2">
               <Label htmlFor="purchasePrice" className="flex items-center gap-2">
                 <Landmark className="h-3 w-3 text-muted-foreground" />
