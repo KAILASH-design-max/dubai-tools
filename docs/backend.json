@@ -178,11 +178,13 @@
         "brand": { "type": "string" },
         "location": { "type": "string" },
         "supplier": { "type": "string" },
+        "imageUrl": { "type": "string" },
         "quantity": { "type": "number" },
         "unit": { "type": "string", "enum": ["pcs", "mtr", "box", "set", "kg"] },
         "purchasePrice": { "type": "number" },
         "sellingPrice": { "type": "number" },
         "minStockLevel": { "type": "number" },
+        "lastRestockedAt": { "type": "string", "format": "date-time" },
         "createdAt": { "type": "string", "format": "date-time" },
         "updatedAt": { "type": "string", "format": "date-time" }
       },
@@ -281,7 +283,7 @@
         },
         "notes": {
           "type": "string",
-          "description": "Optional notes or terms for the invoice, such as payment instructions."
+          "description": "Optional notes or terms to be included on new invoices."
         },
         "authorizedSignatureName": {
           "type": "string",
@@ -490,6 +492,6 @@
         }
       }
     ],
-    "reasoning": "Data is isolated under each user's UID to ensure privacy and security. Added services collection to manage a catalog of fixed-rate tasks."
+    "reasoning": "Data is isolated under each user's UID to ensure privacy and security. Added services collection to manage a catalog of fixed-rate tasks. Expanded InventoryItem with imageUrl and logistics fields."
   }
 }

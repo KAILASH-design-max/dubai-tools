@@ -19,7 +19,9 @@ import {
   Layers,
   PieChart as PieIcon,
   Download,
-  ClipboardList
+  ClipboardList,
+  Share2,
+  FileSpreadsheet
 } from 'lucide-react';
 import { Card, CardHeader, CardContent, CardTitle, CardDescription } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -41,11 +43,13 @@ import {
   Tooltip as ChartTooltip,
   Legend
 } from 'recharts';
+import { useToast } from '@/hooks/use-toast';
 
 export default function InventoryPage() {
   const { user, isUserLoading } = useUser();
   const firestore = useFirestore();
   const router = useRouter();
+  const { toast } = useToast();
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [categoryFilter, setCategoryFilter] = useState('all');
@@ -134,6 +138,26 @@ export default function InventoryPage() {
     setIsDialogOpen(true);
   };
 
+  const generateWhatsAppSummary = () => {
+    if (!items) return;
+    const lowStockItems = items.filter(i => (i.minStockLevel || 0) >= i.quantity);
+    if (lowStockItems.length === 0) {
+      toast({ title: "No Restock Needed", description: "All items are currently above safety levels." });
+      return;
+    }
+
+    let text = `📦 *DUBAI TOOLS - RESTOCK REQUEST*\nGenerated: ${new Date().toLocaleDateString()}\n\n`;
+    lowStockItems.forEach((item, idx) => {
+      text += `${idx + 1}. *${item.name}* (${item.brand || 'No Brand'})\n`;
+      text += `   Current: ${item.quantity} ${item.unit} | Target: ${item.minStockLevel}\n`;
+      if (item.supplier) text += `   Supplier: ${item.supplier}\n`;
+      text += `\n`;
+    });
+
+    navigator.clipboard.writeText(text);
+    toast({ title: "Summary Copied", description: "Restock list copied to clipboard. Ready to paste in WhatsApp!" });
+  };
+
   const formatCurrency = (amount: number) => 
     new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 })
       .format(amount).replace('₹', 'Rs ');
@@ -155,12 +179,12 @@ export default function InventoryPage() {
               </h2>
               <p className="text-muted-foreground mt-1">Live tracking of electrical assets, locations, and brands.</p>
             </div>
-            <div className="flex gap-2">
-              <Button variant="outline" onClick={() => setStatusFilter('low')} className="hidden sm:flex">
-                <ClipboardList className="mr-2 h-4 w-4" />
-                Restock List
+            <div className="flex flex-wrap gap-2">
+              <Button variant="outline" onClick={generateWhatsAppSummary} className="h-10 border-green-600 text-green-600 hover:bg-green-50">
+                <Share2 className="mr-2 h-4 w-4" />
+                WhatsApp Summary
               </Button>
-              <Button onClick={handleAddItem} size="lg" className="shadow-lg hover:shadow-xl transition-all">
+              <Button onClick={handleAddItem} size="lg" className="shadow-lg hover:shadow-xl transition-all h-10">
                 <Plus className="mr-2 h-5 w-5" />
                 New Stock Item
               </Button>

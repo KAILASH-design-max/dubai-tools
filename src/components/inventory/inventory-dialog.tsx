@@ -12,7 +12,7 @@ import { useFirestore } from '@/firebase';
 import { collection, doc } from 'firebase/firestore';
 import { addDocumentNonBlocking, updateDocumentNonBlocking } from '@/firebase';
 import { useToast } from '@/hooks/use-toast';
-import { Landmark, Package, Tag, MapPin, ShieldCheck, Truck } from 'lucide-react';
+import { Landmark, Package, Tag, MapPin, ShieldCheck, Truck, Image as ImageIcon } from 'lucide-react';
 
 interface InventoryDialogProps {
   isOpen: boolean;
@@ -29,6 +29,7 @@ const initialFormData: Partial<InventoryItem> = {
   description: '',
   sku: '',
   category: '',
+  imageUrl: '',
   quantity: 0,
   unit: 'pcs',
   purchasePrice: 0,
@@ -112,6 +113,19 @@ export function InventoryDialog({ isOpen, onOpenChange, item, userId }: Inventor
                 placeholder="Unique internal code"
               />
             </div>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="imageUrl" className="flex items-center gap-2">
+              <ImageIcon className="h-3 w-3" />
+              Image URL (Optional)
+            </Label>
+            <Input 
+              id="imageUrl" 
+              value={formData.imageUrl || ''} 
+              onChange={(e) => setFormData({ ...formData, imageUrl: e.target.value })} 
+              placeholder="https://example.com/photo.jpg"
+            />
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

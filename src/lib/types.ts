@@ -38,11 +38,13 @@ export interface InventoryItem {
     description?: string;
     sku?: string;
     category?: string;
+    imageUrl?: string;
     quantity: number;
     unit: 'pcs' | 'mtr' | 'box' | 'set' | 'kg';
     purchasePrice?: number;
     sellingPrice: number;
     minStockLevel?: number;
+    lastRestockedAt?: string;
     createdAt: string;
     updatedAt: string;
 }

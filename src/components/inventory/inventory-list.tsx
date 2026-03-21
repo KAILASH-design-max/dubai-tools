@@ -12,6 +12,8 @@ import { doc } from 'firebase/firestore';
 import { deleteDocumentNonBlocking, updateDocumentNonBlocking } from '@/firebase';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
+import Image from 'next/image';
+import { Progress } from '@/components/ui/progress';
 
 interface InventoryListProps {
   items: InventoryItem[];
@@ -80,11 +82,10 @@ export function InventoryList({ items, isLoading, onEdit, userId }: InventoryLis
       <Table>
         <TableHeader>
           <TableRow className="bg-muted/20 hover:bg-muted/20">
-            <TableHead className="w-[280px]">Product & Details</TableHead>
-            <TableHead className="hidden md:table-cell">Storage & Cat</TableHead>
-            <TableHead className="text-center">Stock Control</TableHead>
-            <TableHead className="text-right">Pricing</TableHead>
-            <TableHead className="text-right">Status</TableHead>
+            <TableHead className="w-[320px]">Product & Identity</TableHead>
+            <TableHead className="hidden md:table-cell">Storage & Logistics</TableHead>
+            <TableHead className="text-center">Stock Health</TableHead>
+            <TableHead className="text-right">Pricing & Valuation</TableHead>
             <TableHead className="text-right">Actions</TableHead>
           </TableRow>
         </TableHeader>
@@ -93,108 +94,126 @@ export function InventoryList({ items, isLoading, onEdit, userId }: InventoryLis
             const isLowStock = item.minStockLevel !== undefined && item.quantity <= item.minStockLevel;
             const margin = item.sellingPrice - (item.purchasePrice || 0);
             const marginPercent = item.purchasePrice ? Math.round((margin / item.purchasePrice) * 100) : 0;
+            const stockProgress = item.minStockLevel ? Math.min(100, (item.quantity / (item.minStockLevel * 2)) * 100) : 100;
+            const rowValue = item.quantity * (item.purchasePrice || 0);
             
+            // Placeholder image handling
+            const displayImageUrl = item.imageUrl || `https://picsum.photos/seed/${item.id.substring(0, 5)}/100/100`;
+
             return (
               <TableRow key={item.id} className={cn(
                 "group transition-colors animate-in fade-in slide-in-from-top-1 duration-300",
                 isLowStock ? "bg-orange-50/30 hover:bg-orange-50/50" : "hover:bg-muted/10"
               )}>
                 <TableCell className="py-4">
-                  <div className="flex flex-col gap-1">
-                    <div className="flex items-center gap-2">
-                      <span className="font-bold text-foreground truncate max-w-[180px]">{item.name}</span>
-                      {isLowStock && <AlertTriangle className="h-3 w-3 text-orange-500" />}
+                  <div className="flex items-center gap-4">
+                    <div className="relative h-12 w-12 shrink-0 rounded-lg border overflow-hidden bg-white shadow-sm group-hover:scale-105 transition-transform">
+                      <Image 
+                        src={displayImageUrl} 
+                        alt={item.name} 
+                        fill 
+                        className="object-cover" 
+                        data-ai-hint="electrical supplies"
+                      />
                     </div>
-                    <div className="flex flex-wrap items-center gap-2 text-[9px] uppercase tracking-wider font-bold">
-                      <span className="bg-primary/10 text-primary px-1.5 rounded flex items-center gap-1">
-                        <ShieldCheck className="h-2.5 w-2.5" />
-                        {item.brand || 'No Brand'}
-                      </span>
-                      {item.supplier && (
-                        <span className="bg-blue-50 text-blue-600 px-1.5 rounded flex items-center gap-1">
-                          <Truck className="h-2.5 w-2.5" />
-                          {item.supplier}
+                    <div className="flex flex-col gap-1 min-w-0">
+                      <div className="flex items-center gap-2">
+                        <span className="font-bold text-foreground truncate max-w-[180px]">{item.name}</span>
+                        {isLowStock && <AlertTriangle className="h-3 w-3 text-orange-500 shrink-0" />}
+                      </div>
+                      <div className="flex flex-wrap items-center gap-2 text-[9px] uppercase tracking-wider font-bold">
+                        <span className="bg-primary/10 text-primary px-1.5 rounded flex items-center gap-1">
+                          <ShieldCheck className="h-2.5 w-2.5" />
+                          {item.brand || 'Generic'}
                         </span>
-                      )}
+                        <span className="text-muted-foreground font-mono">SKU: {item.sku || '---'}</span>
+                      </div>
                     </div>
                   </div>
                 </TableCell>
                 <TableCell className="hidden md:table-cell">
                   <div className="flex flex-col gap-1.5">
-                    {item.location && (
-                      <div className="flex items-center gap-1 text-[10px] text-muted-foreground font-medium">
-                        <MapPin className="h-3 w-3" />
-                        {item.location}
+                    <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground font-medium">
+                      <MapPin className="h-3 w-3 text-primary opacity-60" />
+                      {item.location || 'Main Floor'}
+                    </div>
+                    {item.supplier && (
+                      <div className="flex items-center gap-1.5 text-[10px] text-blue-600 font-bold uppercase tracking-tighter">
+                        <Truck className="h-3 w-3" />
+                        {item.supplier}
                       </div>
                     )}
-                    {item.category ? (
-                      <Badge variant="secondary" className="w-fit font-medium text-[9px] uppercase px-1.5 py-0">
-                        <Tag className="mr-1 h-2.5 w-2.5 opacity-50" />
+                    {item.category && (
+                      <Badge variant="outline" className="w-fit text-[8px] py-0 h-4 border-muted-foreground/20">
                         {item.category}
                       </Badge>
-                    ) : (
-                      <span className="text-muted-foreground text-xs italic">Uncategorized</span>
                     )}
                   </div>
                 </TableCell>
-                <TableCell className="text-center py-4">
-                  <div className="flex flex-col items-center gap-1.5">
-                    <div className="flex items-center gap-2 bg-background border rounded-md p-1 shadow-sm">
+                <TableCell className="text-center py-4 min-w-[140px]">
+                  <div className="flex flex-col items-center gap-2">
+                    <div className="flex items-center gap-2">
                       <Button 
                         variant="ghost" 
                         size="icon" 
-                        className="h-6 w-6 text-muted-foreground hover:text-destructive"
+                        className="h-7 w-7 text-muted-foreground hover:bg-red-50 hover:text-red-600"
                         onClick={() => handleAdjustStock(item, -1)}
                       >
                         <Minus className="h-3 w-3" />
                       </Button>
-                      <span className={cn(
-                        "font-bold text-sm min-w-[3ch] text-center",
-                        isLowStock ? "text-orange-600" : "text-foreground"
-                      )}>
-                        {item.quantity}
-                      </span>
+                      <div className="flex flex-col items-center">
+                        <span className={cn(
+                          "font-bold text-base min-w-[3ch] text-center leading-none",
+                          isLowStock ? "text-orange-600" : "text-foreground"
+                        )}>
+                          {item.quantity}
+                        </span>
+                        <span className="text-[8px] text-muted-foreground font-bold uppercase">{item.unit}</span>
+                      </div>
                       <Button 
                         variant="ghost" 
                         size="icon" 
-                        className="h-6 w-6 text-muted-foreground hover:text-primary"
+                        className="h-7 w-7 text-muted-foreground hover:bg-green-50 hover:text-green-600"
                         onClick={() => handleAdjustStock(item, 1)}
                       >
                         <Plus className="h-3 w-3" />
                       </Button>
                     </div>
-                    <span className="text-[9px] text-muted-foreground font-bold uppercase tracking-tighter">
-                      Unit: {item.unit}
-                    </span>
+                    <div className="w-24 space-y-1">
+                      <Progress 
+                        value={stockProgress} 
+                        className={cn(
+                          "h-1.5", 
+                          isLowStock ? "[&>div]:bg-orange-500" : "[&>div]:bg-green-500"
+                        )} 
+                      />
+                      <div className="flex justify-between text-[8px] font-bold text-muted-foreground">
+                        <span>Min: {item.minStockLevel || 0}</span>
+                        <span>{Math.round(stockProgress)}%</span>
+                      </div>
+                    </div>
                   </div>
                 </TableCell>
                 <TableCell className="text-right py-4">
                   <div className="flex flex-col items-end">
                     <span className="font-bold text-primary">{formatCurrency(item.sellingPrice)}</span>
-                    <div className="flex items-center gap-1">
-                      <span className="text-[10px] text-muted-foreground">Cost: {formatCurrency(item.purchasePrice || 0)}</span>
-                      <span className={cn(
-                        "text-[9px] font-bold px-1 rounded",
-                        marginPercent > 20 ? "text-green-600 bg-green-50" : "text-orange-600 bg-orange-50"
+                    <div className="flex items-center gap-1.5 mt-0.5">
+                      <span className="text-[10px] text-muted-foreground">Asset: {formatCurrency(rowValue)}</span>
+                      <Badge variant="secondary" className={cn(
+                        "text-[8px] px-1 h-3.5",
+                        marginPercent > 20 ? "bg-green-50 text-green-700" : "bg-orange-50 text-orange-700"
                       )}>
-                        {marginPercent}%
-                      </span>
+                        {marginPercent}% ROI
+                      </Badge>
                     </div>
                   </div>
                 </TableCell>
                 <TableCell className="text-right py-4">
-                  {isLowStock ? (
-                    <Badge variant="destructive" className="animate-pulse text-[9px] border-none">REORDER</Badge>
-                  ) : (
-                    <Badge variant="outline" className="text-green-600 border-green-200 bg-green-50/50 text-[9px]">OPTIMAL</Badge>
-                  )}
-                </TableCell>
-                <TableCell className="text-right py-4">
                   <div className="flex justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => onEdit(item)}>
+                    <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-primary" onClick={() => onEdit(item)}>
                       <Edit className="h-4 w-4" />
                     </Button>
-                    <Button variant="ghost" size="icon" className="text-destructive h-8 w-8 hover:bg-destructive/10" onClick={() => handleDelete(item.id)}>
+                    <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-destructive h-8 w-8" onClick={() => handleDelete(item.id)}>
                       <Trash2 className="h-4 w-4" />
                     </Button>
                   </div>
