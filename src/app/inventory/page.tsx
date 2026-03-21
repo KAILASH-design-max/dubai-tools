@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useEffect, useState, useMemo } from 'react';
@@ -17,11 +16,7 @@ import {
   Filter,
   Boxes,
   Layers,
-  PieChart as PieIcon,
-  Download,
-  ClipboardList,
-  Share2,
-  FileSpreadsheet
+  Share2
 } from 'lucide-react';
 import { Card, CardHeader, CardContent, CardTitle, CardDescription } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -34,15 +29,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Badge } from '@/components/ui/badge';
-import { 
-  PieChart, 
-  Pie, 
-  Cell, 
-  ResponsiveContainer, 
-  Tooltip as ChartTooltip,
-  Legend
-} from 'recharts';
 import { useToast } from '@/hooks/use-toast';
 
 export default function InventoryPage() {
@@ -76,28 +62,17 @@ export default function InventoryPage() {
 
   // Statistics calculation
   const stats = useMemo(() => {
-    if (!items) return { totalValue: 0, lowStockCount: 0, totalSkus: 0, categoryData: [] };
+    if (!items) return { totalValue: 0, lowStockCount: 0, totalSkus: 0 };
     
-    const categoryTotals: Record<string, number> = {};
-    
-    const result = items.reduce((acc, item) => {
+    return items.reduce((acc, item) => {
       const isLow = item.minStockLevel !== undefined && item.quantity <= item.minStockLevel;
       const itemValue = (item.quantity * (item.purchasePrice || 0));
       acc.totalValue += itemValue;
       if (isLow) acc.lowStockCount += 1;
       acc.totalSkus += 1;
 
-      const cat = item.category || 'Uncategorized';
-      categoryTotals[cat] = (categoryTotals[cat] || 0) + itemValue;
-
       return acc;
     }, { totalValue: 0, lowStockCount: 0, totalSkus: 0 });
-
-    const categoryData = Object.entries(categoryTotals)
-      .map(([name, value]) => ({ name, value }))
-      .sort((a, b) => b.value - a.value);
-
-    return { ...result, categoryData };
   }, [items]);
 
   // Unique categories for the filter
@@ -161,8 +136,6 @@ export default function InventoryPage() {
   const formatCurrency = (amount: number) => 
     new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 })
       .format(amount).replace('₹', 'Rs ');
-
-  const COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#6366f1', '#ec4899'];
 
   if (isUserLoading || !user) return null;
 
@@ -295,52 +268,6 @@ export default function InventoryPage() {
             </div>
 
             <div className="lg:col-span-4 space-y-6">
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <PieIcon className="h-5 w-5 text-primary" />
-                    Value by Category
-                  </CardTitle>
-                  <CardDescription>Investment distribution across stock groups.</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="h-[250px] w-full">
-                    {isLoading ? (
-                      <div className="flex items-center justify-center h-full">
-                        <TrendingUp className="h-8 w-8 animate-pulse text-muted-foreground" />
-                      </div>
-                    ) : stats.categoryData.length > 0 ? (
-                      <ResponsiveContainer width="100%" height="100%">
-                        <PieChart>
-                          <Pie
-                            data={stats.categoryData}
-                            cx="50%"
-                            cy="50%"
-                            innerRadius={60}
-                            outerRadius={80}
-                            paddingAngle={5}
-                            dataKey="value"
-                          >
-                            {stats.categoryData.map((entry, index) => (
-                              <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                            ))}
-                          </Pie>
-                          <ChartTooltip 
-                            formatter={(value: number) => formatCurrency(value)}
-                          />
-                          <Legend />
-                        </PieChart>
-                      </ResponsiveContainer>
-                    ) : (
-                      <div className="flex flex-col items-center justify-center h-full text-muted-foreground">
-                        <Layers className="h-8 w-8 opacity-20 mb-2" />
-                        <p className="text-xs">No category data available</p>
-                      </div>
-                    )}
-                  </div>
-                </CardContent>
-              </Card>
-
               <Card className="bg-muted/30 border-dashed">
                 <CardHeader>
                   <CardTitle className="text-sm flex items-center gap-2">
@@ -349,7 +276,7 @@ export default function InventoryPage() {
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-3">
-                  {items?.filter(i => (i.minStockLevel || 0) >= i.quantity).slice(0, 5).map(item => (
+                  {items?.filter(i => (i.minStockLevel || 0) >= i.quantity).slice(0, 10).map(item => (
                     <div key={item.id} className="flex items-center justify-between text-xs p-2 bg-background rounded-md border">
                       <div className="min-w-0">
                         <p className="font-bold truncate">{item.name}</p>
@@ -364,7 +291,7 @@ export default function InventoryPage() {
                   {(!items || items.filter(i => (i.minStockLevel || 0) >= i.quantity).length === 0) && (
                     <p className="text-xs text-center py-4 text-muted-foreground">All items above reorder level.</p>
                   )}
-                  {items && items.filter(i => (i.minStockLevel || 0) >= i.quantity).length > 5 && (
+                  {items && items.filter(i => (i.minStockLevel || 0) >= i.quantity).length > 10 && (
                     <Button variant="ghost" className="w-full text-xs h-8 text-primary" onClick={() => setStatusFilter('low')}>
                       View All {items.filter(i => (i.minStockLevel || 0) >= i.quantity).length} Alerts
                     </Button>
