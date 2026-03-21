@@ -12,7 +12,7 @@ import { useFirestore } from '@/firebase';
 import { collection, doc } from 'firebase/firestore';
 import { addDocumentNonBlocking, updateDocumentNonBlocking } from '@/firebase';
 import { useToast } from '@/hooks/use-toast';
-import { Landmark, Package, Tag } from 'lucide-react';
+import { Landmark, Package, Tag, MapPin, ShieldCheck } from 'lucide-react';
 
 interface InventoryDialogProps {
   isOpen: boolean;
@@ -23,6 +23,8 @@ interface InventoryDialogProps {
 
 const initialFormData: Partial<InventoryItem> = {
   name: '',
+  brand: '',
+  location: '',
   description: '',
   sku: '',
   category: '',
@@ -79,18 +81,18 @@ export function InventoryDialog({ isOpen, onOpenChange, item, userId }: Inventor
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[550px]">
+      <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Package className="h-5 w-5 text-primary" />
             {item ? 'Edit Product Record' : 'Onboard New Supply'}
           </DialogTitle>
           <DialogDescription>
-            Enter precise technical details and pricing. Correct valuation helps in profit analysis.
+            Enter precise technical details, brands, and storage locations.
           </DialogDescription>
         </DialogHeader>
         <div className="grid gap-6 py-4">
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="name">Product Name</Label>
               <Input 
@@ -111,7 +113,34 @@ export function InventoryDialog({ isOpen, onOpenChange, item, userId }: Inventor
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="brand" className="flex items-center gap-2">
+                <ShieldCheck className="h-3 w-3 text-primary" />
+                Manufacturer / Brand
+              </Label>
+              <Input 
+                id="brand" 
+                value={formData.brand || ''} 
+                onChange={(e) => setFormData({ ...formData, brand: e.target.value })} 
+                placeholder="e.g. Havells, Polycab, Finolex"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="location" className="flex items-center gap-2">
+                <MapPin className="h-3 w-3 text-primary" />
+                Storage Location
+              </Label>
+              <Input 
+                id="location" 
+                value={formData.location || ''} 
+                onChange={(e) => setFormData({ ...formData, location: e.target.value })} 
+                placeholder="e.g. Rack A, Shelf 2"
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="category" className="flex items-center gap-2">
                 <Tag className="h-3 w-3" />
@@ -166,11 +195,11 @@ export function InventoryDialog({ isOpen, onOpenChange, item, userId }: Inventor
             </div>
             <div className="space-y-2">
               <Label className="opacity-0">Placeholder</Label>
-              <p className="text-[10px] text-muted-foreground leading-tight">System alerts you when stock hits min level.</p>
+              <p className="text-[10px] text-muted-foreground leading-tight">Alerts when stock hits this level.</p>
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="purchasePrice" className="flex items-center gap-2">
                 <Landmark className="h-3 w-3 text-muted-foreground" />

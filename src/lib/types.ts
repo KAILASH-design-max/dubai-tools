@@ -32,6 +32,8 @@ export interface Customer {
 export interface InventoryItem {
     id: string;
     name: string;
+    brand?: string;
+    location?: string;
     description?: string;
     sku?: string;
     category?: string;
