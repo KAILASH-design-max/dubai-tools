@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useEffect, useState } from 'react';
@@ -11,6 +12,7 @@ import { useFirestore } from '@/firebase';
 import { collection, doc } from 'firebase/firestore';
 import { addDocumentNonBlocking, updateDocumentNonBlocking } from '@/firebase';
 import { useToast } from '@/hooks/use-toast';
+import { Landmark, Package, Tag } from 'lucide-react';
 
 interface InventoryDialogProps {
   isOpen: boolean;
@@ -23,6 +25,7 @@ const initialFormData: Partial<InventoryItem> = {
   name: '',
   description: '',
   sku: '',
+  category: '',
   quantity: 0,
   unit: 'pcs',
   purchasePrice: 0,
@@ -44,7 +47,10 @@ export function InventoryDialog({ isOpen, onOpenChange, item, userId }: Inventor
   }, [item, isOpen]);
 
   const handleSave = () => {
-    if (!firestore || !formData.name) return;
+    if (!firestore || !formData.name) {
+      toast({ variant: "destructive", title: "Missing Information", description: "Product name is required." });
+      return;
+    }
 
     const inventoryCollection = collection(firestore, `users/${userId}/inventory`);
     
@@ -59,13 +65,13 @@ export function InventoryDialog({ isOpen, onOpenChange, item, userId }: Inventor
 
     if (item) {
       updateDocumentNonBlocking(doc(inventoryCollection, item.id), data);
-      toast({ title: "Item Updated", description: `${formData.name} stock has been updated.` });
+      toast({ title: "Inventory Updated", description: `${formData.name} record successfully modified.` });
     } else {
       addDocumentNonBlocking(inventoryCollection, {
         ...data,
         createdAt: new Date().toISOString(),
       });
-      toast({ title: "Item Added", description: `${formData.name} added to inventory.` });
+      toast({ title: "Item Added", description: `${formData.name} is now tracked in your inventory.` });
     }
 
     onOpenChange(false);
@@ -73,101 +79,127 @@ export function InventoryDialog({ isOpen, onOpenChange, item, userId }: Inventor
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[500px]">
+      <DialogContent className="sm:max-w-[550px]">
         <DialogHeader>
-          <DialogTitle>{item ? 'Edit Item' : 'Add New Inventory Item'}</DialogTitle>
+          <DialogTitle className="flex items-center gap-2">
+            <Package className="h-5 w-5 text-primary" />
+            {item ? 'Edit Product Record' : 'Onboard New Supply'}
+          </DialogTitle>
           <DialogDescription>
-            Enter details for your electrical item. Set minimum stock level for alerts.
+            Enter precise technical details and pricing. Correct valuation helps in profit analysis.
           </DialogDescription>
         </DialogHeader>
-        <div className="grid gap-4 py-4">
-          <div className="grid grid-cols-4 items-center gap-4">
-            <Label htmlFor="name" className="text-right">Name</Label>
-            <Input 
-              id="name" 
-              className="col-span-3" 
-              value={formData.name || ''} 
-              onChange={(e) => setFormData({ ...formData, name: e.target.value })} 
-              placeholder="e.g. Copper Wire 1.5mm"
-            />
-          </div>
-          <div className="grid grid-cols-4 items-center gap-4">
-            <Label htmlFor="sku" className="text-right">SKU/Code</Label>
-            <Input 
-              id="sku" 
-              className="col-span-3" 
-              value={formData.sku || ''} 
-              onChange={(e) => setFormData({ ...formData, sku: e.target.value })} 
-              placeholder="Internal product code"
-            />
-          </div>
+        <div className="grid gap-6 py-4">
           <div className="grid grid-cols-2 gap-4">
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="quantity" className="text-right">Stock</Label>
+            <div className="space-y-2">
+              <Label htmlFor="name">Product Name</Label>
               <Input 
-                id="quantity" 
-                type="number"
-                className="col-span-3" 
-                value={formData.quantity ?? 0} 
-                onChange={(e) => setFormData({ ...formData, quantity: Number(e.target.value) })} 
+                id="name" 
+                value={formData.name || ''} 
+                onChange={(e) => setFormData({ ...formData, name: e.target.value })} 
+                placeholder="e.g. Copper Wire 1.5mm"
               />
             </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label className="text-right">Unit</Label>
+            <div className="space-y-2">
+              <Label htmlFor="sku">SKU / Model No.</Label>
+              <Input 
+                id="sku" 
+                value={formData.sku || ''} 
+                onChange={(e) => setFormData({ ...formData, sku: e.target.value })} 
+                placeholder="Unique internal code"
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="category" className="flex items-center gap-2">
+                <Tag className="h-3 w-3" />
+                Category
+              </Label>
+              <Input 
+                id="category" 
+                value={formData.category || ''} 
+                onChange={(e) => setFormData({ ...formData, category: e.target.value })} 
+                placeholder="e.g. Wiring, Fixtures, Tools"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label className="flex items-center gap-2">Measurement Unit</Label>
               <Select 
                 value={formData.unit || 'pcs'} 
                 onValueChange={(val: any) => setFormData({ ...formData, unit: val })}
               >
-                <SelectTrigger className="col-span-3">
-                  <SelectValue placeholder="Unit" />
+                <SelectTrigger>
+                  <SelectValue placeholder="Select unit" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="pcs">Pcs</SelectItem>
-                  <SelectItem value="mtr">Mtr</SelectItem>
+                  <SelectItem value="pcs">Pieces (Pcs)</SelectItem>
+                  <SelectItem value="mtr">Meters (Mtr)</SelectItem>
                   <SelectItem value="box">Box</SelectItem>
                   <SelectItem value="set">Set</SelectItem>
-                  <SelectItem value="kg">Kg</SelectItem>
+                  <SelectItem value="kg">Kilogram (Kg)</SelectItem>
                 </SelectContent>
               </Select>
             </div>
           </div>
+
+          <div className="grid grid-cols-3 gap-4 bg-muted/30 p-4 rounded-lg border border-dashed">
+            <div className="space-y-2">
+              <Label htmlFor="quantity">Current Stock</Label>
+              <Input 
+                id="quantity" 
+                type="number"
+                value={formData.quantity ?? 0} 
+                onChange={(e) => setFormData({ ...formData, quantity: Number(e.target.value) })} 
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="minStock">Min Level</Label>
+              <Input 
+                id="minStock" 
+                type="number"
+                className="border-orange-200 focus-visible:ring-orange-200"
+                value={formData.minStockLevel ?? 0} 
+                onChange={(e) => setFormData({ ...formData, minStockLevel: Number(e.target.value) })} 
+              />
+            </div>
+            <div className="space-y-2">
+              <Label className="opacity-0">Placeholder</Label>
+              <p className="text-[10px] text-muted-foreground leading-tight">System alerts you when stock hits min level.</p>
+            </div>
+          </div>
+
           <div className="grid grid-cols-2 gap-4">
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="purchasePrice" className="text-right">Purchase</Label>
+            <div className="space-y-2">
+              <Label htmlFor="purchasePrice" className="flex items-center gap-2">
+                <Landmark className="h-3 w-3 text-muted-foreground" />
+                Purchase Price (Rs)
+              </Label>
               <Input 
                 id="purchasePrice" 
                 type="number"
-                className="col-span-3" 
                 value={formData.purchasePrice ?? 0} 
                 onChange={(e) => setFormData({ ...formData, purchasePrice: Number(e.target.value) })} 
               />
             </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="sellingPrice" className="text-right">Selling</Label>
+            <div className="space-y-2">
+              <Label htmlFor="sellingPrice" className="font-bold text-primary">Selling Rate (Rs)</Label>
               <Input 
                 id="sellingPrice" 
                 type="number"
-                className="col-span-3" 
+                className="font-bold border-primary/30"
                 value={formData.sellingPrice ?? 0} 
                 onChange={(e) => setFormData({ ...formData, sellingPrice: Number(e.target.value) })} 
               />
             </div>
           </div>
-          <div className="grid grid-cols-4 items-center gap-4">
-            <Label htmlFor="minStock" className="text-right">Min Stock</Label>
-            <Input 
-              id="minStock" 
-              type="number"
-              className="col-span-3" 
-              value={formData.minStockLevel ?? 0} 
-              onChange={(e) => setFormData({ ...formData, minStockLevel: Number(e.target.value) })} 
-              placeholder="Alert level"
-            />
-          </div>
         </div>
-        <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
-          <Button onClick={handleSave}>Save Item</Button>
+        <DialogFooter className="bg-muted/20 -mx-6 -mb-6 p-6 border-t">
+          <Button variant="ghost" onClick={() => onOpenChange(false)}>Discard</Button>
+          <Button onClick={handleSave} className="px-8 shadow-md">
+            {item ? 'Commit Changes' : 'Finalize Addition'}
+          </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

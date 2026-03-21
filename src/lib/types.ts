@@ -34,6 +34,7 @@ export interface InventoryItem {
     name: string;
     description?: string;
     sku?: string;
+    category?: string;
     quantity: number;
     unit: 'pcs' | 'mtr' | 'box' | 'set' | 'kg';
     purchasePrice?: number;
