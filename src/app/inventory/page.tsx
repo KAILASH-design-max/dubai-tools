@@ -164,141 +164,106 @@ export default function InventoryPage() {
             </div>
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-            <div className="lg:col-span-8 space-y-6">
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                <Card className="bg-primary/5 border-primary/20">
-                  <CardContent className="pt-6">
-                    <div className="flex items-center justify-between space-y-0 pb-2">
-                      <p className="text-sm font-bold uppercase tracking-widest opacity-60">Total Asset Value</p>
-                      <TrendingUp className="h-5 w-5 text-primary" />
-                    </div>
-                    <div className="text-2xl font-bold text-primary">
-                      {isLoading ? "..." : formatCurrency(stats.totalValue)}
-                    </div>
-                    <p className="text-[10px] text-muted-foreground mt-1">Based on purchase rates</p>
-                  </CardContent>
-                </Card>
+          <div className="space-y-6">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <Card className="bg-primary/5 border-primary/20">
+                <CardContent className="pt-6">
+                  <div className="flex items-center justify-between space-y-0 pb-2">
+                    <p className="text-sm font-bold uppercase tracking-widest opacity-60">Total Asset Value</p>
+                    <TrendingUp className="h-5 w-5 text-primary" />
+                  </div>
+                  <div className="text-2xl font-bold text-primary">
+                    {isLoading ? "..." : formatCurrency(stats.totalValue)}
+                  </div>
+                  <p className="text-[10px] text-muted-foreground mt-1">Based on purchase rates</p>
+                </CardContent>
+              </Card>
 
-                <Card className={stats.lowStockCount > 0 ? "bg-orange-50 border-orange-200" : ""}>
-                  <CardContent className="pt-6">
-                    <div className="flex items-center justify-between space-y-0 pb-2">
-                      <p className="text-sm font-bold uppercase tracking-widest opacity-60">Stock Alerts</p>
-                      <AlertTriangle className={stats.lowStockCount > 0 ? "h-5 w-5 text-orange-600 animate-pulse" : "h-5 w-5 text-muted-foreground"} />
-                    </div>
-                    <div className={stats.lowStockCount > 0 ? "text-2xl font-bold text-orange-600" : "text-2xl font-bold"}>
-                      {isLoading ? "..." : stats.lowStockCount}
-                    </div>
-                    <p className="text-[10px] text-muted-foreground mt-1">Items below safety levels</p>
-                  </CardContent>
-                </Card>
+              <Card className={stats.lowStockCount > 0 ? "bg-orange-50 border-orange-200" : ""}>
+                <CardContent className="pt-6">
+                  <div className="flex items-center justify-between space-y-0 pb-2">
+                    <p className="text-sm font-bold uppercase tracking-widest opacity-60">Stock Alerts</p>
+                    <AlertTriangle className={stats.lowStockCount > 0 ? "h-5 w-5 text-orange-600 animate-pulse" : "h-5 w-5 text-muted-foreground"} />
+                  </div>
+                  <div className={stats.lowStockCount > 0 ? "text-2xl font-bold text-orange-600" : "text-2xl font-bold"}>
+                    {isLoading ? "..." : stats.lowStockCount}
+                  </div>
+                  <p className="text-[10px] text-muted-foreground mt-1">Items below safety levels</p>
+                </CardContent>
+              </Card>
 
-                <Card>
-                  <CardContent className="pt-6">
-                    <div className="flex items-center justify-between space-y-0 pb-2">
-                      <p className="text-sm font-bold uppercase tracking-widest opacity-60">Catalog Size</p>
-                      <Package className="h-5 w-5 text-muted-foreground" />
-                    </div>
-                    <div className="text-2xl font-bold">
-                      {isLoading ? "..." : stats.totalSkus}
-                    </div>
-                    <p className="text-[10px] text-muted-foreground mt-1">Unique products managed</p>
-                  </CardContent>
-                </Card>
-              </div>
+              <Card>
+                <CardContent className="pt-6">
+                  <div className="flex items-center justify-between space-y-0 pb-2">
+                    <p className="text-sm font-bold uppercase tracking-widest opacity-60">Catalog Size</p>
+                    <Package className="h-5 w-5 text-muted-foreground" />
+                  </div>
+                  <div className="text-2xl font-bold">
+                    {isLoading ? "..." : stats.totalSkus}
+                  </div>
+                  <p className="text-[10px] text-muted-foreground mt-1">Unique products managed</p>
+                </CardContent>
+              </Card>
+            </div>
 
-              <Card className="border-none shadow-sm ring-1 ring-border overflow-hidden">
-                <CardHeader className="bg-muted/30 border-b pb-6">
-                  <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
-                    <div className="space-y-1">
-                      <CardTitle className="text-xl">Stock Ledger</CardTitle>
-                      <CardDescription>Live database of supplies, fixtures, and brands.</CardDescription>
+            <Card className="border-none shadow-sm ring-1 ring-border overflow-hidden">
+              <CardHeader className="bg-muted/30 border-b pb-6">
+                <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+                  <div className="space-y-1">
+                    <CardTitle className="text-xl">Stock Ledger</CardTitle>
+                    <CardDescription>Live database of supplies, fixtures, and brands.</CardDescription>
+                  </div>
+                  <div className="flex flex-wrap items-center gap-3">
+                    <div className="relative w-full sm:w-64">
+                      <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                      <Input 
+                        placeholder="Search name, SKU, or brand..." 
+                        className="pl-9 bg-background h-9" 
+                        value={searchTerm} 
+                        onChange={(e) => setSearchTerm(e.target.value)} 
+                      />
                     </div>
-                    <div className="flex flex-wrap items-center gap-3">
-                      <div className="relative w-full sm:w-64">
-                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                        <Input 
-                          placeholder="Search name, SKU, or brand..." 
-                          className="pl-9 bg-background h-9" 
-                          value={searchTerm} 
-                          onChange={(e) => setSearchTerm(e.target.value)} 
-                        />
-                      </div>
-                      
-                      <div className="flex items-center gap-2 bg-background px-2 py-1 rounded-md border text-xs">
-                        <Filter className="h-3 w-3 text-muted-foreground" />
-                        <Select value={statusFilter} onValueChange={setStatusFilter}>
-                          <SelectTrigger className="w-[110px] h-7 border-none shadow-none focus:ring-0">
-                            <SelectValue placeholder="Status" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="all">All Status</SelectItem>
-                            <SelectItem value="in-stock">In Stock</SelectItem>
-                            <SelectItem value="low">Low Stock</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
+                    
+                    <div className="flex items-center gap-2 bg-background px-2 py-1 rounded-md border text-xs">
+                      <Filter className="h-3 w-3 text-muted-foreground" />
+                      <Select value={statusFilter} onValueChange={setStatusFilter}>
+                        <SelectTrigger className="w-[110px] h-7 border-none shadow-none focus:ring-0">
+                          <SelectValue placeholder="Status" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="all">All Status</SelectItem>
+                          <SelectItem value="in-stock">In Stock</SelectItem>
+                          <SelectItem value="low">Low Stock</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
 
-                      <div className="flex items-center gap-2 bg-background px-2 py-1 rounded-md border text-xs">
-                        <Layers className="h-3 w-3 text-muted-foreground" />
-                        <Select value={categoryFilter} onValueChange={setCategoryFilter}>
-                          <SelectTrigger className="w-[130px] h-7 border-none shadow-none focus:ring-0">
-                            <SelectValue placeholder="Category" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="all">All Categories</SelectItem>
-                            {categories.map(cat => (
-                              <SelectItem key={cat} value={cat}>{cat}</SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </div>
+                    <div className="flex items-center gap-2 bg-background px-2 py-1 rounded-md border text-xs">
+                      <Layers className="h-3 w-3 text-muted-foreground" />
+                      <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+                        <SelectTrigger className="w-[130px] h-7 border-none shadow-none focus:ring-0">
+                          <SelectValue placeholder="Category" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="all">All Categories</SelectItem>
+                          {categories.map(cat => (
+                            <SelectItem key={cat} value={cat}>{cat}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
                     </div>
                   </div>
-                </CardHeader>
-                <CardContent className="p-0">
-                  <InventoryList 
-                    items={filteredItems} 
-                    isLoading={isLoading} 
-                    onEdit={handleEditItem} 
-                    userId={user.uid}
-                  />
-                </CardContent>
-              </Card>
-            </div>
-
-            <div className="lg:col-span-4 space-y-6">
-              <Card className="bg-muted/30 border-dashed">
-                <CardHeader>
-                  <CardTitle className="text-sm flex items-center gap-2">
-                    <AlertTriangle className="h-4 w-4 text-orange-500" />
-                    Urgent Reorders
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-3">
-                  {items?.filter(i => (i.minStockLevel || 0) >= i.quantity).slice(0, 10).map(item => (
-                    <div key={item.id} className="flex items-center justify-between text-xs p-2 bg-background rounded-md border">
-                      <div className="min-w-0">
-                        <p className="font-bold truncate">{item.name}</p>
-                        <p className="text-[10px] text-muted-foreground">{item.brand || 'No Brand'}</p>
-                      </div>
-                      <div className="text-right ml-2 shrink-0">
-                        <p className="font-bold text-orange-600">{item.quantity} {item.unit}</p>
-                        <p className="text-[9px] text-muted-foreground">Target: {item.minStockLevel}</p>
-                      </div>
-                    </div>
-                  ))}
-                  {(!items || items.filter(i => (i.minStockLevel || 0) >= i.quantity).length === 0) && (
-                    <p className="text-xs text-center py-4 text-muted-foreground">All items above reorder level.</p>
-                  )}
-                  {items && items.filter(i => (i.minStockLevel || 0) >= i.quantity).length > 10 && (
-                    <Button variant="ghost" className="w-full text-xs h-8 text-primary" onClick={() => setStatusFilter('low')}>
-                      View All {items.filter(i => (i.minStockLevel || 0) >= i.quantity).length} Alerts
-                    </Button>
-                  )}
-                </CardContent>
-              </Card>
-            </div>
+                </div>
+              </CardHeader>
+              <CardContent className="p-0">
+                <InventoryList 
+                  items={filteredItems} 
+                  isLoading={isLoading} 
+                  onEdit={handleEditItem} 
+                  userId={user.uid}
+                />
+              </CardContent>
+            </Card>
           </div>
         </div>
       </main>
