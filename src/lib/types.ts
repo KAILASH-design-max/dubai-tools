@@ -10,6 +10,21 @@ export interface CompanyProfile {
     defaultInvoiceNotes?: string;
 }
 
+export interface UserPreferences {
+    defaultTaxRate: number;
+    authorizedSignatory: string;
+    currency: string;
+    lowStockThreshold: number;
+    invoicePrefix: string;
+    bankName: string;
+    accountNumber: string;
+    ifscCode: string;
+    showBankDetails: boolean;
+    showSignatureArea: boolean;
+    customThankYou: string;
+    updatedAt: string;
+}
+
 export interface UserProfile {
     fullName: string;
     phoneNumber: string;

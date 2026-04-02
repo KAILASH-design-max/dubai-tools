@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { DependencyList, createContext, useContext, ReactNode, useMemo, useState, useEffect } from 'react';
@@ -6,7 +7,7 @@ import { Firestore, doc } from 'firebase/firestore';
 import { Auth, User, onAuthStateChanged } from 'firebase/auth';
 import { FirebaseErrorListener } from '@/components/FirebaseErrorListener';
 import { useDoc } from './firestore/use-doc';
-import { CompanyProfile } from '@/lib/types';
+import { CompanyProfile, UserPreferences } from '@/lib/types';
 
 interface FirebaseProviderProps {
   children: ReactNode;
@@ -189,4 +190,16 @@ export function useCompanyProfile(userId: string | undefined) {
     [firestore, userId]
   );
   return useDoc<CompanyProfile>(ref);
+}
+
+/**
+ * Hook to access the user preferences in real-time.
+ */
+export function useUserPreferences(userId: string | undefined) {
+  const firestore = useFirestore();
+  const ref = useMemoFirebase(
+    () => (firestore && userId ? doc(firestore, `users/${userId}/profile/preferences`) : null),
+    [firestore, userId]
+  );
+  return useDoc<UserPreferences>(ref);
 }

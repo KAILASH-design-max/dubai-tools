@@ -1,8 +1,9 @@
+
 'use client';
 
 import { useEffect, useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
-import { useUser, useCollection, useFirestore, useMemoFirebase, deleteDocumentNonBlocking, useDoc, useCompanyProfile } from '@/firebase';
+import { useUser, useCollection, useFirestore, useMemoFirebase, deleteDocumentNonBlocking, useDoc, useCompanyProfile, useUserPreferences } from '@/firebase';
 import { collection, query, where, doc, addDoc, updateDoc, getDocs, deleteDoc } from 'firebase/firestore';
 import { Invoice, InvoiceLineItem, InventoryItem } from '@/lib/types';
 import { MainHeader } from '@/components/main-header';
@@ -209,6 +210,7 @@ function InvoiceDetailModal({ invoiceId, userId, isOpen, onOpenChange, initialPr
   }, [initialPrintMode]);
 
   const { data: companyProfile } = useCompanyProfile(userId);
+  const { data: prefs } = useUserPreferences(userId);
 
   const invoiceRef = useMemoFirebase(
     () => (firestore && userId && invoiceId ? doc(firestore, `users/${userId}/invoices/${invoiceId}`) : null),
@@ -293,6 +295,9 @@ function InvoiceDetailModal({ invoiceId, userId, isOpen, onOpenChange, initialPr
     email: 'dubaitools2026@gmail.com', 
     gstRegistrationNumber: 'Qw1234766666s' 
   };
+
+  // Explicitly default to visible if not set
+  const showSignature = prefs?.showSignatureArea !== false;
 
   if (!invoiceId) return null;
 
@@ -449,14 +454,25 @@ function InvoiceDetailModal({ invoiceId, userId, isOpen, onOpenChange, initialPr
               </div>
 
               <div className="flex justify-between items-end gap-8 pt-2">
-                <div className="signature-area flex flex-col items-start gap-1">
-                  <div className="relative h-10 w-20">
-                    <Image src="/signature.jpeg" alt="Signature" width={80} height={40} className="object-contain" />
+                {showSignature && (
+                  <div className="signature-area flex flex-col items-start gap-1">
+                    <div className="relative h-10 w-20">
+                      <Image 
+                        src="/signature.jpeg" 
+                        alt="Signature" 
+                        width={80} 
+                        height={40} 
+                        className="object-contain" 
+                        priority 
+                      />
+                    </div>
+                    <div className="w-32 border-t border-dashed pt-1">
+                      <p className="text-[9px] text-muted-foreground">
+                        {prefs?.authorizedSignatory || 'Authorized Signature'}
+                      </p>
+                    </div>
                   </div>
-                  <div className="w-32 border-t border-dashed pt-1">
-                    <p className="text-[9px] text-muted-foreground">Authorized Signature</p>
-                  </div>
-                </div>
+                )}
                 <div className="w-full md:w-1/2 space-y-1 text-right">
                   <div className="flex justify-between px-2 text-xs"><span>Subtotal</span><span>{formatCurrency(invoice.subtotalAmount)}</span></div>
                   <div className="flex justify-between px-2 text-xs"><span>Tax</span><span>{formatCurrency(invoice.totalTaxAmount)}</span></div>
@@ -523,7 +539,7 @@ function InvoiceDetailModal({ invoiceId, userId, isOpen, onOpenChange, initialPr
                   <span>Tax:</span><span>{formatCurrency(invoice.totalTaxAmount)}</span>
                 </div>
                 <div className="flex justify-between font-bold text-[8pt] pt-0.5">
-                  <span>GRAND TOTAL:</span><span>{formatCurrency(invoice.grandTotalAmount)}</span>
+                  <span>GRAND TOTAL:</span><span>{formatCurrency(grandTotalAmount)}</span>
                 </div>
               </div>
               <div className="mt-2 text-center text-[6pt] italic">Thank you for Shopping!</div>

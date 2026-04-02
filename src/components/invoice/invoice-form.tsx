@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useEffect, useState, useMemo } from 'react';
@@ -12,7 +13,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Trash2, Plus, User, Phone, Package, Search, CheckCircle2, AlertCircle, Users, Zap, Landmark } from 'lucide-react';
 import { InvoiceHeader } from './invoice-header';
 import { InvoiceActions } from './invoice-actions';
-import { useFirestore, useDoc, useCollection, useMemoFirebase, useCompanyProfile } from '@/firebase';
+import { useFirestore, useDoc, useCollection, useMemoFirebase, useCompanyProfile, useUserPreferences } from '@/firebase';
 import { doc, collection, addDoc, deleteDoc, query, orderBy, writeBatch } from 'firebase/firestore';
 import { addDocumentNonBlocking, deleteDocumentNonBlocking, setDocumentNonBlocking, updateDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 import type { Invoice, InvoiceLineItem, InventoryItem, Customer, Laborer, Service } from '@/lib/types';
@@ -32,6 +33,7 @@ export function InvoiceForm({ userId }: { userId: string }) {
   const invoiceId = 'main';
 
   const { data: companyProfile, isLoading: isCompanyProfileLoading } = useCompanyProfile(userId);
+  const { data: prefs } = useUserPreferences(userId);
 
   const invoiceRef = useMemoFirebase(
     () => (firestore ? doc(firestore, `users/${userId}/invoices/${invoiceId}`) : null),
@@ -68,18 +70,12 @@ export function InvoiceForm({ userId }: { userId: string }) {
     [firestore, userId]
   );
 
-  const prefsRef = useMemoFirebase(
-    () => (firestore ? doc(firestore, `users/${userId}/profile/preferences`) : null),
-    [firestore, userId]
-  );
-
   const { data: invoice, isLoading: isInvoiceLoading } = useDoc<Invoice>(invoiceRef);
   const { data: lineItems, isLoading: areLineItemsLoading } = useCollection<InvoiceLineItem>(lineItemsQuery);
   const { data: inventoryItems } = useCollection<InventoryItem>(inventoryRef);
   const { data: customers } = useCollection<Customer>(customersRef);
   const { data: laborers } = useCollection<Laborer>(laborersRef);
   const { data: services } = useCollection<Service>(servicesRef);
-  const { data: prefs } = useDoc(prefsRef);
 
   useEffect(() => {
     if (!isInvoiceLoading && !invoice && !!invoiceRef && !isCompanyProfileLoading) {
@@ -276,6 +272,9 @@ export function InvoiceForm({ userId }: { userId: string }) {
     email: 'dubaitools2026@gmail.com', 
     gstRegistrationNumber: 'Qw1234766666s' 
   };
+
+  // Explicitly default to visible if not set
+  const showSignature = prefs?.showSignatureArea !== false;
 
   return (
     <>
@@ -586,10 +585,17 @@ export function InvoiceForm({ userId }: { userId: string }) {
                     <span>{formatCurrency(grandTotal)}</span>
                   </div>
                 </div>
-                {prefs?.showSignatureArea && (
+                {showSignature && (
                   <div className="signature-area flex flex-col items-end gap-2 pr-4">
                     <div className="relative h-14 w-28 opacity-80">
-                      <Image src="/signature.jpeg" alt="Signature" width={112} height={56} className="object-contain" />
+                      <Image 
+                        src="/signature.jpeg" 
+                        alt="Signature" 
+                        width={112} 
+                        height={56} 
+                        className="object-contain" 
+                        priority 
+                      />
                     </div>
                     <div className="w-48 border-t border-dashed border-primary/30 pt-1 text-right">
                       <p className="text-[10px] font-bold text-primary/70 uppercase tracking-widest">
