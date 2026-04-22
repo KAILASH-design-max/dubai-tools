@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useEffect, useState, useMemo } from 'react';
@@ -303,52 +302,52 @@ function InvoiceDetailModal({ invoiceId, userId, isOpen, onOpenChange, initialPr
 
   return (
     <>
+      <style>{`
+        @media screen { 
+          .receipt-view-modal { display: none; } 
+        }
+        @media print {
+          body * { visibility: hidden; }
+          [data-radix-portal] { visibility: visible !important; position: absolute; left: 0; top: 0; width: 100%; }
+          [data-radix-portal] *, 
+          .invoice-detail-print, 
+          .invoice-detail-print *,
+          .receipt-view-modal,
+          .receipt-view-modal * { visibility: visible !important; }
+          
+          .invoice-detail-print, .receipt-view-modal { display: none !important; }
+
+          .print-a4 .invoice-detail-print {
+            display: block !important;
+            width: 100% !important;
+            padding: 10mm !important;
+          }
+          
+          .print-receipt .receipt-view-modal {
+            display: block !important;
+            width: 80mm !important;
+            padding: 5mm !important;
+          }
+
+          .print-hidden, 
+          [role="dialog"] button[aria-label="Close"], 
+          .dialog-footer-print,
+          .dropdown-trigger-print { display: none !important; }
+          
+          * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+          
+          /* Force table contents to stay visible */
+          .invoice-detail-print table, 
+          .invoice-detail-print tr, 
+          .invoice-detail-print td, 
+          .invoice-detail-print th { 
+            visibility: visible !important; 
+          }
+        }
+      `}</style>
+      
       <Dialog open={isOpen} onOpenChange={onOpenChange}>
         <DialogContent className={`max-w-3xl max-h-[90vh] overflow-y-auto ${printMode === 'a4' ? 'print-a4' : 'print-receipt'}`}>
-          <style>{`
-            @media screen { 
-              .receipt-view-modal { display: none; } 
-            }
-            @media print {
-              body * { visibility: hidden; }
-              [data-radix-portal] { visibility: visible !important; position: absolute; left: 0; top: 0; width: 100%; }
-              [data-radix-portal] *, 
-              .invoice-detail-print, 
-              .invoice-detail-print *,
-              .receipt-view-modal,
-              .receipt-view-modal * { visibility: visible !important; }
-              
-              .invoice-detail-print, .receipt-view-modal { display: none !important; }
-
-              .print-a4 .invoice-detail-print {
-                display: block !important;
-                width: 100% !important;
-                padding: 10mm !important;
-              }
-              
-              .print-receipt .receipt-view-modal {
-                display: block !important;
-                width: 80mm !important;
-                padding: 5mm !important;
-              }
-
-              .print-hidden, 
-              [role="dialog"] button[aria-label="Close"], 
-              .dialog-footer-print,
-              .dropdown-trigger-print { display: none !important; }
-              
-              * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
-              
-              /* Force table contents to stay visible */
-              .invoice-detail-print table, 
-              .invoice-detail-print tr, 
-              .invoice-detail-print td, 
-              .invoice-detail-print th { 
-                visibility: visible !important; 
-              }
-            }
-          `}</style>
-          
           <DialogHeader className="print-hidden flex flex-row items-center justify-between gap-4">
             <div className="flex items-center gap-3">
               <Image src="/dubaitools.png" alt="Logo" width={32} height={32} className="object-contain" />
@@ -539,7 +538,7 @@ function InvoiceDetailModal({ invoiceId, userId, isOpen, onOpenChange, initialPr
                   <span>Tax:</span><span>{formatCurrency(invoice.totalTaxAmount)}</span>
                 </div>
                 <div className="flex justify-between font-bold text-[8pt] pt-0.5">
-                  <span>GRAND TOTAL:</span><span>{formatCurrency(grandTotalAmount)}</span>
+                  <span>GRAND TOTAL:</span><span>{formatCurrency(invoice.grandTotalAmount)}</span>
                 </div>
               </div>
               <div className="mt-2 text-center text-[6pt] italic">Thank you for Shopping!</div>
